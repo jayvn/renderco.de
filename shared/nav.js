@@ -32,7 +32,7 @@
         const currentPath = window.location.pathname;
 
         return `
-            <nav class="karayogam-nav">
+            <nav class="app-nav">
                 <div class="nav-container">
                     <a href="${nav.brand.home}" class="nav-brand">
                         <img src="${nav.brand.logo}" alt="Logo" class="nav-logo">

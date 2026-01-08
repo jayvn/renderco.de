@@ -1,6 +1,6 @@
 # App Templates
 
-Quick-start templates for adding new apps to the Karayogam website.
+Quick-start templates for adding new apps to the app gallery.
 
 ## 🚀 Quick Start
 
@@ -19,7 +19,7 @@ Quick-start templates for adding new apps to the Karayogam website.
 
 3. **Optional - Add navigation:**
    - Uncomment the navigation lines in the template
-   - This adds the Karayogam nav bar to your app
+   - This adds the site nav bar to your app
    - **Smart detection**: Nav auto-hides when app is installed as PWA
 
 4. **Add to homepage:**
@@ -58,7 +58,7 @@ Quick-start templates for adding new apps to the Karayogam website.
 ## 📁 Recommended File Structure
 
 ```
-karayogam-site/
+app-gallery/
 ├── my-app/                 # Your new app
 │   ├── index.html          # Main app file
 │   ├── sw.js              # Optional: Service worker for PWA
@@ -201,7 +201,7 @@ npm install react react-dom
 **Styling conflicts?**
 - Check CSS specificity
 - Use scoped classes for your app
-- Nav styles are prefixed with `.karayogam-nav`
+- Nav styles are prefixed with `.app-nav`
 
 ---
 

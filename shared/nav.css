@@ -1,6 +1,6 @@
 /* Modern App Gallery Navigation Styles */
 
-.karayogam-nav {
+.app-nav {
     background: rgba(20, 20, 20, 0.95);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
