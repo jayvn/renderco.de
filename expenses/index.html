@@ -145,8 +145,8 @@
                 <div id="split-users-container" class="grid grid-cols-2 gap-2 hidden"></div>
                 <button id="add-exp-btn" class="btn btn-success w-full py-3 font-bold">Add Expense</button>
                 <div id="edit-controls" class="hidden text-center">
-                    <button type="button" onclick="cancelEdit()"
-                        class="text-sm text-red-400 hover:text-red-300">Cancel Edit</button>
+                    <button type="button" onclick="cancelEdit()" class="text-sm text-red-400 hover:text-red-300">Cancel
+                        Edit</button>
                 </div>
             </div>
 
@@ -869,7 +869,8 @@
                     }
                 };
 
-                if ('serviceWorker' in navigator) {
+                // Only register ServiceWorker on http/https (not on file:// protocol)
+                if ('serviceWorker' in navigator && location.protocol !== 'file:') {
                     window.addEventListener('load', () => {
                         navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
                     });
