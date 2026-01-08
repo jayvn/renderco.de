@@ -136,7 +136,7 @@
                 </div>
                 <!-- TOTALS & ACTIONS -->
                 <div class="card mb-4">
-                    <div class="flex justify-between items-start">
+                    <div class="flex justify-between items-center">
                         <div>
                             <span class="text-xs text-uppercase text-gray-500 font-bold tracking-wider">TOTAL
                                 SPENT</span>
@@ -185,25 +185,32 @@
                     </div>
                 </div>
 
-                <!-- SEARCH & FILTER -->
-                <div class="flex gap-2 mb-4">
-                    <div class="relative flex-1">
-                        <input type="text" id="search-input" placeholder="Search..."
-                            class="w-full bg-gray-700 border-none rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-green-500 transition-all">
-                        <div id="search-loading" class="absolute right-3 top-1/2 transform -translate-y-1/2 hidden">
-                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        </div>
-                    </div>
-                    <select id="filter-type"
-                        class="bg-gray-700 border-none rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500">
-                        <option value="all">All</option>
-                        <option value="expense">Exp</option>
-                        <option value="settlement">Settle</option>
-                    </select>
-                </div>
+                <!-- BALANCES (Explicit) -->
+                <div id="balances-container" class="card mb-4 hidden"></div>
 
-                <!-- LIST -->
-                <div id="expense-list" class="space-y-3 pb-8"></div>
+                <!-- TRANSACTIONS SECTION (Search + List) -->
+                <div class="flex flex-col gap-2">
+                    <!-- SEARCH & FILTER (Sticky) -->
+                    <div
+                        class="flex gap-2 sticky top-0 bg-gray-900 z-10 py-2 -mx-4 px-4 backdrop-blur-sm bg-opacity-90">
+                        <div class="relative flex-1">
+                            <input type="text" id="search-input" placeholder="Search..."
+                                class="w-full bg-gray-800 border-none rounded-lg pl-4 pr-10 py-3 text-sm focus:ring-2 focus:ring-green-500 transition-all shadow-sm">
+                            <div id="search-loading" class="absolute right-3 top-1/2 transform -translate-y-1/2 hidden">
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            </div>
+                        </div>
+                        <select id="filter-type"
+                            class="bg-gray-800 border-none rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 shadow-sm">
+                            <option value="all">All</option>
+                            <option value="expense">Exp</option>
+                            <option value="settlement">Settle</option>
+                        </select>
+                    </div>
+
+                    <!-- LIST -->
+                    <div id="expense-list" class="space-y-3 pb-8"></div>
+                </div>
             </div>
 
             <!-- Firebase Configuration -->
@@ -482,7 +489,7 @@
                     // 3. Render Balances
                     const balanceHtml = users.map(u => {
                         const paid = balances[u.name] || 0;
-                        const diff = paid; // Balance is already creating the net difference
+                        const diff = paid;
                         const isOwed = diff > 0.01;
                         const isOwing = diff < -0.01;
                         const color = isOwed ? 'text-green-400' : (isOwing ? 'text-red-400' : 'text-gray-400');
@@ -496,18 +503,19 @@
             `;
                     }).join('');
 
-                    // Separate container for items to allow independent updates
-                    const balanceContainer = `
-            <div class="card mb-4">
-                <h4 class="section-header mb-2">Balances (Split ${users.length})</h4>
-                <div>${balanceHtml}</div>
-            </div>
-            <div id="expense-items-container" class="space-y-3"></div>
-        `;
+                    const balContainer = document.getElementById('balances-container');
+                    if (users.length > 0) {
+                        balContainer.classList.remove('hidden');
+                        balContainer.innerHTML = `
+                            <h4 class="section-header mb-2">Balances (Split ${users.length})</h4>
+                            <div>${balanceHtml}</div>
+                        `;
+                    } else {
+                        balContainer.classList.add('hidden');
+                    }
 
-                    document.getElementById('expense-list').innerHTML = balanceContainer;
-
-                    // 5. Render List
+                    // 5. Render List logic is separate now
+                    // 5. Render List logic is separate now
                     renderList();
                     renderSplitOptions();
                 }
