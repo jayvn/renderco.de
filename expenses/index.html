@@ -162,6 +162,20 @@
                                 class="input flex-1 bg-gray-700 border-gray-600 text-gray-400 text-xs">
                         </div>
 
+                        <!-- SPLIT OPTIONS -->
+                        <div class="space-y-2">
+                            <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Split With</label>
+                            <div class="flex gap-2 mb-2">
+                                <button id="split-all-btn" type="button" class="btn btn-xs btn-primary flex-1"
+                                    onclick="toggleSplitAll(true)">Everyone</button>
+                                <button id="split-custom-btn" type="button" class="btn btn-xs btn-secondary flex-1"
+                                    onclick="toggleSplitAll(false)">Select</button>
+                            </div>
+                            <div id="split-users-container" class="grid grid-cols-2 gap-2 hidden">
+                                <!-- Checkboxes injected here -->
+                            </div>
+                        </div>
+
                         <button id="add-exp-btn" class="btn btn-success w-full py-3 font-bold">Add Expense</button>
 
                         <div id="edit-controls" class="hidden text-center">
@@ -412,9 +426,28 @@
                             if (balances[e.to] !== undefined) balances[e.to] -= amt;
                         } else {
                             totalSpent += amt;
+
+                            // Credit the payer
                             if (balances[e.who] !== undefined) balances[e.who] += amt;
                             else balances[e.who] = amt;
+
                             spendingByUser[e.who] = (spendingByUser[e.who] || 0) + amt;
+
+                            // Debit the splitters
+                            // If splitWith is missing or empty, assume everyone (legacy compatibility)
+                            let splitters = e.splitWith || [];
+                            if (splitters.length === 0) splitters = users.map(u => u.name);
+
+                            // Filter out any users that might have left (safety check)
+                            splitters = splitters.filter(name => users.some(u => u.name === name));
+
+                            if (splitters.length > 0) {
+                                const share = amt / splitters.length;
+                                splitters.forEach(name => {
+                                    if (balances[name] !== undefined) balances[name] -= share;
+                                    else balances[name] = -share;
+                                });
+                            }
                         }
                     });
 
@@ -447,10 +480,9 @@
                     }
 
                     // 3. Render Balances
-                    const split = totalSpent / userCount;
                     const balanceHtml = users.map(u => {
                         const paid = balances[u.name] || 0;
-                        const diff = paid - split;
+                        const diff = paid; // Balance is already creating the net difference
                         const isOwed = diff > 0.01;
                         const isOwing = diff < -0.01;
                         const color = isOwed ? 'text-green-400' : (isOwing ? 'text-red-400' : 'text-gray-400');
@@ -477,6 +509,68 @@
 
                     // 5. Render List
                     renderList();
+                    renderSplitOptions();
+                }
+
+                function renderSplitOptions() {
+                    const container = document.getElementById('split-users-container');
+                    // Retain current selection if possible, else default to all checked
+                    // Actually, re-rendering might wipe selection if we aren't careful.
+                    // Let's only render if empty or if users changed significantly.
+                    // For simplicity, let's keep it simple: Only re-render if it's not currently open/interacting?
+                    // Or better: Just render it every time but check checks based on editing state or default.
+
+                    if (container.children.length === 0 || container.dataset.usersHash !== JSON.stringify(Object.keys(tripData.users))) {
+                        container.innerHTML = Object.values(tripData.users).map(u => `
+                            <label class="flex items-center gap-2 text-sm bg-gray-700 p-2 rounded cursor-pointer hover:bg-gray-600">
+                                <input type="checkbox" name="split-user" value="${u.name}" checked class="rounded bg-gray-900 border-gray-500 text-green-500 focus:ring-green-500">
+                                <span class="truncate">${u.name}</span>
+                            </label>
+                        `).join('');
+                        container.dataset.usersHash = JSON.stringify(Object.keys(tripData.users));
+                    }
+                }
+
+                window.toggleSplitAll = (isAll) => {
+                    const container = document.getElementById('split-users-container');
+                    const allBtn = document.getElementById('split-all-btn');
+                    const customBtn = document.getElementById('split-custom-btn');
+
+                    if (isAll) {
+                        container.classList.add('hidden');
+                        allBtn.classList.replace('btn-secondary', 'btn-primary');
+                        customBtn.classList.replace('btn-primary', 'btn-secondary');
+                        // Check all internally just in case
+                        container.querySelectorAll('input').forEach(cb => cb.checked = true);
+                    } else {
+                        container.classList.remove('hidden');
+                        allBtn.classList.replace('btn-primary', 'btn-secondary');
+                        customBtn.classList.replace('btn-secondary', 'btn-primary');
+                    }
+                };
+
+                function getSelectedSplitters() {
+                    const container = document.getElementById('split-users-container');
+                    if (container.classList.contains('hidden')) return []; // Empty means "All" by convention in this app logic
+
+                    const checked = Array.from(container.querySelectorAll('input[name="split-user"]:checked')).map(cb => cb.value);
+                    // If all selected, return empty array to signify "Default/All" for storage efficiency
+                    const allCount = container.querySelectorAll('input[name="split-user"]').length;
+                    if (checked.length === allCount) return [];
+
+                    return checked;
+                }
+
+                function setSplitSelection(splitWith) {
+                    const isAll = !splitWith || splitWith.length === 0;
+                    toggleSplitAll(isAll);
+
+                    if (!isAll) {
+                        const inputs = document.querySelectorAll('input[name="split-user"]');
+                        inputs.forEach(input => {
+                            input.checked = splitWith.includes(input.value);
+                        });
+                    }
                 }
 
                 function renderList() {
@@ -513,7 +607,12 @@
                          ${dateStr ? `<span class="text-[10px] bg-gray-700 px-1 rounded text-gray-300">${dateStr}</span>` : ''}
                     </div>
                     <span class="block text-xs text-gray-500">
-                        ${isSettlement ? `${e.who} ➞ ${e.to}` : `${e.who} paid`}
+                        ${isSettlement ? `${e.who} ➞ ${e.to}` : `
+                            ${e.who} paid
+                            <span class="text-xs text-gray-400 bg-gray-800 px-1 rounded ml-1">
+                                ${(!e.splitWith || e.splitWith.length === 0) ? 'All' : (e.splitWith.length === 1 ? e.splitWith[0] : `${e.splitWith.length} people`)}
+                            </span>
+                        `}
                     </span>
                 </div>
                 <div class="flex items-center gap-3">
@@ -728,6 +827,9 @@
 
                     // Scroll to top to see edit form
                     document.querySelector('.overflow-y-auto').scrollTo({ top: 0, behavior: 'smooth' });
+
+                    // Set split selection
+                    setSplitSelection(expense.splitWith);
                 };
 
                 window.cancelEdit = () => {
@@ -739,6 +841,9 @@
                     document.getElementById('add-exp-btn').innerText = 'Add';
                     document.getElementById('add-exp-btn').classList.replace('btn-primary', 'btn-success');
                     document.getElementById('edit-controls').classList.add('hidden');
+
+                    // Reset split
+                    toggleSplitAll(true);
                 };
 
                 window.deleteExpense = (id) => {
@@ -759,6 +864,7 @@
                         const desc = d.value.trim();
                         const amt = parseFloat(a.value);
                         const date = dateInput.value;
+                        const splitWith = getSelectedSplitters();
 
                         if (!tripData.expenses) tripData.expenses = [];
 
@@ -770,23 +876,26 @@
                                     ...tripData.expenses[idx],
                                     what: desc,
                                     amt: amt,
-                                    date: date
+                                    date: date,
+                                    splitWith: splitWith
                                 };
-                            }
-                        } else {
-                            // ADD NEW
-                            tripData.expenses.push({
-                                who: currentUser.name,
-                                what: desc,
-                                amt: amt,
-                                date: date,
-                                id: Date.now()
-                            });
+                            };
                         }
-
-                        sync();
-                        cancelEdit(); // Resets form and ID
+                    } else {
+                        // ADD NEW
+                        tripData.expenses.push({
+                            who: currentUser.name,
+                            what: desc,
+                            amt: amt,
+                            date: date,
+                            splitWith: splitWith,
+                            id: Date.now()
+                        });
                     }
+
+                    sync();
+                    cancelEdit(); // Resets form and ID
+                }
                 };
 
                 if ('serviceWorker' in navigator) {
