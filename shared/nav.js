@@ -13,18 +13,6 @@
         },
         links: [
             { name: 'Apps', path: '/#apps', icon: '📱' }
-        ],
-        apps: [
-            { name: 'ChoreoMarker', path: '/choreo/', icon: '💃' },
-            { name: "Anil's Library", path: '/anils-library/', icon: '⚛️' },
-            { name: 'Shopping List', path: '/shopping/', icon: '🛒' },
-            { name: '3D Colorizer', path: '/3d_colorizer/', icon: '🎨' },
-            { name: 'Secret Santa', path: '/secret-santa/', icon: '🎅🏽' },
-            { name: 'Trip Planner', path: '/trip_helper/', icon: '✈️' },
-            { name: 'Matrix Code Gen', path: '/matrix_draw/', icon: '🟩' }
-        ],
-        moreLinks: [
-            { name: 'Events', path: '/events', icon: '📅' }
         ]
     };
 
@@ -56,38 +44,6 @@
                                     ${link.name}
                                 </a>
                             `).join('')}
-
-                            <div class="nav-dropdown">
-                                <button class="nav-link nav-dropdown-toggle">
-                                    <span class="nav-icon">⚡</span>
-                                    Quick Launch
-                                    <span class="dropdown-arrow">▼</span>
-                                </button>
-                                <div class="nav-dropdown-menu">
-                                    ${nav.apps.map(app => `
-                                        <a href="${app.path}" class="nav-dropdown-item">
-                                            <span class="nav-icon">${app.icon}</span>
-                                            ${app.name}
-                                        </a>
-                                    `).join('')}
-                                </div>
-                            </div>
-
-                            <div class="nav-dropdown">
-                                <button class="nav-link nav-dropdown-toggle">
-                                    <span class="nav-icon">⋮</span>
-                                    More
-                                    <span class="dropdown-arrow">▼</span>
-                                </button>
-                                <div class="nav-dropdown-menu">
-                                    ${nav.moreLinks.map(link => `
-                                        <a href="${link.path}" class="nav-dropdown-item">
-                                            <span class="nav-icon">${link.icon}</span>
-                                            ${link.name}
-                                        </a>
-                                    `).join('')}
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
