@@ -3,7 +3,8 @@ const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
-    'https://cdn.tailwindcss.com'
+    './logo.png',
+    './style.css'
 ];
 
 self.addEventListener('install', (event) => {

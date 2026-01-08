@@ -5,8 +5,7 @@ const urlsToCache = [
   '/secret-santa/index.html',
   '/images/santa-icon-192.png',
   '/images/santa-icon-512.png',
-  '/images/favicon.ico',
-  'https://cdn.tailwindcss.com'
+  '/images/favicon.ico'
 ];
 
 // Install event - cache resources
