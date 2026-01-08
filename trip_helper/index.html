@@ -310,12 +310,12 @@
     <!-- Firebase Configuration -->
     <script>
         window.__firebase_config = JSON.stringify({
-            apiKey: "AIzaSyATX9AewOd8pmUQWkYXYAvb2meH7kGNtbg",
-            authDomain: "karayogam-22.firebaseapp.com",
-            projectId: "karayogam-22",
-            storageBucket: "karayogam-22.firebasestorage.app",
-            messagingSenderId: "38360726672",
-            appId: "1:38360726672:web:d254e8eed733ddf3c9ac15"
+            apiKey: "AIzaSyDGrq3qdR3pqHc0dQMXnE20c2wcLOINN-8",
+            authDomain: "rendercode-d73da.firebaseapp.com",
+            projectId: "rendercode-d73da",
+            storageBucket: "rendercode-d73da.firebasestorage.app",
+            messagingSenderId: "798989930424",
+            appId: "1:798989930424:web:7f324e5153cabc5d90494d"
         });
     </script>
 
@@ -448,7 +448,7 @@
 
         const DB = {
             async listen(id, callback) {
-                return onSnapshot(doc(db, 'artifacts', 'trip-planner-v1', id), (snap) => {
+                return onSnapshot(doc(db, 'trip-planner-v1', id), (snap) => {
                     callback(snap.exists() ? snap.data() : null);
                 }, err => {
                     console.error("Firebase Error:", err);
@@ -456,7 +456,7 @@
             },
 
             async save(id, data) {
-                await setDoc(doc(db, 'artifacts', 'trip-planner-v1', id), data, { merge: true });
+                await setDoc(doc(db, 'trip-planner-v1', id), data, { merge: true });
             }
         };
 
