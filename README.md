@@ -117,8 +117,3 @@ GitHub Actions auto-deploys on push to main branch. No build step needed - pure 
 ---
 
 📖 **Documentation:** [_templates/README.md](_templates/README.md)
-
-## Latest Updates
-**Trip Planner Fix**: Resolved Firebase permission errors by refactoring the Firestore path to `artifacts/trip-planner-v1/...`.
-This matches the working pattern from Secret Santa, enabling real-time sync and anonymous auth.
-Users can now share trip tokens via URL for instant collaboration.
