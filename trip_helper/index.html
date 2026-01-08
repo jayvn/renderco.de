@@ -542,7 +542,21 @@
 
         async function fetchWeather(lat, lon, start, end) {
             try {
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=${start}&end_date=${end}`;
+                // Open-Meteo free API only provides 16-day forecasts
+                const today = new Date();
+                const maxForecastDate = new Date(today);
+                maxForecastDate.setDate(today.getDate() + 15);
+                const maxEnd = maxForecastDate.toISOString().split('T')[0];
+
+                // Cap dates to available forecast window
+                const clampedStart = start > maxEnd ? null : (start < today.toISOString().split('T')[0] ? today.toISOString().split('T')[0] : start);
+                const clampedEnd = end > maxEnd ? maxEnd : end;
+
+                if (!clampedStart || clampedStart > clampedEnd) {
+                    return { error: 'Dates outside forecast window' };
+                }
+
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=${clampedStart}&end_date=${clampedEnd}`;
                 const res = await fetch(url);
                 return await res.json();
             } catch (e) {
@@ -709,7 +723,14 @@
 
                 // Sort logic: Sort keys (days), then sort locations within days by votes
                 const dayKeys = Object.keys(grouped).sort((a, b) => parseInt(a) - parseInt(b));
-                const dates = getTripDates();
+                // Use finalized dates for weather if available, otherwise fall back to user availability
+                let dates;
+                if (tripData.finalizedDates && tripData.finalizedDates.length > 0) {
+                    const sorted = [...tripData.finalizedDates].sort();
+                    dates = { min: sorted[0], max: sorted[sorted.length - 1] };
+                } else {
+                    dates = getTripDates();
+                }
 
                 let finalHtml = '';
 
