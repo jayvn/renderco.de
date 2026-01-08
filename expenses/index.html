@@ -126,38 +126,27 @@
             </div>
 
             <!-- ADD EXPENSE FORM -->
-            <div class="card mb-4">
-                <div class="bg-gray-800 rounded-lg p-3 space-y-3">
-                    <input type="text" id="exp-desc" placeholder="Expense name?"
-                        class="input w-full bg-gray-700 border-gray-600">
-
-                    <div class="flex gap-2">
-                        <input type="number" id="exp-amt" placeholder="0.00"
-                            class="input w-1/3 bg-gray-700 border-gray-600">
-                        <input type="date" id="exp-date"
-                            class="input flex-1 bg-gray-700 border-gray-600 text-gray-400 text-xs">
-                    </div>
-
-                    <!-- SPLIT OPTIONS -->
-                    <div class="space-y-2">
-                        <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Split With</label>
-                        <div class="flex gap-2 mb-2">
-                            <button id="split-all-btn" type="button" class="btn btn-xs btn-primary flex-1"
-                                onclick="toggleSplitAll(true)">Everyone</button>
-                            <button id="split-custom-btn" type="button" class="btn btn-xs btn-secondary flex-1"
-                                onclick="toggleSplitAll(false)">Select</button>
-                        </div>
-                        <div id="split-users-container" class="grid grid-cols-2 gap-2 hidden">
-                            <!-- Checkboxes injected here -->
-                        </div>
-                    </div>
-
-                    <button id="add-exp-btn" class="btn btn-success w-full py-3 font-bold">Add Expense</button>
-
-                    <div id="edit-controls" class="hidden text-center">
-                        <button type="button" onclick="cancelEdit()"
-                            class="text-sm text-red-400 hover:text-red-300">Cancel Edit</button>
-                    </div>
+            <div class="card bg-gray-800 mb-4 space-y-3">
+                <input type="text" id="exp-desc" placeholder="Expense name?"
+                    class="input w-full bg-gray-700 border-gray-600">
+                <div class="flex gap-2">
+                    <input type="number" id="exp-amt" placeholder="0.00"
+                        class="input w-1/3 bg-gray-700 border-gray-600">
+                    <input type="date" id="exp-date"
+                        class="input flex-1 bg-gray-700 border-gray-600 text-gray-400 text-xs">
+                </div>
+                <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Split With</label>
+                <div class="flex gap-2">
+                    <button id="split-all-btn" type="button" class="btn btn-xs btn-primary flex-1"
+                        onclick="toggleSplitAll(true)">Everyone</button>
+                    <button id="split-custom-btn" type="button" class="btn btn-xs btn-secondary flex-1"
+                        onclick="toggleSplitAll(false)">Select</button>
+                </div>
+                <div id="split-users-container" class="grid grid-cols-2 gap-2 hidden"></div>
+                <button id="add-exp-btn" class="btn btn-success w-full py-3 font-bold">Add Expense</button>
+                <div id="edit-controls" class="hidden text-center">
+                    <button type="button" onclick="cancelEdit()"
+                        class="text-sm text-red-400 hover:text-red-300">Cancel Edit</button>
                 </div>
             </div>
 
