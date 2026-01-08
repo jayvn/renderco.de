@@ -135,7 +135,7 @@ self.addEventListener('fetch', event => {
 ## 📝 Examples
 
 Check out existing apps for reference:
-- `/shopping/` - Simple vanilla JS PWA with localStorage
+- `/expenses/` - Simple vanilla JS PWA with localStorage
 - `/choreo/` - Vanilla JS PWA with complex state management
 - `/anils-library/` - Scientific calculator with visualizations
 

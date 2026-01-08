@@ -94,7 +94,7 @@ GitHub Actions auto-deploys on push to main branch. No build step needed - pure 
 ├── _templates/             # App templates for quick start
 ├── your-app/               # Your apps go here
 │   └── index.html
-└── choreo/, shopping/, etc # Example apps
+└── choreo/, expenses/, etc # Example apps
 ```
 
 ## How It Works
