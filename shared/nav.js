@@ -11,9 +11,7 @@
             logo: '/images/logo.png',
             home: '/'
         },
-        links: [
-            { name: 'Apps', path: '/#apps', icon: '📱' }
-        ]
+        links: []
     };
 
     function createNavHTML() {

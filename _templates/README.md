@@ -34,13 +34,6 @@ Quick-start templates for adding new apps to the app gallery.
    </div>
    ```
 
-5. **Update navigation dropdown** (optional):
-   - Edit `/shared/nav.js`
-   - Add your app to the `apps` array:
-   ```javascript
-   { name: 'My App', path: '/my-app/', icon: '🎯' }
-   ```
-
 ### Option 2: React App (Single File)
 
 1. **Copy the template:**
@@ -53,7 +46,7 @@ Quick-start templates for adding new apps to the app gallery.
    - Add your styles
    - Import additional libraries if needed (from CDN)
 
-3. **Follow steps 3-5 from Option 1** to integrate with the site
+3. **Follow steps 3-4 from Option 1** to integrate with the site
 
 ## 📁 Recommended File Structure
 
@@ -181,7 +174,6 @@ npm install react react-dom
 ## 💡 Tips
 
 - **Test locally:** `python3 -m http.server 8000`
-- **Check navigation:** Apps in dropdown should match homepage gallery
 - **Mobile first:** Test on mobile - navigation is responsive
 - **Keep it fast:** Minimize dependencies, lazy load when possible
 - **Use localStorage:** For simple data persistence
@@ -193,10 +185,6 @@ npm install react react-dom
 - Check if nav.js script is included
 - Check if nav.css stylesheet is linked
 - Open console for errors
-
-**App not in dropdown?**
-- Update `/shared/nav.js` apps array
-- Clear cache and refresh
 
 **Styling conflicts?**
 - Check CSS specificity

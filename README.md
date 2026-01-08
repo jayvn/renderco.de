@@ -54,10 +54,8 @@ python3 -m http.server 8000
    - Copy the complete HTML from Claude/ChatGPT/Gemini
    - Save as `my-app/index.html`
 
-3. **Add to gallery, navigation, and deployment:**
+3. **Add to gallery:**
    - Edit `index.html` and add a card in the `#apps` section
-   - Edit `shared/nav.js` and add your app to the `apps` array for Quick Launch menu
-   - Edit `.github/workflows/deploy.yml` and add your app folder to the copy commands
 
 ### Method 2: Use Templates
 
