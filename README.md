@@ -28,10 +28,10 @@ Avoid unnecessary exception/error handling and comments. For apps, errors should
 
 - **ChoreoMarker** - Dance choreography marker ([docs](choreo/README.md))
 - **Anil's Library** - Plasma Physics Calculator
-- **Shopping List** - Offline shopping list with categories
-- **3D Colorizer** - Interactive 3D shape painter
 - **Secret Santa** - Gift exchange organizer with real-time sync
 - **Trip Planner** - Collaborative trip planning with expense tracking and voting
+- **Group Expenses** - Expense tracker for groups
+- **Matrix Code Gen** - Pixel art editor for LED matrix displays
 
 ## Quick Start
 

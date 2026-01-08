@@ -38,6 +38,16 @@ body {
     font-weight: 400;
 }
 
+.hero-pwa-info {
+    font-size: 14px;
+    color: #aaa;
+    margin-top: 24px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* App Gallery */
 .app-gallery {
     max-width: 1200px;
@@ -167,6 +177,11 @@ footer {
 
     .hero-subtitle {
         font-size: 16px;
+    }
+
+    .hero-pwa-info {
+        font-size: 13px;
+        padding: 10px 16px;
     }
 
     .app-grid {
