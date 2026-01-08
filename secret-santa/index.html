@@ -93,14 +93,14 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'secret-santa-v1';
 
         let state = { members: [], pairs: [], isReady: false, creator: null };
         let user = null;
-        const docRef = doc(db, 'artifacts', appId, 'sessions');
+        let sessionId = null;
+        let docRef = null;
         const santaEmoji = "🎅🏽";
 
-        const sync = (newData) => { if (user) setDoc(docRef, newData); };
+        const sync = (newData) => { if (user && docRef) setDoc(docRef, newData); };
 
         const showEgg = (msg) => {
             const egg = document.createElement('div');
@@ -247,6 +247,11 @@
                 f.style.animationDuration = (Math.random() * 3 + 2) + 's';
                 document.body.appendChild(f);
             }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            sessionId = urlParams.get('session') || 'default';
+            docRef = doc(db, 'artifacts', 'secret-santa-v1', sessionId);
+
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
             else await signInAnonymously(auth);
             onAuthStateChanged(auth, (u) => {

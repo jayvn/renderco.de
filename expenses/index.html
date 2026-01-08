@@ -318,7 +318,7 @@
 
                 const DB = {
                     async listen(id, callback) {
-                        return onSnapshot(doc(db, 'artifacts', 'group-expenses-v1', 'expenses', id), (snap) => {
+                        return onSnapshot(doc(db, 'artifacts', 'group-expenses-v1', id), (snap) => {
                             callback(snap.exists() ? snap.data() : null);
                         }, err => {
                             console.error("Firebase Error:", err);
@@ -326,7 +326,7 @@
                     },
 
                     async save(id, data) {
-                        await setDoc(doc(db, 'artifacts', 'group-expenses-v1', 'expenses', id), data, { merge: true });
+                        await setDoc(doc(db, 'artifacts', 'group-expenses-v1', id), data, { merge: true });
                     }
                 };
 
