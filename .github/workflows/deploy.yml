@@ -18,12 +18,9 @@ jobs:
 
       - name: Prepare deployment directory
         run: |
-          # Create deployment directory and copy everything
+          # Create deployment directory and copy everything except .git, .github, and deploy itself
           mkdir -p deploy
-          cp -r . deploy/
-
-          # Remove files/folders that shouldn't be deployed
-          rm -rf deploy/.git deploy/.github
+          rsync -av --exclude='deploy' --exclude='.git' --exclude='.github' . deploy/
 
           echo "✅ Deployment directory prepared"
           ls -la deploy/
