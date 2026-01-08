@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser App Gallery</title>
+    <meta name="description" content="Modern browser-based application gallery">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/shared/nav.css">
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+</head>
+
+<body>
+    <!-- Navigation will be injected here by nav.js -->
+
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1 class="hero-title">Browser App Gallery</h1>
+        <p class="hero-subtitle">Modern web applications that work offline. No installation required.</p>
+    </div>
+
+    <!-- App Gallery Section -->
+    <div class="app-gallery" id="apps">
+        <div class="app-grid">
+            <div class="app-card">
+                <div class="app-icon"><img src="/images/favicon.png" alt="Anil's Library"></div>
+                <h3>Anil's Library</h3>
+                <p>Plasma Physics Calculator with real-time visualizations for lab work and research</p>
+                <a href="/anils-library/" class="app-link">Launch App</a>
+            </div>
+
+            <div class="app-card">
+                <div class="app-icon"><img src="/images/choreo-icon-192.png" alt="ChoreoMarker"></div>
+                <h3>ChoreoMarker</h3>
+                <p>Mark and track dance choreography during rehearsals with offline support</p>
+                <a href="/choreo/" class="app-link">Launch App</a>
+            </div>
+            <div class="app-card">
+                <div class="app-icon"><img src="/secret-santa/logo.png" alt="Secret Santa"></div>
+                <h3>Secret Santa</h3>
+                <p>Organize Secret Santa gift exchanges with real-time sync - Moosach Edition</p>
+                <a href="/secret-santa/" class="app-link">Launch App</a>
+            </div>
+
+            <div class="app-card">
+                <div class="app-icon"><img src="/trip_helper/logo.png" alt="Trip Planner"></div>
+                <h3>Trip Planner</h3>
+                <p>Plan trips with friends - expenses, dates, and destinations with live sync</p>
+                <a href="/trip_helper/" class="app-link">Launch App</a>
+            </div>
+
+            <div class="app-card">
+                <div class="app-icon"><img src="/expenses/logo.png" alt="Group Expenses"></div>
+                <h3>Group Expenses - Split wisely</h3>
+                <p>Splitting costs made easy - expense tracker for groups</p>
+                <a href="/expenses/" class="app-link">Launch App</a>
+            </div>
+
+            <div class="app-card">
+                <div class="app-icon">🟩</div>
+                <h3>Matrix Code Gen</h3>
+                <p>Pixel art editor that generates C++ code for LED matrix displays</p>
+                <a href="/matrix_draw/" class="app-link">Launch App</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer with cultural info -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <img src="images/logo.png" alt="Logo" class="footer-logo">
+            <p class="footer-text">Karayogam (കരയോഗം ⚫ கரയோகம்)</p>
+            <p class="footer-subtext">Cultural group based in Munich</p>
+        </div>
+    </footer>
+
+    <script src="/shared/nav.js"></script>
+</body>
+
+</html>

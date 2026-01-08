@@ -1,0 +1,26 @@
+{
+  "name": "ChoreoMarker - Karayogam",
+  "short_name": "ChoreoMarker",
+  "description": "Choreography marking tool for dance rehearsals",
+  "start_url": "/choreo/",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/images/choreo-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/choreo-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "lifestyle"],
+  "screenshots": []
+}

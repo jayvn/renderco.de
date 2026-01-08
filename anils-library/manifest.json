@@ -1,0 +1,26 @@
+{
+  "name": "Anil's Library - Plasma Physics Calculator",
+  "short_name": "Plasma Calc",
+  "description": "Interactive plasma physics parameter calculator and visualizer",
+  "start_url": "/anils-library/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/images/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "utilities"],
+  "screenshots": []
+}

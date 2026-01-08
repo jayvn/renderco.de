@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChoreoMarker - Karayogam</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="/images/favicon.ico">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#030712">
+    <meta name="description" content="ChoreoMarker - Choreography marking tool for dance rehearsals by Karayogam Munich">
+    <link rel="manifest" href="/choreo/manifest.json">
+    <link rel="apple-touch-icon" href="/images/choreo-icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Shared Navigation -->
+    <link rel="stylesheet" href="/shared/nav.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* Custom scrollbar for timeline */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="m-0 p-0">
+    <div class="min-h-screen bg-gray-950 text-gray-100 font-sans pb-20 md:pb-0">
+
+        <!-- Edit Dancer Modal -->
+        <div id="edit-dancer-modal" class="fixed inset-0 z-50 items-center justify-center bg-black/60 backdrop-blur-sm p-4" style="display: none;"></div>
+
+        <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-xl font-bold flex items-center gap-2 text-indigo-400">
+                        <span style="font-size: 24px; line-height: 1; display: inline-flex; align-items: center">🎵</span> ChoreoMarker
+                    </h1>
+                </div>
+
+                <div class="flex gap-2">
+                    <input type="file" id="file-input" accept="audio/*" class="hidden" />
+                    <input type="file" id="json-input" accept=".json" class="hidden" />
+
+                    <button id="upload-audio-btn" class="bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-gray-100 px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 active:scale-95 touch-manipulation !py-2 text-sm">
+                        <span style="font-size: 16px">⬆️</span> <span id="upload-btn-text">Upload Audio</span>
+                    </button>
+
+                    <button id="import-btn" class="bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-gray-100 px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 active:scale-95 touch-manipulation !py-2 text-sm">
+                        <span style="font-size: 16px">📄</span> Import
+                    </button>
+
+                    <button id="export-btn" class="bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-gray-100 px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 active:scale-95 touch-manipulation !py-2 text-sm">
+                        <span style="font-size: 16px">⬇️</span> Export
+                    </button>
+
+                    <button id="clear-storage-btn" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 focus:ring-red-500 px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 active:scale-95 touch-manipulation !py-2 text-sm">
+                        <span style="font-size: 16px">🗑️</span> Clear Storage
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stage -->
+            <div class="relative group">
+                <div
+                    id="stage"
+                    class="aspect-video bg-[#111] rounded-2xl border border-gray-800 overflow-hidden relative shadow-2xl"
+                    style="background-image: radial-gradient(circle, #222 1px, transparent 1px); background-size: 20px 20px"
+                >
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                        <div class="w-1 h-full border-l border-dashed border-gray-500"></div>
+                        <div class="h-1 w-full border-t border-dashed border-gray-500 absolute"></div>
+                    </div>
+                    <div class="absolute bottom-2 w-full text-center pointer-events-none">
+                        <span class="text-[10px] uppercase tracking-widest text-gray-600 font-bold bg-[#111] px-2">Front</span>
+                    </div>
+
+                    <div class="stage-content"></div>
+                </div>
+
+                <div class="absolute top-4 right-4">
+                    <button id="add-dancer-btn" class="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95">
+                        <span style="font-size: 20px">➕</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Audio Player -->
+            <div class="bg-gray-900 rounded-2xl p-4 md:p-6 border border-gray-800 shadow-xl">
+                <audio id="audio-element"></audio>
+                <div id="player-container"></div>
+            </div>
+
+            <!-- Dancers List -->
+            <div id="dancers-list"></div>
+
+            <!-- Timeline -->
+            <div id="timeline-container"></div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-12 pb-6 text-center text-xs text-gray-600">
+            <p>vibe coded with gemini and claude by <a href="https://github.com/jayvn" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 transition-colors">github.com/jayvn</a></p>
+        </footer>
+    </div>
+
+    <!-- Vanilla JavaScript -->
+    <script src="/choreo/app.js"></script>
+
+    <!-- Shared Navigation (auto-hides when installed as PWA) -->
+    <script src="/shared/nav.js"></script>
+</body>
+</html>

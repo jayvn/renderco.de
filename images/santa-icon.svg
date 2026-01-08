@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background gradient -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#1a365d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a192f;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)" rx="80"/>
+
+  <!-- Santa Hat -->
+  <g transform="translate(256, 256)">
+    <!-- Hat triangle -->
+    <path d="M 0,-150 L -120,50 L 120,50 Z" fill="#dc2626"/>
+
+    <!-- Hat brim -->
+    <rect x="-140" y="40" width="280" height="30" fill="white" rx="5"/>
+
+    <!-- Pom-pom -->
+    <circle cx="0" cy="-150" r="35" fill="white"/>
+  </g>
+
+  <!-- Snowflakes -->
+  <text x="80" y="120" font-size="60" fill="white">❄</text>
+  <text x="380" y="100" font-size="60" fill="white">❄</text>
+  <text x="100" y="420" font-size="60" fill="white">❄</text>
+  <text x="400" y="400" font-size="60" fill="white">❄</text>
+
+  <!-- Gift -->
+  <text x="200" y="440" font-size="100" fill="white">🎁</text>
+</svg>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Secret Santa Icon</title>
+</head>
+<body>
+    <canvas id="canvas192" width="192" height="192"></canvas>
+    <canvas id="canvas512" width="512" height="512"></canvas>
+    <br>
+    <a id="download192" download="santa-icon-192.png">Download 192x192</a><br>
+    <a id="download512" download="santa-icon-512.png">Download 512x512</a>
+
+    <script>
+        function drawIcon(canvas) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+
+            // Background - dark blue gradient
+            const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            gradient.addColorStop(0, '#1a365d');
+            gradient.addColorStop(1, '#0a192f');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Santa hat
+            const hatSize = size * 0.6;
+            const hatX = size / 2;
+            const hatY = size / 2;
+
+            // Hat triangle (red)
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.moveTo(hatX, hatY - hatSize * 0.3);
+            ctx.lineTo(hatX - hatSize * 0.3, hatY + hatSize * 0.2);
+            ctx.lineTo(hatX + hatSize * 0.3, hatY + hatSize * 0.2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Hat brim (white)
+            ctx.fillStyle = 'white';
+            ctx.fillRect(hatX - hatSize * 0.35, hatY + hatSize * 0.15, hatSize * 0.7, hatSize * 0.12);
+
+            // Hat pom-pom (white circle)
+            ctx.beginPath();
+            ctx.arc(hatX, hatY - hatSize * 0.3, hatSize * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Add snowflakes
+            ctx.fillStyle = 'white';
+            ctx.font = `${size * 0.15}px Arial`;
+            ctx.fillText('❄', size * 0.15, size * 0.25);
+            ctx.fillText('❄', size * 0.75, size * 0.2);
+            ctx.fillText('❄', size * 0.2, size * 0.8);
+            ctx.fillText('❄', size * 0.8, size * 0.75);
+
+            // Add gift box emoji
+            ctx.font = `${size * 0.25}px Arial`;
+            ctx.fillText('🎁', size * 0.38, size * 0.85);
+        }
+
+        const canvas192 = document.getElementById('canvas192');
+        const canvas512 = document.getElementById('canvas512');
+
+        drawIcon(canvas192);
+        drawIcon(canvas512);
+
+        document.getElementById('download192').href = canvas192.toDataURL();
+        document.getElementById('download512').href = canvas512.toDataURL();
+    </script>
+</body>
+</html>

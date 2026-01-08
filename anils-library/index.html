@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <title>Plasma Physics Calculator</title>
+    <link rel="manifest" href="/anils-library/manifest.json">
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+
+    <!-- Shared Navigation -->
+    <link rel="stylesheet" href="/shared/nav.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        window.MathJax = { tex: { inlineMath: [['$', '$']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .canvas-container { position: relative; width: 100%; height: 400px; background: #000000; border-radius: 8px; overflow: hidden; }
+        .dark-card { background-color: #000000; color: #ffffff; border: 1px solid #333333; }
+        input, select { background-color: #1a1a1a !important; color: #ffffff !important; border-color: #333333 !important; }
+    </style>
+</head>
+<body class="bg-neutral-800 text-white p-4 md:p-8">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1 space-y-6">
+            <section class="dark-card p-6 rounded-xl shadow-xl">
+                <h2 class="text-xl font-bold mb-4">Inputs ⚡</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-400">Density $n_e$ (m⁻³)</label>
+                        <input type="number" id="ne" value="1e18" step="any" class="w-full p-2 rounded mt-1 font-mono outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-400">Temp $T_e$ (eV)</label>
+                        <input type="number" id="te" value="10" step="any" class="w-full p-2 rounded mt-1 font-mono outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-400">B-Field (T)</label>
+                        <input type="number" id="b" value="0.5" step="any" class="w-full p-2 rounded mt-1 font-mono outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-400">Gas Pressure (Pa)</label>
+                        <input type="number" id="pressure" value="1" step="any" class="w-full p-2 rounded mt-1 font-mono outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-400">RF Freq $f_{rf}$ (Hz)</label>
+                        <input type="number" id="frf" value="13.56e6" step="any" class="w-full p-2 rounded mt-1 font-mono outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-400">Gas</label>
+                        <select id="species" class="w-full p-2 rounded mt-1 font-mono outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                            <option value="H" data-mass="1" data-sigma="1e-19">H</option>
+                            <option value="He" data-mass="4" data-sigma="0.5e-19">He</option>
+                            <option value="Ar" data-mass="40" data-sigma="5e-19" selected>Ar</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="dark-card p-6 rounded-xl shadow-xl">
+                <h2 class="text-xl font-bold mb-4">Results 📊</h2>
+                <div id="results" class="space-y-2 font-mono text-sm"></div>
+            </section>
+        </div>
+
+        <div class="lg:col-span-2 space-y-4">
+            <div class="dark-card p-4 rounded-xl shadow-xl">
+                <h2 class="text-xl font-bold mb-2">Viz ⚛️</h2>
+                <div class="canvas-container"><canvas id="viz"></canvas></div>
+            </div>
+            <div class="bg-black text-neutral-400 p-4 rounded-xl text-xs overflow-x-auto border border-neutral-800">
+                $\omega_{ce} = \frac{eB}{m_e}$ | $\delta_{p} = \frac{c}{\omega_{pe}}$ | $\delta_{cl} = \sqrt{\frac{2}{\mu_0 \sigma \omega}}$ | $\lambda_{D} = \sqrt{\frac{\epsilon_0 k_B T_e}{n_e e^2}}$ | $\nu_{en} = n_g \sigma v_{te}$
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('viz');
+        const ctx = canvas.getContext('2d');
+        const inputs = ['ne', 'te', 'b', 'pressure', 'species', 'frf'];
+        
+        // Constants
+        const ME = 9.10938e-31;
+        const MP = 1.67262e-27;
+        const QE = 1.60218e-19;
+        const EPS0 = 8.85419e-12;
+        const KB = 1.38065e-23;
+        const LIGHT_SPEED = 299792458; 
+        const VACUUM_PERMEABILITY = 4 * Math.PI * 1e-7;
+
+        let state = {}, time = 0;
+
+        function update() {
+            const ne = parseFloat(document.getElementById('ne').value) || 0;
+            const te_ev = parseFloat(document.getElementById('te').value) || 0;
+            const b = parseFloat(document.getElementById('b').value) || 0;
+            const press = parseFloat(document.getElementById('pressure').value) || 0;
+            const frf = parseFloat(document.getElementById('frf').value) || 0;
+            const sel = document.getElementById('species');
+            const mi = (parseFloat(sel.options[sel.selectedIndex].dataset.mass) || 1) * MP;
+            const sigma_gas = parseFloat(sel.options[sel.selectedIndex].dataset.sigma) || 1e-19;
+            const te_k = te_ev * 11604.5;
+            const ng = press / (KB * 300);
+
+            const debye = Math.sqrt((EPS0 * KB * te_k) / (ne * QE * QE + 1e-25));
+            const wpe = Math.sqrt((ne * QE * QE) / (ME * EPS0 + 1e-40));
+            const vte = Math.sqrt((KB * te_k) / ME);
+            const vti = Math.sqrt((KB * te_k) / mi);
+            
+            const wce = (QE * Math.abs(b)) / ME;
+            const fce = wce / (2 * Math.PI);
+            const rLe = vte / (wce || 1e-9);
+            const rLi = (mi * vti) / (QE * Math.abs(b) || 1e-9);
+            
+            const mfp = 1 / (ng * sigma_gas + 1e-25);
+            const nu_en = vte / mfp;
+            const nd = (4/3) * Math.PI * Math.pow(debye, 3) * ne;
+
+            const delta_c = LIGHT_SPEED / (wpe || 1e-9);
+            const wrf = 2 * Math.PI * frf;
+            const sigma_dc = (ne * QE * QE) / (ME * nu_en + 1e-40);
+            const delta_cl = Math.sqrt(2 / (VACUUM_PERMEABILITY * sigma_dc * wrf + 1e-25));
+
+            state = { debye, wpe, vte, rLe, rLi, mfp, nu_en, nd, fce, delta_c, delta_cl };
+
+            document.getElementById('results').innerHTML = `
+                <div class="font-bold text-blue-400 text-[10px] uppercase mb-1">Characteristic Lengths</div>
+                <div class="flex justify-between border-b border-neutral-800 py-1"><span>Debye Length $\\lambda_D$:</span> <span>${debye.toExponential(2)} m</span></div>
+                <div class="flex justify-between border-b border-neutral-800 py-1 text-blue-400"><span>e-Larmor Rad $r_{Le}$:</span> <span>${rLe.toExponential(2)} m</span></div>
+                <div class="flex justify-between border-b border-neutral-800 py-1"><span>i-Larmor Rad $r_{Li}$:</span> <span>${rLi.toExponential(2)} m</span></div>
+                <div class="flex justify-between border-b border-neutral-800 py-1"><span>Mean Free Path:</span> <span>${mfp.toExponential(2)} m</span></div>
+                
+                <div class="font-bold text-green-400 text-[10px] uppercase mt-4 mb-1">RF Skin Depths</div>
+                <div class="flex justify-between border-b border-neutral-800 py-1 text-green-400"><span>Collisionless $\\delta_p$:</span> <span>${delta_c.toExponential(2)} m</span></div>
+                <div class="flex justify-between border-b border-neutral-800 py-1 text-green-400"><span>Classical $\\delta_{cl}$:</span> <span>${delta_cl.toExponential(2)} m</span></div>
+
+                <div class="font-bold text-red-400 text-[10px] uppercase mt-4 mb-1">Frequencies & Collisions</div>
+                <div class="flex justify-between border-b border-neutral-800 py-1 text-red-400"><span>e-Gyro Freq $f_{ce}$:</span> <span>${fce.toExponential(2)} Hz</span></div>
+                <div class="flex justify-between border-b border-neutral-800 py-1"><span>e-Plasma Freq $f_{pe}$:</span> <span>${(wpe / (2 * Math.PI)).toExponential(2)} Hz</span></div>
+                <div class="flex justify-between border-b border-neutral-800 py-1"><span>Coll. Freq $\\nu_{en}$:</span> <span>${nu_en.toExponential(2)} Hz</span></div>
+                
+                <div class="font-bold text-neutral-500 text-[10px] uppercase mt-4 mb-1">Misc</div>
+                <div class="flex justify-between border-b border-neutral-800 py-1"><span>Debye Count $\\Lambda$:</span> <span>${nd.toExponential(2)}</span></div>
+            `;
+            if (window.MathJax?.typesetPromise) MathJax.typesetPromise();
+        }
+
+        function draw() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            const center = { x: canvas.width / 2, y: canvas.height / 2 };
+            const scale = (Math.min(canvas.width, canvas.height) * 0.35) / Math.max(state.debye, state.rLe, state.rLi, 1e-9);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, state.debye * scale, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Arial';
+            ctx.fillText('λD', center.x, center.y - (state.debye * scale) - 5);
+
+            const drawOrb = (r, col, lbl, t) => {
+                ctx.setLineDash([]);
+                ctx.strokeStyle = col;
+                ctx.globalAlpha = 0.4;
+                ctx.beginPath(); ctx.arc(center.x, center.y, r * scale, 0, Math.PI * 2); ctx.stroke();
+                ctx.globalAlpha = 1;
+                const px = center.x + Math.cos(t) * r * scale, py = center.y + Math.sin(t) * r * scale;
+                ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.font = '10px monospace';
+                ctx.fillText(lbl, px + 5, py + 5);
+            };
+
+            drawOrb(state.rLe, '#60a5fa', 'e-', time * 8);
+            drawOrb(state.rLi, '#f87171', 'i+', time * 2);
+            time += 0.02;
+            requestAnimationFrame(draw);
+        }
+
+        inputs.forEach(id => document.getElementById(id).oninput = update);
+        window.onresize = update;
+        window.onload = () => { update(); draw(); };
+    </script>
+    <script>
+        // Register service worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/anils-library/sw.js')
+                    .then(reg => console.log('Service Worker registered:', reg))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+
+    <!-- Shared Navigation (auto-hides when installed as PWA) -->
+    <script src="/shared/nav.js"></script>
+</body>
+</html>

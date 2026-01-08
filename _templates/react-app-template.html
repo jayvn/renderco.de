@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My React App - Karayogam</title>
+
+    <!-- React & ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Optional: Include Karayogam navigation -->
+    <!-- <link rel="stylesheet" href="/shared/nav.css"> -->
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Add your custom styles here */
+    </style>
+</head>
+<body>
+    <!-- Navigation will be injected here if enabled -->
+
+    <div id="root"></div>
+
+    <!-- Your React App -->
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Your React Component
+        function App() {
+            const [count, setCount] = useState(0);
+
+            return (
+                <div className="app-container">
+                    <h1>🎯 My React App</h1>
+                    <p>Your React app content goes here...</p>
+
+                    {/* Example: Simple counter */}
+                    <div>
+                        <button onClick={() => setCount(count + 1)}>
+                            Count: {count}
+                        </button>
+                    </div>
+
+                    {/* Add your components below */}
+                </div>
+            );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+    <!-- Optional: Include Karayogam navigation -->
+    <!-- <script src="/shared/nav.js"></script> -->
+</body>
+</html>

@@ -1,0 +1,236 @@
+/* Modern Browser App Gallery Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+    color: #f0f0f0;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding: 80px 20px 40px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero-title {
+    font-size: 48px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #fff 0%, #b0b0b0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 18px;
+    color: #888;
+    font-weight: 400;
+}
+
+/* App Gallery */
+.app-gallery {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+}
+
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.app-card {
+    background: rgba(30, 30, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 32px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+}
+
+.app-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.app-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80px;
+    /* specific height to contain the icon */
+}
+
+.app-icon img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+    transition: transform 0.3s ease;
+}
+
+.app-card:hover .app-icon img {
+    transform: scale(1.1);
+}
+
+.app-card h3 {
+    color: #fff;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.app-card p {
+    color: #999;
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    min-height: 50px;
+}
+
+.app-link {
+    display: inline-block;
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #0077cc 0%, #0099ff 100%);
+    color: #fff !important;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.3s;
+    border: none;
+}
+
+.app-link:hover {
+    background: linear-gradient(135deg, #0099ff 0%, #00bbff 100%);
+    transform: translateX(4px);
+}
+
+/* Footer */
+.site-footer,
+footer {
+    background: rgba(10, 10, 10, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 40px 20px;
+    margin-top: 60px;
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-logo {
+    width: 48px;
+    height: 48px;
+    opacity: 0.6;
+    margin-bottom: 12px;
+}
+
+.footer-text {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.footer-subtext {
+    font-size: 12px;
+    color: #555;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .hero {
+        padding: 60px 20px 30px;
+    }
+
+    .hero-title {
+        font-size: 36px;
+    }
+
+    .hero-subtitle {
+        font-size: 16px;
+    }
+
+    .app-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .app-card {
+        padding: 24px;
+    }
+
+    .app-icon {
+        font-size: 48px;
+    }
+
+    .app-card h3 {
+        font-size: 22px;
+    }
+
+    .app-card p {
+        font-size: 14px;
+        min-height: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-title {
+        font-size: 28px;
+    }
+
+    .hero-subtitle {
+        font-size: 14px;
+    }
+
+    .app-card {
+        padding: 20px;
+    }
+}
+
+/* Events page */
+.main-content {
+    padding: 40px 20px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.event {
+    background-color: rgba(30, 30, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px auto;
+    max-width: 600px;
+    backdrop-filter: blur(10px);
+}
+
+.event h2 {
+    color: #c68c5c;
+    margin-bottom: 12px;
+    font-size: 24px;
+}
+
+.event p {
+    color: #ccc;
+    margin: 8px 0;
+    font-size: 15px;
+}

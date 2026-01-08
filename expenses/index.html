@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <title>Group Expenses</title>
+    <meta name="theme-color" content="#111827">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gray-900 text-gray-100 h-[100dvh] w-full flex flex-col overflow-hidden">
+
+    <!-- LANDING SCREEN -->
+    <div id="landing-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 hidden"
+        style="background: rgba(0,0,0,0.6)">
+        <div class="flex flex-col items-center w-full max-w-sm">
+            <img src="logo.png" alt="Group Expenses" class="w-24 h-24 mb-6">
+            <h2 class="text-4xl font-bold mb-10 text-green-400">Group Expenses</h2>
+
+            <div id="welcome-msg" class="hidden text-gray-400 text-sm mb-4"></div>
+
+            <div class="text-gray-500 text-sm mb-4 text-center">
+                Please open this app via an invite link or
+            </div>
+
+            <button onclick="createNewGroup()" class="btn btn-primary w-full mb-4">
+                Create New Group
+            </button>
+
+            <div id="recent-trips-container" class="w-full mt-8 hidden">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="divider flex-1"></div>
+                    <span class="section-header">Recent</span>
+                    <div class="divider flex-1"></div>
+                </div>
+                <div id="recent-trips-list" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-4 hidden"
+        style="background: rgba(0,0,0,0.8)">
+        <div class="modal">
+            <h1 class="text-4xl mb-4 text-center">👋</h1>
+            <h2 class="text-xl font-bold mb-6 text-center">Who are you?</h2>
+
+            <input type="text" id="username-input" class="input mb-4 text-center text-lg" placeholder="Enter your name">
+
+            <button id="login-btn" class="w-full btn btn-primary mb-4">
+                Join Group
+            </button>
+        </div>
+    </div>
+
+    <!-- SETTLE UP MODAL -->
+    <div id="settle-modal" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-4 hidden"
+        style="background: rgba(0,0,0,0.8)">
+        <div class="modal w-full max-w-sm">
+            <h2 class="text-xl font-bold mb-4 text-center">🤝 Settle Up</h2>
+
+            <div class="mb-4">
+                <label class="block text-xs text-gray-500 mb-1">Payer</label>
+                <select id="settle-payer" class="input"></select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs text-gray-500 mb-1">Recipient</label>
+                <select id="settle-receiver" class="input"></select>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-xs text-gray-500 mb-1">Amount</label>
+                <input type="number" id="settle-amt" placeholder="0.00" class="input">
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="closeSettleModal()" class="btn btn-secondary flex-1">Cancel</button>
+                <button onclick="confirmSettle()" class="btn btn-success flex-1">Pay</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app-screen" class="flex-1 flex flex-col hidden max-w-lg mx-auto w-full h-full">
+        <!-- HEADER -->
+        <header class="p-4 pt-6 pb-2 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer group" onclick="updateGroupName()">
+                <img src="logo.png" alt="Group Expenses" class="w-8 h-8">
+                <h1 id="header-trip-name" class="font-bold text-base hover:underline decoration-dotted">Group Expenses
+                </h1>
+                <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">✎</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="copyTripLink()"
+                    class="btn btn-primary btn-sm bg-green-600 hover:bg-green-700 text-white border-none">
+                    Invite
+                </button>
+                <button onclick="switchGroup()" class="btn btn-secondary btn-sm">
+                    My Groups
+                </button>
+                <div class="relative">
+                    <button id="user-btn" onclick="toggleUserMenu()" class="btn btn-sm"
+                        style="background: rgba(59,130,246,0.1); color: #60a5fa;">
+                        <span id="user-display-name">User</span> ▼
+                    </button>
+                    <div id="user-menu" class="absolute right-0 top-full mt-2 w-48 modal hidden">
+                        <div class="pb-3 mb-3" style="border-bottom: 1px solid rgba(255,255,255,0.1)">
+                            <p class="section-header mb-1">Logged in as</p>
+                            <p id="menu-user-name" class="font-bold truncate"></p>
+                        </div>
+                        <button onclick="updateGroupSettings()" class="w-full btn btn-secondary btn-sm mb-2 text-left">
+                            ⚙️ Group Settings
+                        </button>
+                        <button onclick="downloadTripData()" class="w-full btn btn-secondary btn-sm mb-2">
+                            💾 Download Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- SCROLLABLE CONTENT -->
+        <div class="flex-1 overflow-y-auto px-4 pb-32 space-y-4">
+            <div class="card">
+                <div id="cost-graph-container" class="mb-6 hidden">
+                    <h4 class="section-header mb-3">Spending Breakdown</h4>
+                    <div id="cost-graph-bars" class="space-y-2"></div>
+                </div>
+                <!-- TOTALS & ACTIONS -->
+                <div class="card mb-4">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-xs text-uppercase text-gray-500 font-bold tracking-wider">TOTAL
+                                SPENT</span>
+                            <div id="exp-total" class="text-3xl font-mono font-bold text-green-400 mt-1">€0.00</div>
+                        </div>
+                        <button onclick="openSettleModal()"
+                            class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none gap-2 flex items-center">
+                            <span>🤝</span> Settle
+                        </button>
+                    </div>
+
+                    <!-- ADD EXPENSE FORM -->
+                    <div class="bg-gray-800 rounded-lg p-3 space-y-3">
+                        <input type="text" id="exp-desc" placeholder="What involved money?"
+                            class="input w-full bg-gray-700 border-gray-600">
+
+                        <div class="flex gap-2">
+                            <input type="number" id="exp-amt" placeholder="0.00"
+                                class="input w-1/3 bg-gray-700 border-gray-600">
+                            <input type="date" id="exp-date"
+                                class="input flex-1 bg-gray-700 border-gray-600 text-gray-400 text-xs">
+                        </div>
+
+                        <button id="add-exp-btn" class="btn btn-success w-full py-3 font-bold">Add Expense</button>
+
+                        <div id="edit-controls" class="hidden text-center">
+                            <button type="button" onclick="cancelEdit()"
+                                class="text-sm text-red-400 hover:text-red-300">Cancel Edit</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEARCH & FILTER -->
+                <div class="flex gap-2 mb-4">
+                    <div class="relative flex-1">
+                        <input type="text" id="search-input" placeholder="Search..."
+                            class="w-full bg-gray-700 border-none rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-green-500 transition-all">
+                        <div id="search-loading" class="absolute right-3 top-1/2 transform -translate-y-1/2 hidden">
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        </div>
+                    </div>
+                    <select id="filter-type"
+                        class="bg-gray-700 border-none rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500">
+                        <option value="all">All</option>
+                        <option value="expense">Exp</option>
+                        <option value="settlement">Settle</option>
+                    </select>
+                </div>
+
+                <!-- LIST -->
+                <div id="expense-list" class="space-y-3 pb-8"></div>
+            </div>
+
+            <!-- Firebase Configuration -->
+            <script>
+                window.__firebase_config = JSON.stringify({
+                    apiKey: "AIzaSyATX9AewOd8pmUQWkYXYAvb2meH7kGNtbg",
+                    authDomain: "karayogam-22.firebaseapp.com",
+                    projectId: "karayogam-22",
+                    storageBucket: "karayogam-22.firebasestorage.app",
+                    messagingSenderId: "38360726672",
+                    appId: "1:38360726672:web:d254e8eed733ddf3c9ac15"
+                });
+            </script>
+
+            <script type="module">
+                import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+                import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+                import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+                const app = initializeApp(JSON.parse(__firebase_config));
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+
+                let currentUser = { id: null, name: null };
+                let tripId = null;
+                let tripData = { locations: [], duration: '', users: {}, expenses: [], packing: [], itinerary: {} };
+
+                let unsubscribe = null;
+                let userMenuOpen = false;
+
+                const els = {
+                    landing: document.getElementById('landing-screen'),
+                    login: document.getElementById('login-screen'),
+                    app: document.getElementById('app-screen'),
+                    userBtn: document.getElementById('user-btn'),
+                    userMenu: document.getElementById('user-menu'),
+                    userDisplay: document.getElementById('user-display-name'),
+                    menuUserName: document.getElementById('menu-user-name'),
+                    recentTripsCont: document.getElementById('recent-trips-container'),
+                    recentTripsList: document.getElementById('recent-trips-list'),
+                    nameIn: document.getElementById('username-input'),
+                };
+
+                let editingId = null;
+
+                async function init() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    tripId = urlParams.get('token');
+
+                    // Set default date to empty (unspecified)
+                    document.getElementById('exp-date').value = '';
+
+                    await signInAnonymously(auth);
+
+                    if (tripId) attemptAutoJoin(); else showLanding();
+                }
+
+                async function attemptAutoJoin() {
+                    const savedName = localStorage.getItem('trip_user_name');
+                    if (savedName) joinTrip(savedName); else showLogin();
+                }
+
+                function showLanding() {
+                    els.landing.classList.remove('hidden');
+                    els.login.classList.add('hidden');
+                    els.app.classList.add('hidden');
+                    renderRecentTrips();
+                }
+
+                function renderRecentTrips() {
+                    const userName = localStorage.getItem('trip_user_name');
+                    if (userName) {
+                        document.getElementById('welcome-msg').innerText = `Welcome back, ${userName}!`;
+                        document.getElementById('welcome-msg').classList.remove('hidden');
+                    }
+
+                    const recent = JSON.parse(localStorage.getItem('my_trips') || '[]');
+                    if (recent.length === 0) {
+                        els.recentTripsCont.classList.add('hidden');
+                    } else {
+                        els.recentTripsCont.classList.remove('hidden');
+                        els.recentTripsList.innerHTML = recent.map(t => `
+                <div onclick="window.location.href='?token=${t.id}'" class="list-item gap-3">
+                    <div class="w-8 h-8 rounded-full card flex items-center justify-center overflow-hidden shrink-0">
+                        <img src="logo.png" alt="Trip" class="w-6 h-6">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <span class="font-bold text-sm block truncate">${t.name}</span>
+                        <span class="block text-xs text-gray-500">ID: ${t.id.slice(0, 6)}...</span>
+                    </div>
+                    <span class="text-gray-500 text-sm shrink-0">➜</span>
+                </div>
+            `).join('');
+                    }
+                }
+
+                function showLogin() {
+                    els.landing.classList.add('hidden');
+                    els.login.classList.remove('hidden');
+                    els.app.classList.add('hidden');
+                    els.nameIn.value = '';
+                    els.nameIn.focus();
+                }
+
+                async function joinTrip(nameInput) {
+                    const name = nameInput.trim();
+                    if (!name) return;
+
+                    const id = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                    currentUser = { id, name };
+                    localStorage.setItem('trip_user_name', name);
+
+                    setupRealtimeListener();
+
+                    els.login.classList.add('hidden');
+                    els.landing.classList.add('hidden');
+                    els.app.classList.remove('hidden');
+
+                    updateUserUI();
+
+                    addToRecentTrips(tripId, 'Loading...');
+                }
+
+                function updateUserUI() {
+                    els.userDisplay.innerText = currentUser.name;
+                    els.menuUserName.innerText = currentUser.name;
+                }
+
+                const DB = {
+                    async listen(id, callback) {
+                        return onSnapshot(doc(db, 'artifacts', 'group-expenses-v1', 'expenses', id), (snap) => {
+                            callback(snap.exists() ? snap.data() : null);
+                        }, err => {
+                            console.error("Firebase Error:", err);
+                        });
+                    },
+
+                    async save(id, data) {
+                        await setDoc(doc(db, 'artifacts', 'group-expenses-v1', 'expenses', id), data, { merge: true });
+                    }
+                };
+
+                function setupRealtimeListener() {
+                    if (unsubscribe) unsubscribe();
+
+                    unsubscribe = DB.listen(tripId, (data) => {
+                        if (data) {
+                            tripData = data;
+                            if (!tripData.users) tripData.users = {};
+
+                            if (!tripData.users[currentUser.id]) {
+                                registerUserInTrip();
+                                return;
+                            }
+
+                            updateRecentTripName();
+                            render();
+                        } else {
+                            tripData = {
+                                locations: [], duration: '', users: {}, expenses: [], packing: [], itinerary: {}, currency: '€'
+                            };
+                            registerUserInTrip();
+                        }
+                    });
+                }
+
+                function registerUserInTrip() {
+                    if (!tripData.users) tripData.users = {};
+                    tripData.users[currentUser.id] = { name: currentUser.name, dates: [] };
+                    sync();
+                }
+
+                function sync() {
+                    DB.save(tripId, tripData);
+                }
+
+                function addToRecentTrips(id, name) {
+                    let recent = JSON.parse(localStorage.getItem('my_trips') || '[]');
+                    recent = recent.filter(t => t.id !== id);
+                    recent.unshift({ id, name });
+                    if (recent.length > 5) recent.pop();
+                    localStorage.setItem('my_trips', JSON.stringify(recent));
+                }
+
+                function updateRecentTripName() {
+                    if (tripData.name) {
+                        addToRecentTrips(tripId, tripData.name);
+                        return;
+                    }
+                    addToRecentTrips(tripId, `Trip ${tripId.slice(0, 4)}`);
+                }
+
+                function formatMoney(amount) {
+                    const currency = tripData.currency || '€';
+                    return `${currency}${parseFloat(amount).toFixed(2)}`;
+                }
+
+                function render() {
+                    if (!tripData) return;
+
+                    document.getElementById('header-trip-name').innerText = tripData.name || "Group Expenses";
+
+                    // EXPENSES LOGIC
+                    const expenses = tripData.expenses || [];
+                    const users = Object.values(tripData.users);
+                    const userCount = users.length || 1;
+                    const currency = tripData.currency || '€';
+
+                    // 1. Calculate Totals & Balances (ALWAYS use ALL expenses)
+                    let totalSpent = 0;
+                    const balances = {};
+                    users.forEach(u => balances[u.name] = 0);
+                    const spendingByUser = {};
+                    users.forEach(u => spendingByUser[u.name] = 0);
+
+                    expenses.forEach(e => {
+                        const amt = parseFloat(e.amt);
+                        if (e.type === 'settlement') {
+                            if (balances[e.who] !== undefined) balances[e.who] += amt;
+                            if (balances[e.to] !== undefined) balances[e.to] -= amt;
+                        } else {
+                            totalSpent += amt;
+                            if (balances[e.who] !== undefined) balances[e.who] += amt;
+                            else balances[e.who] = amt;
+                            spendingByUser[e.who] = (spendingByUser[e.who] || 0) + amt;
+                        }
+                    });
+
+                    document.getElementById('exp-total').innerText = formatMoney(totalSpent);
+
+                    // 2. Render Graph (Total)
+                    const sortedSpenders = Object.entries(spendingByUser).sort(([, a], [, b]) => b - a);
+                    const maxSpent = sortedSpenders.length > 0 ? sortedSpenders[0][1] : 0;
+
+                    if (maxSpent > 0) {
+                        document.getElementById('cost-graph-container').classList.remove('hidden');
+                        document.getElementById('cost-graph-bars').innerHTML = sortedSpenders.map(([name, amt]) => {
+                            const percent = (amt / maxSpent) * 100;
+                            const isMax = amt === maxSpent;
+                            const isMin = amt === sortedSpenders[sortedSpenders.length - 1][1] && sortedSpenders.length > 1;
+                            let colorClass = isMax ? "bg-red-500" : (isMin ? "bg-green-500" : "bg-gray-600");
+
+                            return `
+                    <div class="flex items-center gap-2 text-xs">
+                        <div class="w-16 truncate text-right text-gray-400">${name}</div>
+                        <div class="flex-1 rounded-full h-2" style="background: rgba(0,0,0,0.4)">
+                            <div class="h-full ${colorClass} rounded-full" style="width: ${percent}%"></div>
+                        </div>
+                        <div class="w-16 text-right font-mono text-gray-300 transform transition-all hover:scale-110">${formatMoney(amt)}</div>
+                    </div>
+                `;
+                        }).join('');
+                    } else {
+                        document.getElementById('cost-graph-container').classList.add('hidden');
+                    }
+
+                    // 3. Render Balances
+                    const split = totalSpent / userCount;
+                    const balanceHtml = users.map(u => {
+                        const paid = balances[u.name] || 0;
+                        const diff = paid - split;
+                        const isOwed = diff > 0.01;
+                        const isOwing = diff < -0.01;
+                        const color = isOwed ? 'text-green-400' : (isOwing ? 'text-red-400' : 'text-gray-400');
+                        const text = isOwed ? `Gets ${formatMoney(Math.abs(diff))}` : (isOwing ? `Owes ${formatMoney(Math.abs(diff))}` : 'Settled');
+
+                        return `
+                <div class="flex justify-between items-center text-sm py-1" style="border-bottom: 1px solid rgba(255,255,255,0.1)">
+                    <span class="text-gray-300">${u.name}</span>
+                    <span class="font-mono font-bold ${color}">${text}</span>
+                </div>
+            `;
+                    }).join('');
+
+                    // Separate container for items to allow independent updates
+                    const balanceContainer = `
+            <div class="card mb-4">
+                <h4 class="section-header mb-2">Balances (Split ${users.length})</h4>
+                <div>${balanceHtml}</div>
+            </div>
+            <div id="expense-items-container" class="space-y-3"></div>
+        `;
+
+                    document.getElementById('expense-list').innerHTML = balanceContainer;
+
+                    // 5. Render List
+                    renderList();
+                }
+
+                function renderList() {
+                    const expenses = tripData.expenses || [];
+                    const searchQuery = document.getElementById('search-input').value.toLowerCase();
+                    const filterType = document.getElementById('filter-type').value;
+
+                    const filteredExpenses = expenses.filter(e => {
+                        // Search Match
+                        const textMatch = (e.what || '').toLowerCase().includes(searchQuery) ||
+                            (e.who || '').toLowerCase().includes(searchQuery) ||
+                            (e.to || '').toLowerCase().includes(searchQuery);
+
+                        // Type Match
+                        let typeMatch = true;
+                        if (filterType === 'expense') typeMatch = (!e.type || e.type === 'expense');
+                        else if (filterType === 'settlement') typeMatch = (e.type === 'settlement');
+
+                        return textMatch && typeMatch;
+                    });
+
+                    // Render List
+                    const listHtml = filteredExpenses.slice().reverse().map(e => {
+                        const dateStr = e.date ? new Date(e.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+                        const isSettlement = e.type === 'settlement';
+                        const borderColor = isSettlement ? '#3b82f6' : '#10b981';
+                        const icon = isSettlement ? '🤝' : '';
+
+                        return `
+            <div class="card flex justify-between items-center group relative" style="border-left: 2px solid ${borderColor}">
+                <div>
+                    <div class="flex items-center gap-2">
+                         <span class="font-medium text-sm">${icon} ${e.what}</span>
+                         ${dateStr ? `<span class="text-[10px] bg-gray-700 px-1 rounded text-gray-300">${dateStr}</span>` : ''}
+                    </div>
+                    <span class="block text-xs text-gray-500">
+                        ${isSettlement ? `${e.who} ➞ ${e.to}` : `${e.who} paid`}
+                    </span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="font-mono font-bold text-sm text-right min-w-[60px] ${isSettlement ? 'text-blue-400' : ''}">${formatMoney(e.amt)}</div>
+                    ${!isSettlement ? `<button onclick="editExpense(${e.id})" class="text-gray-500 hover:text-blue-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">✎</button>` : ''}
+                    ${e.who === currentUser.name ? `<button onclick="deleteExpense(${e.id})" class="text-gray-500 hover:text-red-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">✕</button>` : ''}
+                </div>
+            </div>
+        `}).join('');
+
+                    // We need to re-grab the balance container from a simpler way or separate it completely
+                    // For now, let's just append listHtml to the container, assuming balances are handled in render() 
+                    // Wait, render() replaces innerHTML of 'expense-list' which included balances.
+                    // Let's split specific containers in HTML in next step or just re-inject here.
+                    // To keep it simple: render() handles totals layout. renderList ONLY updates the list part.
+                    // But currently #expense-list holds both. Let's fix that by separating containers in HTML first?
+                    // Done: I'll modify HTML structure simply via JS injection in render() to add a dedicated list container matching main render flow.
+
+                    const listContainer = document.getElementById('expense-items-container');
+                    if (listContainer) {
+                        listContainer.innerHTML = listHtml;
+                    } else {
+                        // Fallback if structure isn't ready (first render)
+                        const expenseListDiv = document.getElementById('expense-list');
+                        // We can't easily update just the list part if it's mixed.
+                        // Let's assume render() sets up the structure and we just update the list div inside it?
+                        // Actually, looking at original code: document.getElementById('expense-list').innerHTML = balanceContainer + listHtml;
+                        // So we should target a new container.
+                    }
+                }
+
+                // Debounce Utility
+                function debounce(func, wait) {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                            document.getElementById('search-loading').classList.add('hidden');
+                        };
+                        clearTimeout(timeout);
+                        document.getElementById('search-loading').classList.remove('hidden');
+                        timeout = setTimeout(later, wait);
+                    };
+                }
+
+                // Search & Filter Listeners
+                document.getElementById('search-input').addEventListener('input', debounce(() => {
+                    renderList();
+                }, 300));
+
+                document.getElementById('filter-type').addEventListener('change', () => {
+                    renderList();
+                });
+
+                // --- SETTLE UP MODAL LOGIC ---
+                // --- SETTLE UP MODAL LOGIC ---
+                window.openSettleModal = () => {
+                    const payerSelect = document.getElementById('settle-payer');
+                    const receiverSelect = document.getElementById('settle-receiver');
+                    payerSelect.innerHTML = '';
+                    receiverSelect.innerHTML = '';
+
+                    const users = tripData.users ? Object.values(tripData.users) : [];
+
+                    // Populate Payer
+                    users.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.name;
+                        opt.innerText = u.name;
+                        payerSelect.appendChild(opt);
+                    });
+                    payerSelect.value = currentUser.name; // Default to current user
+
+                    // Populate Receiver
+                    users.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.name;
+                        opt.innerText = u.name;
+                        receiverSelect.appendChild(opt);
+                    });
+
+                    // Try to set receiver to someone else
+                    const others = users.filter(u => u.name !== currentUser.name);
+                    if (others.length > 0) receiverSelect.value = others[0].name;
+
+                    const settleModal = document.getElementById('settle-modal');
+                    settleModal.classList.remove('hidden');
+                };
+
+                window.closeSettleModal = () => {
+                    document.getElementById('settle-modal').classList.add('hidden');
+                    document.getElementById('settle-amt').value = '';
+                };
+
+                window.confirmSettle = () => {
+                    const payer = document.getElementById('settle-payer').value;
+                    const to = document.getElementById('settle-receiver').value;
+                    const amt = document.getElementById('settle-amt').value;
+
+                    if (payer && to && amt) {
+                        if (payer === to) {
+                            alert("Payer and Recipient cannot be the same person.");
+                            return;
+                        }
+
+                        if (!tripData.expenses) tripData.expenses = [];
+                        tripData.expenses.push({
+                            who: payer,
+                            to: to,
+                            what: 'Settlement',
+                            amt: parseFloat(amt),
+                            type: 'settlement',
+                            date: new Date().toISOString().split('T')[0],
+                            id: Date.now()
+                        });
+                        sync();
+                        window.closeSettleModal();
+                    }
+                };
+                // -----------------------------
+
+
+                window.toggleUserMenu = () => {
+                    userMenuOpen = !userMenuOpen;
+                    els.userMenu.classList.toggle('hidden', !userMenuOpen);
+                };
+
+                window.switchGroup = () => window.location.href = window.location.pathname;
+
+                document.addEventListener('click', (e) => {
+                    if (userMenuOpen && !els.userBtn.contains(e.target) && !els.userMenu.contains(e.target)) {
+                        userMenuOpen = false;
+                        els.userMenu.classList.add('hidden');
+                    }
+                });
+
+                window.copyTripLink = () => {
+                    if (!tripId) return;
+                    const url = `${window.location.origin}${window.location.pathname}?token=${tripId}`;
+                    if (navigator.share) {
+                        navigator.share({
+                            title: 'Join Group Expenses',
+                            text: 'Join my expense group to split costs!',
+                            url: url
+                        }).catch(console.error);
+                    } else {
+                        navigator.clipboard.writeText(url).then(() => {
+                            alert("Invite Link Copied!");
+                        });
+                    }
+                };
+
+                window.createNewGroup = () => {
+                    const newId = Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('');
+                    window.location.href = `?token=${newId}`;
+                };
+
+                window.updateGroupSettings = () => {
+                    const currentName = tripData.name || "Group Expenses";
+                    const currentCurrency = tripData.currency || "€";
+
+                    // Simple prompt sequence for now
+                    const newName = prompt("Enter Group Name:", currentName);
+                    if (newName !== null) {
+                        const newCurrency = prompt("Enter Currency Symbol (e.g. $, €, £, ₹):", currentCurrency);
+
+                        if (newCurrency !== null) {
+                            tripData.name = newName.trim() || currentName;
+                            tripData.currency = newCurrency.trim() || currentCurrency;
+                            sync();
+                            render();
+                            userMenuOpen = false;
+                            els.userMenu.classList.add('hidden');
+                        }
+                    }
+                };
+
+                // Kept for backward compat if needed, but updateGroupSettings subsumes it
+                window.updateGroupName = window.updateGroupSettings;
+
+                window.downloadTripData = () => {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tripData, null, 2));
+                    const downloadAnchorNode = document.createElement('a');
+                    downloadAnchorNode.setAttribute("href", dataStr);
+                    downloadAnchorNode.setAttribute("download", "trip_data_" + tripId + ".json");
+                    document.body.appendChild(downloadAnchorNode);
+                    downloadAnchorNode.click();
+                    downloadAnchorNode.remove();
+                };
+
+                document.getElementById('login-btn').onclick = () => joinTrip(els.nameIn.value);
+                els.nameIn.onkeypress = (e) => { if (e.key === 'Enter') joinTrip(els.nameIn.value); };
+
+                window.editExpense = (id) => {
+                    const expense = tripData.expenses.find(e => e.id === id);
+                    if (!expense) return;
+
+                    editingId = id;
+
+                    document.getElementById('exp-desc').value = expense.what;
+                    document.getElementById('exp-amt').value = expense.amt;
+                    if (expense.date) {
+                        document.getElementById('exp-date').value = expense.date;
+                    } else {
+                        document.getElementById('exp-date').value = '';
+                    }
+
+                    document.getElementById('add-exp-btn').innerText = 'Update';
+                    document.getElementById('add-exp-btn').classList.replace('btn-success', 'btn-primary');
+                    document.getElementById('edit-controls').classList.remove('hidden');
+
+                    // Scroll to top to see edit form
+                    document.querySelector('.overflow-y-auto').scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                window.cancelEdit = () => {
+                    editingId = null;
+                    document.getElementById('exp-desc').value = '';
+                    document.getElementById('exp-amt').value = '';
+                    document.getElementById('exp-date').value = '';
+
+                    document.getElementById('add-exp-btn').innerText = 'Add';
+                    document.getElementById('add-exp-btn').classList.replace('btn-primary', 'btn-success');
+                    document.getElementById('edit-controls').classList.add('hidden');
+                };
+
+                window.deleteExpense = (id) => {
+                    if (confirm("Delete this expense?")) {
+                        tripData.expenses = tripData.expenses.filter(e => e.id !== id);
+                        sync();
+                        // If we were editing this one, cancel edit
+                        if (editingId === id) cancelEdit();
+                    }
+                };
+
+                document.getElementById('add-exp-btn').onclick = () => {
+                    const d = document.getElementById('exp-desc');
+                    const a = document.getElementById('exp-amt');
+                    const dateInput = document.getElementById('exp-date');
+
+                    if (d.value && a.value) {
+                        const desc = d.value.trim();
+                        const amt = parseFloat(a.value);
+                        const date = dateInput.value;
+
+                        if (!tripData.expenses) tripData.expenses = [];
+
+                        if (editingId) {
+                            // UPDATE EXISTING
+                            const idx = tripData.expenses.findIndex(e => e.id === editingId);
+                            if (idx !== -1) {
+                                tripData.expenses[idx] = {
+                                    ...tripData.expenses[idx],
+                                    what: desc,
+                                    amt: amt,
+                                    date: date
+                                };
+                            }
+                        } else {
+                            // ADD NEW
+                            tripData.expenses.push({
+                                who: currentUser.name,
+                                what: desc,
+                                amt: amt,
+                                date: date,
+                                id: Date.now()
+                            });
+                        }
+
+                        sync();
+                        cancelEdit(); // Resets form and ID
+                    }
+                };
+
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
+                    });
+                }
+
+                init();
+            </script>
+</body>
+
+</html>
