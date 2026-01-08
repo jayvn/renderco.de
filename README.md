@@ -41,6 +41,8 @@ python3 -m http.server 8000
 # Visit http://localhost:8000
 ```
 
+**Note:** Apps using CDNs and external services (Firebase, Tailwind CDN, etc.) can be opened directly via `file:///path/to/app/index.html` without a server. Apps fetching local resources may need a server due to CORS.
+
 ## Adding Your AI-Generated App
 
 ### Method 1: Paste Claude Artifact / ChatGPT Canvas HTML
