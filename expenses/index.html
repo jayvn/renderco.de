@@ -595,24 +595,10 @@
             </div>
         `}).join('');
 
-                    // We need to re-grab the balance container from a simpler way or separate it completely
-                    // For now, let's just append listHtml to the container, assuming balances are handled in render() 
-                    // Wait, render() replaces innerHTML of 'expense-list' which included balances.
-                    // Let's split specific containers in HTML in next step or just re-inject here.
-                    // To keep it simple: render() handles totals layout. renderList ONLY updates the list part.
-                    // But currently #expense-list holds both. Let's fix that by separating containers in HTML first?
-                    // Done: I'll modify HTML structure simply via JS injection in render() to add a dedicated list container matching main render flow.
-
-                    const listContainer = document.getElementById('expense-items-container');
-                    if (listContainer) {
-                        listContainer.innerHTML = listHtml;
-                    } else {
-                        // Fallback if structure isn't ready (first render)
-                        const expenseListDiv = document.getElementById('expense-list');
-                        // We can't easily update just the list part if it's mixed.
-                        // Let's assume render() sets up the structure and we just update the list div inside it?
-                        // Actually, looking at original code: document.getElementById('expense-list').innerHTML = balanceContainer + listHtml;
-                        // So we should target a new container.
+                    // Render transaction list directly to expense-list element
+                    const expenseListDiv = document.getElementById('expense-list');
+                    if (expenseListDiv) {
+                        expenseListDiv.innerHTML = listHtml;
                     }
                 }
 
