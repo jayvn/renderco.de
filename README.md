@@ -1,6 +1,6 @@
 # Browser App Gallery
 
-A simple platform for hosting and sharing browser-based web apps as PWAs.
+A simple platform for hosting and sharing browser-based web apps as PWAs using free hosting on github pages.
 
 Live at: [renderco.de](https://renderco.de)
 
