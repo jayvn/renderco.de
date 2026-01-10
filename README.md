@@ -6,12 +6,13 @@ Live at: [renderco.de](https://renderco.de)
 
 ## Concept
 
-This app gallery is designed for effortlessly sharing AI-generated web apps with friends. Perfect for apps created with:
+This app gallery is designed for effortlessly sharing AI-generated web apps. Designed for single file apps created with:
 - **Claude Artifacts**
 - **ChatGPT Canvas**
 - **Google Gemini**
 
-Simply paste your generated app code, and it becomes a Progressive Web App (PWA) that works offline and can be installed on any device. No build tools, no complex setup - just paste and share.
+Easily make  a Progressive Web App (PWA) that can also work  offline and can be installed on any device. No build tools, no complex setup - just paste and share.
+Note: Some of the apps require internet, like the social apps (eg., expense sharing, trip planner, etc)
 
 **Features:**
 - Zero-config app deployment - paste HTML/JS and go
@@ -19,6 +20,7 @@ Simply paste your generated app code, and it becomes a Progressive Web App (PWA)
 - Shared navigation system (optional)
 - Mobile-responsive dark theme
 - Easy sharing via URL
+
 ## Philosophy
  
 Avoid unnecessary exception/error handling and comments. For apps, errors should not be handled and should propagate to the console. Avoid React and use vanilla JavaScript. Code should be self-documenting and errors should be propagated unhandled for ease of understanding. Reduce code by using emojis instead of icons which are imported or drawn. Use default styles instead of too custom CSS. Use other refactoring methods while keeping functionality the same. Go for minimalism.
