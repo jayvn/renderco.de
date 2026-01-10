@@ -4,10 +4,9 @@ const urlsToCache = [
   '/choreo/',
   '/choreo/index.html',
   '/choreo/app.js',
-  '/images/logo.png',
+  '/choreo/icon-192.png',
+  '/choreo/icon-512.png',
   '/images/favicon.ico',
-  '/images/choreo-icon-192.png',
-  '/images/choreo-icon-512.png',
   'https://cdn.tailwindcss.com'
 ];
 
