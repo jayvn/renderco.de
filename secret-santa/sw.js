@@ -3,8 +3,7 @@ const CACHE_NAME = 'secret-santa-v1';
 const urlsToCache = [
   '/secret-santa/',
   '/secret-santa/index.html',
-  '/images/santa-icon-192.png',
-  '/images/santa-icon-512.png',
+  '/secret-santa/logo.png',
   '/images/favicon.ico'
 ];
 
