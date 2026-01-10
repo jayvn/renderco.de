@@ -4,7 +4,7 @@ const urlsToCache = [
   '/secret-santa/',
   '/secret-santa/index.html',
   '/secret-santa/logo.png',
-  '/images/favicon.ico'
+  '/images/favicon.png'
 ];
 
 // Install event - cache resources

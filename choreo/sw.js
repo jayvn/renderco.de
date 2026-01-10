@@ -6,7 +6,7 @@ const urlsToCache = [
   '/choreo/app.js',
   '/choreo/icon-192.png',
   '/choreo/icon-512.png',
-  '/images/favicon.ico',
+  '/images/favicon.png',
   'https://cdn.tailwindcss.com'
 ];
 
