@@ -1,0 +1,25 @@
+{
+  "name": "White Noise",
+  "short_name": "WhiteNoise",
+  "description": "Simple white noise generator for focus and relaxation",
+  "start_url": "/white_noise/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "utilities"]
+}
