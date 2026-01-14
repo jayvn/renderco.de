@@ -28,8 +28,11 @@ let loading = false;
 let historyTree = []; // Array of {nodeId, articleTitle, parentId}
 let navStack = []; // For back button: [{title, nodeId}]
 let currentArticleId = null;
-let likedArticles = new Set(JSON.parse(localStorage.getItem('likedArticles') || '[]'));
-let modalLikes = new Set(JSON.parse(localStorage.getItem('modalLikes') || '[]'));
+let currentArticleTitle = null; // Sync state for modal
+let likedArticles = JSON.parse(localStorage.getItem('likedArticles') || '{}');
+// Legacy migration: if it was an array/set (from previous version), reset to object
+if (Array.isArray(likedArticles)) likedArticles = {};
+
 let offlineCache = JSON.parse(localStorage.getItem('offlineCache') || '[]');
 let streakCount = parseInt(localStorage.getItem('streakCount') || '0');
 const streakEl = document.getElementById('streak-count');
@@ -173,16 +176,21 @@ function createFeedItem(article) {
     item.className = 'feed-item';
     item.style.backgroundImage = `url(${article.image})`;
 
-    const isLiked = likedArticles.has(article.id);
-    const likeBtnId = `like-btn-${article.id}`;
+    // Click handler for the whole card
+    item.onclick = (e) => {
+        if (!e.target.closest('.feed-like-btn')) {
+            openFullArticle(article.id, article.title.replace(/'/g, "\\'"), null);
+        }
+    };
+
+    const isLiked = Object.prototype.hasOwnProperty.call(likedArticles, article.title);
 
     item.innerHTML = `
         <div class="content-overlay">
             <h2 class="article-title">${article.title}</h2>
             <p class="article-excerpt">${article.summary}</p>
             <div class="feed-actions">
-                <button class="read-more-btn" onclick="openFullArticle(${article.id}, '${article.title.replace(/'/g, "\\'")}', null)">Read Article</button>
-                <button class="feed-like-btn" id="${likeBtnId}" onclick="toggleLike(this, ${article.id})">
+                <button class="feed-like-btn" data-title="${article.title.replace(/"/g, '&quot;')}" onclick="toggleLike('${article.title.replace(/'/g, "\\'")}')">
                     <i class="${isLiked ? 'fas' : 'far'} fa-heart" style="color: ${isLiked ? 'red' : 'white'}"></i>
                 </button>
             </div>
@@ -232,6 +240,9 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
     modal.classList.add('active');
     modalBody.innerHTML = '<div class="loader"></div>';
 
+    currentArticleTitle = title;
+    // Don't set textContent on detached element.
+
     // 1. Fetch Full Content (Check Offline Cache First if needed, or just fetch and cache)
     let data;
     try {
@@ -278,9 +289,8 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
     // Update modal header with nav and like button
     const modalHeader = document.querySelector('.modal-header');
     const articleTitle = data.parse.title;
-    const articleId = id || articleTitle.hashCode?.() || Date.now(); // Use ID if available
 
-    const isAlreadyLiked = modalLikes.has(articleTitle);
+    const isAlreadyLiked = Object.prototype.hasOwnProperty.call(likedArticles, articleTitle);
     const heartClass = isAlreadyLiked ? 'fas' : 'far';
     const heartColor = isAlreadyLiked ? 'style="color:#f09433"' : '';
 
@@ -289,8 +299,9 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
             ${showBack ? '<button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>' : ''}
             <span class="breadcrumb-depth">Depth: ${depth}</span>
         </div>
+        <h2 class="modal-title">${articleTitle}</h2>
         <div class="modal-actions">
-            <button class="modal-like-btn" id="modal-like-btn" onclick="toggleModalLike('${articleTitle.replace(/'/g, "\\'")}')">
+            <button class="modal-like-btn" id="modal-like-btn" onclick="toggleLike('${articleTitle.replace(/'/g, "\\'")}')">
                 <i class="${heartClass} fa-heart" ${heartColor}></i>
             </button>
             <button class="minimize-modal" onclick="minimizeModal()">
@@ -300,7 +311,8 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
         </div>
     `;
 
-    modalTitle.textContent = articleTitle;
+    // Re-bind modalTitle if needed, or rely on innerHTML
+    // modalTitle.textContent = articleTitle; // No longer needed as it's in HTML
     modalBody.innerHTML = `${contentHtml}`;
 
     // 4. Attach link interceptors
@@ -423,22 +435,30 @@ function renderTree() {
 
 function renderProfile() {
     bookmarksContainer.innerHTML = '';
-    if (likedArticles.size === 0) {
+    const keys = Object.keys(likedArticles);
+    if (keys.length === 0) {
         bookmarksContainer.innerHTML = '<p style="color:#888;text-align:center">No bookmarks yet. Like articles to save them!</p>';
         return;
     }
-    let count = 0;
-    Array.from(likedArticles).forEach(id => {
-        const meta = articles.find(a => a.id === id);
-        if (meta) { createBookmarkItem(meta); count++; }
+
+    keys.forEach(title => {
+        const meta = likedArticles[title];
+        if (meta) createBookmarkItem(meta);
     });
-    if (count === 0) bookmarksContainer.innerHTML = '<p style="color:#888;text-align:center">Session bookmarks not available.</p>';
 }
 
 function createBookmarkItem(article) {
     const item = document.createElement('div');
     item.className = 'bookmark-item';
-    item.style.backgroundImage = `url(${article.image})`;
+    if (article.image) {
+        item.style.backgroundImage = `url(${article.image})`;
+    } else {
+        item.style.backgroundColor = '#333';
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.justifyContent = 'center';
+    }
+
     item.innerHTML = `
         <div class="bookmark-overlay">
             <h3>${article.title}</h3>
@@ -450,28 +470,53 @@ function createBookmarkItem(article) {
 
 // --- UTILS ---
 
-// Unified like toggle helper
 function updateLikeIcon(icon, isLiked, likedColor) {
     icon.classList.replace(isLiked ? 'far' : 'fas', isLiked ? 'fas' : 'far');
     icon.style.color = isLiked ? likedColor : '';
 }
 
-function toggleLike(btn, id) {
-    const icon = btn.querySelector('i');
-    const isLiked = !likedArticles.has(id);
-    isLiked ? likedArticles.add(id) : likedArticles.delete(id);
-    updateLikeIcon(icon, isLiked, 'red');
-    localStorage.setItem('likedArticles', JSON.stringify([...likedArticles]));
+window.toggleLike = function(title) {
+    const isLiked = Object.prototype.hasOwnProperty.call(likedArticles, title);
+
+    if (isLiked) {
+        delete likedArticles[title];
+    } else {
+        // Try to find metadata from feed articles
+        const feedMeta = articles.find(a => a.title === title);
+        likedArticles[title] = {
+            title: title,
+            id: feedMeta?.id || null,
+            image: feedMeta?.image || null,
+            summary: feedMeta?.summary || null
+        };
+    }
+
+    localStorage.setItem('likedArticles', JSON.stringify(likedArticles));
+
+    // Update Feed Buttons
+    const feedBtns = document.querySelectorAll('.feed-like-btn');
+    feedBtns.forEach(btn => {
+        if (btn.dataset.title === title) {
+            const icon = btn.querySelector('i');
+            updateLikeIcon(icon, !isLiked, 'red');
+        }
+    });
+
+    // Update Modal Button
+    if (currentArticleTitle === title) {
+        const btn = document.getElementById('modal-like-btn');
+        if (btn) {
+            const icon = btn.querySelector('i');
+            updateLikeIcon(icon, !isLiked, '#f09433');
+        }
+    }
+
+    // Refresh profile if active
+    if (profileView.classList.contains('active')) {
+        renderProfile();
+    }
 }
 
 function updateStreakUI() {
     streakEl.textContent = streakCount;
 }
-
-window.toggleModalLike = function (title) {
-    const icon = document.querySelector('#modal-like-btn i');
-    const isLiked = !modalLikes.has(title);
-    isLiked ? modalLikes.add(title) : modalLikes.delete(title);
-    updateLikeIcon(icon, isLiked, '#f09433');
-    localStorage.setItem('modalLikes', JSON.stringify([...modalLikes]));
-};
