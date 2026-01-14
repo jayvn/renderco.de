@@ -474,7 +474,8 @@ body {
     transform: translateY(0);
 }
 
-.close-modal {
+.close-modal,
+.minimize-modal {
     position: static;
     /* Part of flex header now */
     font-size: 1.5rem;
@@ -649,4 +650,26 @@ body {
 .minimized-article i {
     color: #f09433;
     font-size: 1.1rem;
+}.feed-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.feed-like-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.feed-like-btn:active {
+    transform: scale(0.9);
 }
