@@ -1,0 +1,583 @@
+:root {
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --accent-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    --card-bg: #1a1a1a;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    /* Prevent body scroll, handle in feed-container */
+    height: 100vh;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 500px;
+    /* Mobile width cap for desktop view */
+    margin: 0 auto;
+    position: relative;
+    background: #000;
+}
+
+/* Top Bar */
+.top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+    pointer-events: none;
+    /* Let clicks pass through to content */
+}
+
+.top-bar * {
+    pointer-events: auto;
+}
+
+.app-logo {
+    font-weight: 700;
+    font-size: 1.5rem;
+    background: var(--accent-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-family: inherit;
+    font-weight: 600;
+    backdrop-filter: blur(5px);
+    cursor: pointer;
+}
+
+/* Main Feed */
+.feed-container {
+    flex: 1;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+    height: 100%;
+}
+
+/* Hide scrollbar */
+.feed-container::-webkit-scrollbar {
+    display: none;
+}
+
+.feed-container {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.feed-item {
+    height: 100%;
+    /* Full screen per item */
+    width: 100%;
+    scroll-snap-align: start;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 20px 20px 80px 20px;
+    /* Bottom padding for nav */
+    background-size: cover;
+    background-position: center;
+    background-color: #222;
+}
+
+.feed-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0.1) 100%);
+    z-index: 1;
+}
+
+.content-overlay {
+    position: relative;
+    z-index: 2;
+}
+
+.article-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.article-excerpt {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 15px;
+    display: -webkit-box;
+    line-clamp: 3;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.read-more-btn {
+    background: white;
+    color: black;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: transform 0.2s;
+}
+
+.read-more-btn:active {
+    transform: scale(0.95);
+}
+
+.actions {
+    position: absolute;
+    right: 10px;
+    bottom: 100px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+.action-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.8rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.action-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Bottom Nav */
+.bottom-nav {
+    height: 60px;
+    background: black;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid #333;
+    z-index: 10;
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 10px;
+    transition: color 0.2s;
+}
+
+.nav-item.active {
+    color: white;
+}
+
+/* Search */
+.header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper {
+    position: absolute;
+    right: 0;
+    top: 50px;
+    width: 300px;
+    max-width: calc(100vw - 40px);
+    /* Responsive width */
+    background: #111;
+    border-radius: 10px;
+    padding: 10px;
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: all 0.2s;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    /* Better depth */
+}
+
+.search-input-wrapper.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+#wiki-search {
+    width: 100%;
+    background: #222;
+    border: none;
+    color: white;
+    padding: 12px;
+    /* Larger touch area */
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+
+.search-result-item:hover {
+    background: #333;
+}
+
+/* Modal and Article Content */
+.article-modal {
+    padding: 0;
+    background: #000;
+}
+
+.modal-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.9);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #333;
+}
+
+.modal-nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.back-btn:active {
+    transform: scale(0.95);
+}
+
+.breadcrumb-depth {
+    font-size: 0.85rem;
+    color: #888;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.modal-body-content {
+    padding: 20px;
+    overflow-y: auto;
+    line-height: 1.6;
+    font-size: 1.1rem;
+    color: #ddd;
+}
+
+.modal-body-content h1,
+.modal-body-content h2,
+.modal-body-content h3 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+    color: white;
+}
+
+.modal-body-content p {
+    margin-bottom: 20px;
+}
+
+.modal-body-content a {
+    color: #f09433;
+    /* Accent color */
+    text-decoration: none;
+    border-bottom: 1px dotted #f09433;
+}
+
+.modal-body-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+/* Tree View */
+.tree-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 60px;
+    /* Above nav */
+    background: #111;
+    z-index: 90;
+    padding: 20px;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    color: white;
+}
+
+.tree-view.active {
+    transform: translateX(0);
+}
+
+.tree-node {
+    padding: 15px;
+    margin-left: 20px;
+    border-left: 2px solid #333;
+    position: relative;
+    cursor: pointer;
+}
+
+.tree-node::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 22px;
+    width: 12px;
+    height: 12px;
+    background: var(--accent-gradient);
+    border-radius: 50%;
+}
+
+.tree-node:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.close-tree-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+/* Modal */
+.article-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    color: black;
+    z-index: 100;
+    padding: 20px;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.article-modal.active {
+    transform: translateY(0);
+}
+
+.close-modal {
+    position: static;
+    /* Part of flex header now */
+    font-size: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+}
+
+.loader {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Profile / Bookmarks */
+.profile-view {
+    position: fixed;
+    top: 60px;
+    /* Below top bar (approx) - actually top bar is absolute, so 0 is fine if padding handled */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 60px;
+    background: #000;
+    z-index: 90;
+    display: none;
+    flex-direction: column;
+    padding: 70px 20px 20px 20px;
+    /* Top padding for header */
+    overflow-y: auto;
+}
+
+.profile-view.active {
+    display: flex;
+}
+
+.profile-header {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+    background: var(--accent-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.bookmarks-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.bookmark-item {
+    aspect-ratio: 1 / 1;
+    background-color: #333;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+}
+
+.bookmark-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+}
+
+.bookmark-overlay h3 {
+    font-size: 0.9rem;
+    color: white;
+}
+
+/* Updated Tree Node for Branching */
+.tree-node {
+    margin: 10px 0;
+    /* Margin-left handled inline by JS recursion */
+    border-left: 2px solid #444;
+    padding-left: 15px;
+    position: relative;
+}
+
+.tree-node::before {
+    top: 6px;
+    /* Adjust for text alignment */
+    /* Remainder of existing style is fine, but may need overrides */
+}
+
+.tree-node-content {
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.tree-node-content:hover {
+    background: rgba(255, 255, 255, 0.1);
+}

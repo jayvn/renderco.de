@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>WikiFeed</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <!-- Placeholder for icons, relying on FontAwesome or similar if available/needed, otherwise will use SVG -->
+    <!-- Using inline SVGs for icons to avoid external dependencies issues if kit fails -->
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <h1 class="app-logo">WikiFeed</h1>
+            <div class="header-right">
+                <div class="search-container">
+                    <button class="icon-btn" id="search-toggle-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <div class="search-input-wrapper hidden" id="search-wrapper">
+                        <input type="text" id="wiki-search" placeholder="Search Wikipedia...">
+                        <div class="search-results" id="search-results"></div>
+                    </div>
+                </div>
+                <button class="icon-btn" id="streak-btn">
+                    🔥 <span id="streak-count">0</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Feed (Scroll Container) -->
+        <main class="feed-container" id="feed-container">
+            <!-- Articles will be injected here via JS -->
+            <div class="loading-state">
+                <div class="loader"></div>
+                <p>Falling down the rabbithole...</p>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-target="home">
+                <i class="fas fa-home"></i>
+            </button>
+            <button class="nav-item" data-target="explore" id="explore-btn" title="Your Journey">
+                <i class="fas fa-history"></i> <!-- Changed to history/clock for "Journey/Tree" -->
+            </button>
+            <button class="nav-item" data-target="profile">
+                <i class="fas fa-user"></i>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Article Detail Modal / Full Read View -->
+    <div id="article-modal" class="article-modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="close-modal">&times;</button>
+                <button class="minimize-modal"><i class="fas fa-chevron-down"></i></button>
+            </div>
+            <div class="modal-body-content" id="modal-body">
+                <!-- Content injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Rabbithole Tree Modal/View -->
+    <div id="tree-view" class="tree-view hidden">
+        <h2>Your Journey</h2>
+        <div id="tree-container"></div>
+        <button class="close-tree-btn">Close</button>
+    </div>
+
+    <!-- Profile / Bookmarks View -->
+    <div id="profile-view" class="profile-view hidden">
+        <h2 class="profile-header">Your Bookmarks</h2>
+        <div id="bookmarks-container" class="bookmarks-grid"></div>
+        <!-- Maybe stats here too -->
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW registered'))
+                .catch(err => console.log('SW registration failed:', err));
+        }
+    </script>
+</body>
+
+</html>
