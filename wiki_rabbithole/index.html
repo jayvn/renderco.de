@@ -12,9 +12,7 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-    <!-- Placeholder for icons, relying on FontAwesome or similar if available/needed, otherwise will use SVG -->
-    <!-- Using inline SVGs for icons to avoid external dependencies issues if kit fails -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body>
@@ -46,6 +44,17 @@
                 <p>Falling down the rabbithole...</p>
             </div>
         </main>
+
+        <!-- Random Article FAB -->
+        <button class="fab-random" id="random-btn" title="Random Article">
+            <i class="fas fa-dice"></i>
+        </button>
+
+        <!-- Minimized Article Indicator (PIP) -->
+        <div class="minimized-article hidden" id="minimized-pip" onclick="resumeArticle()">
+            <span id="pip-title">Continue reading...</span>
+            <i class="fas fa-expand"></i>
+        </div>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">

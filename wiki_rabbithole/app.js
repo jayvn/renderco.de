@@ -34,6 +34,9 @@ let offlineCache = JSON.parse(localStorage.getItem('offlineCache') || '[]');
 let streakCount = parseInt(localStorage.getItem('streakCount') || '0');
 const streakEl = document.getElementById('streak-count');
 
+// Minimize state
+let minimizedArticle = null; // {title, scrollPos}
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
     loadArticles();
@@ -48,17 +51,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Modal Events
     closeModalBtn.addEventListener('click', closeModal);
-    minimizeModalBtn.addEventListener('click', closeModal);
+    minimizeModalBtn.addEventListener('click', minimizeModal);
 
-    // Swipe down to close modal
+    // Random Article Button
+    document.getElementById('random-btn').addEventListener('click', async () => {
+        const articles = await fetchRandomArticles();
+        if (articles.length > 0) {
+            const pick = articles[Math.floor(Math.random() * articles.length)];
+            openFullArticle(pick.id, pick.title, null);
+        }
+    });
+
+    // Swipe down to minimize modal
     let touchStartY = 0;
     modal.addEventListener('touchstart', (e) => {
         touchStartY = e.touches[0].clientY;
     });
     modal.addEventListener('touchend', (e) => {
         const touchEndY = e.changedTouches[0].clientY;
-        if (touchEndY - touchStartY > 100) { // Swiped down 100px+
-            closeModal();
+        if (touchEndY - touchStartY > 100) {
+            minimizeModal();
         }
     });
 
@@ -104,8 +116,32 @@ function setActiveNav(target) {
 
 function closeModal() {
     modal.classList.remove('active');
-    navStack = []; // Clear nav stack when fully closing
+    navStack = [];
+    minimizedArticle = null;
+    document.getElementById('minimized-pip').classList.add('hidden');
 }
+
+function minimizeModal() {
+    const title = document.querySelector('#article-modal h2')?.textContent || 'Article';
+    const scrollPos = document.getElementById('modal-body')?.scrollTop || 0;
+    minimizedArticle = { title, scrollPos };
+    modal.classList.remove('active');
+
+    const pip = document.getElementById('minimized-pip');
+    document.getElementById('pip-title').textContent = title.substring(0, 25) + (title.length > 25 ? '...' : '');
+    pip.classList.remove('hidden');
+}
+
+window.resumeArticle = function () {
+    if (minimizedArticle) {
+        modal.classList.add('active');
+        document.getElementById('minimized-pip').classList.add('hidden');
+        setTimeout(() => {
+            const body = document.getElementById('modal-body');
+            if (body) body.scrollTop = minimizedArticle.scrollPos;
+        }, 100);
+    }
+};
 
 window.goBack = function () {
     if (navStack.length > 1) {
