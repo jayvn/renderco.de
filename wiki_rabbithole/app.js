@@ -49,18 +49,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Swipe up on feed to get random article (when at bottom)
+    let feedTouchStartY = 0;
+    let isAtBottom = false;
+    feedContainer.addEventListener('touchstart', (e) => {
+        feedTouchStartY = e.touches[0].clientY;
+        // Check if near bottom of feed
+        isAtBottom = feedContainer.scrollTop + feedContainer.clientHeight >= feedContainer.scrollHeight - 100;
+    });
+    feedContainer.addEventListener('touchend', async (e) => {
+        const touchEndY = e.changedTouches[0].clientY;
+        const swipeDistance = feedTouchStartY - touchEndY;
+        // If swipe up (positive distance) at bottom of feed
+        if (isAtBottom && swipeDistance > 80) {
+            const randomArticles = await fetchRandomArticles();
+            if (randomArticles.length > 0) {
+                const pick = randomArticles[Math.floor(Math.random() * randomArticles.length)];
+                openFullArticle(pick.id, pick.title, null);
+            }
+        }
+    });
+
     // Modal Events
     closeModalBtn.addEventListener('click', closeModal);
     minimizeModalBtn.addEventListener('click', minimizeModal);
-
-    // Random Article Button
-    document.getElementById('random-btn').addEventListener('click', async () => {
-        const articles = await fetchRandomArticles();
-        if (articles.length > 0) {
-            const pick = articles[Math.floor(Math.random() * articles.length)];
-            openFullArticle(pick.id, pick.title, null);
-        }
-    });
 
     // Swipe down to minimize modal
     let touchStartY = 0;
@@ -230,17 +242,14 @@ async function handleSearch(query) {
 
     const endpoint = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=5&origin=*`;
     const response = await fetch(endpoint);
-    const [searchTerm, titles, urls, links] = await response.json();
+    const [, titles] = await response.json();
 
     searchResults.innerHTML = '';
-    titles.forEach((title, index) => {
+    titles.forEach(title => {
         const div = document.createElement('div');
         div.className = 'search-result-item';
         div.textContent = title;
         div.onclick = () => {
-            // Fetch ID for this title to open it properly
-            // Ideally opensearch gave us URL but we need ID/PageContent.
-            // We can just open by Title.
             openFullArticle(null, title, null);
             searchWrapper.classList.remove('active');
             searchInput.value = '';
@@ -501,25 +510,5 @@ function updateStreakUI() {
     streakEl.textContent = streakCount;
 }
 
-// Like from modal (by title since we may not have feed ID)
-let currentModalTitle = null;
-window.toggleModalLike = function (title) {
-    currentModalTitle = title;
-    const btn = document.getElementById('modal-like-btn');
-    const icon = btn.querySelector('i');
-
-    // For modal likes, we store by title string
-    const isLiked = modalLikes.has(title);
-    if (isLiked) {
-        modalLikes.delete(title);
-        icon.classList.remove('fas');
-        icon.classList.add('far');
-        icon.style.color = '';
-    } else {
-        modalLikes.add(title);
-        icon.classList.remove('far');
-        icon.classList.add('fas');
-        icon.style.color = '#f09433';
-    }
-    localStorage.setItem('modalLikes', JSON.stringify([...modalLikes]));
+localStorage.setItem('modalLikes', JSON.stringify([...modalLikes]));
 };
