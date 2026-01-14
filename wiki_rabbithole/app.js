@@ -43,11 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
     updateStreakUI();
 
     // Infinite Scroll
-    feedContainer.addEventListener('scroll', () => {
+    const throttledLoad = throttle(() => {
         if (feedContainer.scrollTop + feedContainer.clientHeight >= feedContainer.scrollHeight - 600) {
             loadArticles();
         }
-    });
+    }, 200);
+
+    feedContainer.addEventListener('scroll', throttledLoad);
 
 
     // Modal Events
@@ -475,3 +477,24 @@ window.toggleModalLike = function (title) {
     updateLikeIcon(icon, isLiked, '#f09433');
     localStorage.setItem('modalLikes', JSON.stringify([...modalLikes]));
 };
+
+function throttle(func, limit) {
+    let lastFunc;
+    let lastRan;
+    return function() {
+        const context = this;
+        const args = arguments;
+        if (!lastRan) {
+            func.apply(context, args);
+            lastRan = Date.now();
+        } else {
+            clearTimeout(lastFunc);
+            lastFunc = setTimeout(function() {
+                if ((Date.now() - lastRan) >= limit) {
+                    func.apply(context, args);
+                    lastRan = Date.now();
+                }
+            }, limit - (Date.now() - lastRan));
+        }
+    }
+}
