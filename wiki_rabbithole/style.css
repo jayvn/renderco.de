@@ -75,23 +75,19 @@ body {
     cursor: pointer;
 }
 
-/* Main Feed */
 .feed-container {
     flex: 1;
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
     height: 100%;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* Hide scrollbar */
 .feed-container::-webkit-scrollbar {
     display: none;
-}
-
-.feed-container {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
 }
 
 .feed-item {
@@ -446,10 +442,6 @@ body {
     border-radius: 50%;
 }
 
-.tree-node:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
 .close-tree-btn {
     position: absolute;
     top: 20px;
@@ -526,8 +518,6 @@ body {
 /* Profile / Bookmarks */
 .profile-view {
     position: fixed;
-    top: 60px;
-    /* Below top bar (approx) - actually top bar is absolute, so 0 is fine if padding handled */
     top: 0;
     left: 0;
     right: 0;
@@ -537,7 +527,6 @@ body {
     display: none;
     flex-direction: column;
     padding: 70px 20px 20px 20px;
-    /* Top padding for header */
     overflow-y: auto;
 }
 
@@ -585,19 +574,28 @@ body {
     color: white;
 }
 
-/* Updated Tree Node for Branching */
 .tree-node {
     margin: 10px 0;
-    /* Margin-left handled inline by JS recursion */
     border-left: 2px solid #444;
+    padding: 15px;
     padding-left: 15px;
     position: relative;
+    cursor: pointer;
 }
 
 .tree-node::before {
+    content: '';
+    position: absolute;
+    left: -7px;
     top: 6px;
-    /* Adjust for text alignment */
-    /* Remainder of existing style is fine, but may need overrides */
+    width: 12px;
+    height: 12px;
+    background: var(--accent-gradient);
+    border-radius: 50%;
+}
+
+.tree-node:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .tree-node-content {

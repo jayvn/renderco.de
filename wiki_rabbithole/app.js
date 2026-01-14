@@ -488,21 +488,17 @@ function createBookmarkItem(article) {
 
 // --- UTILS ---
 
+// Unified like toggle helper
+function updateLikeIcon(icon, isLiked, likedColor) {
+    icon.classList.replace(isLiked ? 'far' : 'fas', isLiked ? 'fas' : 'far');
+    icon.style.color = isLiked ? likedColor : '';
+}
+
 function toggleLike(btn, id) {
     const icon = btn.querySelector('i');
-    const isLiked = likedArticles.has(id);
-
-    if (isLiked) {
-        likedArticles.delete(id);
-        icon.classList.remove('fas');
-        icon.classList.add('far');
-        icon.style.color = 'white';
-    } else {
-        likedArticles.add(id);
-        icon.classList.remove('far');
-        icon.classList.add('fas');
-        icon.style.color = 'red';
-    }
+    const isLiked = !likedArticles.has(id);
+    isLiked ? likedArticles.add(id) : likedArticles.delete(id);
+    updateLikeIcon(icon, isLiked, 'red');
     localStorage.setItem('likedArticles', JSON.stringify([...likedArticles]));
 }
 
@@ -510,5 +506,10 @@ function updateStreakUI() {
     streakEl.textContent = streakCount;
 }
 
-localStorage.setItem('modalLikes', JSON.stringify([...modalLikes]));
+window.toggleModalLike = function (title) {
+    const icon = document.querySelector('#modal-like-btn i');
+    const isLiked = !modalLikes.has(title);
+    isLiked ? modalLikes.add(title) : modalLikes.delete(title);
+    updateLikeIcon(icon, isLiked, '#f09433');
+    localStorage.setItem('modalLikes', JSON.stringify([...modalLikes]));
 };
