@@ -49,42 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Swipe up on feed to get random article (when at bottom)
-    let feedTouchStartY = 0;
-    let isAtBottom = false;
-    feedContainer.addEventListener('touchstart', (e) => {
-        feedTouchStartY = e.touches[0].clientY;
-        // Check if near bottom of feed
-        isAtBottom = feedContainer.scrollTop + feedContainer.clientHeight >= feedContainer.scrollHeight - 100;
-    });
-    feedContainer.addEventListener('touchend', async (e) => {
-        const touchEndY = e.changedTouches[0].clientY;
-        const swipeDistance = feedTouchStartY - touchEndY;
-        // If swipe up (positive distance) at bottom of feed
-        if (isAtBottom && swipeDistance > 80) {
-            const randomArticles = await fetchRandomArticles();
-            if (randomArticles.length > 0) {
-                const pick = randomArticles[Math.floor(Math.random() * randomArticles.length)];
-                openFullArticle(pick.id, pick.title, null);
-            }
-        }
-    });
 
     // Modal Events
     closeModalBtn.addEventListener('click', closeModal);
     minimizeModalBtn.addEventListener('click', minimizeModal);
-
-    // Swipe down to minimize modal
-    let touchStartY = 0;
-    modal.addEventListener('touchstart', (e) => {
-        touchStartY = e.touches[0].clientY;
-    });
-    modal.addEventListener('touchend', (e) => {
-        const touchEndY = e.changedTouches[0].clientY;
-        if (touchEndY - touchStartY > 100) {
-            minimizeModal();
-        }
-    });
 
     // Search Events
     searchToggleBtn.addEventListener('click', () => {
@@ -209,24 +177,15 @@ function createFeedItem(article) {
     const likeBtnId = `like-btn-${article.id}`;
 
     item.innerHTML = `
-        <div class="actions">
-            <button class="action-btn like-btn" id="${likeBtnId}" onclick="toggleLike(this, ${article.id})">
-                <i class="${isLiked ? 'fas' : 'far'} fa-heart" style="color: ${isLiked ? 'red' : 'white'}"></i>
-                <span class="action-label">Like</span>
-            </button>
-            <button class="action-btn" onclick="openFullArticle(${article.id}, '${article.title.replace(/'/g, "\\'")}', null)">
-                <i class="far fa-eye"></i>
-                <span class="action-label">Read</span>
-            </button>
-            <button class="action-btn">
-                <i class="fas fa-share"></i>
-                <span class="action-label">Share</span>
-            </button>
-        </div>
         <div class="content-overlay">
             <h2 class="article-title">${article.title}</h2>
             <p class="article-excerpt">${article.summary}</p>
-            <button class="read-more-btn" onclick="openFullArticle(${article.id}, '${article.title.replace(/'/g, "\\'")}', null)">Read Article</button>
+            <div class="feed-actions">
+                <button class="read-more-btn" onclick="openFullArticle(${article.id}, '${article.title.replace(/'/g, "\\'")}', null)">Read Article</button>
+                <button class="feed-like-btn" id="${likeBtnId}" onclick="toggleLike(this, ${article.id})">
+                    <i class="${isLiked ? 'fas' : 'far'} fa-heart" style="color: ${isLiked ? 'red' : 'white'}"></i>
+                </button>
+            </div>
         </div>
     `;
     feedContainer.appendChild(item);
@@ -333,6 +292,9 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
         <div class="modal-actions">
             <button class="modal-like-btn" id="modal-like-btn" onclick="toggleModalLike('${articleTitle.replace(/'/g, "\\'")}')">
                 <i class="${heartClass} fa-heart" ${heartColor}></i>
+            </button>
+            <button class="minimize-modal" onclick="minimizeModal()">
+                <i class="fas fa-minus"></i>
             </button>
             <button class="close-modal" onclick="closeModal()">&times;</button>
         </div>
