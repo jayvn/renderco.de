@@ -343,6 +343,35 @@ body {
     border-radius: 12px;
 }
 
+.modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-like-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.modal-like-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-like-btn:active {
+    transform: scale(0.95);
+}
+
 .modal-body-content {
     padding: 20px;
     overflow-y: auto;
@@ -440,10 +469,10 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: white;
-    color: black;
+    background: #000;
+    color: #eee;
     z-index: 100;
-    padding: 20px;
+    padding: 0;
     overflow-y: auto;
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);

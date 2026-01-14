@@ -29,7 +29,8 @@ let historyTree = []; // Array of {nodeId, articleTitle, parentId}
 let navStack = []; // For back button: [{title, nodeId}]
 let currentArticleId = null;
 let likedArticles = new Set(JSON.parse(localStorage.getItem('likedArticles') || '[]'));
-let offlineCache = JSON.parse(localStorage.getItem('offlineCache') || '[]'); // Array of {title, html}
+let modalLikes = new Set(JSON.parse(localStorage.getItem('modalLikes') || '[]'));
+let offlineCache = JSON.parse(localStorage.getItem('offlineCache') || '[]');
 let streakCount = parseInt(localStorage.getItem('streakCount') || '0');
 const streakEl = document.getElementById('streak-count');
 
@@ -73,31 +74,19 @@ document.addEventListener('DOMContentLoaded', () => {
         debounceTimer = setTimeout(() => handleSearch(e.target.value), 300);
     });
 
-    // Navigation Events
-    exploreBtn.addEventListener('click', () => {
-        renderTree();
-        hideAllViews();
-        treeView.classList.add('active');
-        setActiveNav('explore');
-    });
-
-    closeTreeBtn.addEventListener('click', () => {
-        treeView.classList.remove('active');
-        setActiveNav('home');
-    });
-
-    profileBtn.addEventListener('click', () => {
-        renderProfile();
-        hideAllViews();
-        profileView.classList.add('active');
-        setActiveNav('profile');
-    });
-
-    homeBtn.addEventListener('click', () => {
-        hideAllViews();
-        setActiveNav('home');
-    });
+    // Navigation
+    exploreBtn.addEventListener('click', () => showView('explore'));
+    closeTreeBtn.addEventListener('click', () => showView('home'));
+    profileBtn.addEventListener('click', () => showView('profile'));
+    homeBtn.addEventListener('click', () => showView('home'));
 });
+
+function showView(view) {
+    hideAllViews();
+    if (view === 'explore') { renderTree(); treeView.classList.add('active'); }
+    if (view === 'profile') { renderProfile(); profileView.classList.add('active'); }
+    setActiveNav(view);
+}
 
 function hideAllViews() {
     treeView.classList.remove('active');
@@ -154,21 +143,13 @@ async function loadArticles() {
 }
 
 async function fetchRandomArticles() {
-    // Standard random generator
     const endpoint = `https://en.wikipedia.org/w/api.php?action=query&format=json&generator=random&grnnamespace=0&prop=extracts|pageimages&grnlimit=5&exintro&explaintext&pithumbsize=1000&origin=*`;
     const response = await fetch(endpoint);
     const data = await response.json();
-    if (!data.query || !data.query.pages) return [];
-
+    if (!data.query?.pages) return [];
     return Object.values(data.query.pages)
-        .filter(page => page.thumbnail && page.extract)
-        .map(page => ({
-            id: page.pageid,
-            title: page.title,
-            summary: page.extract,
-            image: page.thumbnail.source,
-            fullUrl: `https://en.wikipedia.org/?curid=${page.pageid}`
-        }));
+        .filter(p => p.thumbnail && p.extract)
+        .map(p => ({ id: p.pageid, title: p.title, summary: p.extract, image: p.thumbnail.source }));
 }
 
 function createFeedItem(article) {
@@ -290,17 +271,29 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
     const depth = navStack.length;
     const showBack = navStack.length > 1;
 
-    // Update modal header with breadcrumbs
+    // Update modal header with nav and like button
     const modalHeader = document.querySelector('.modal-header');
+    const articleTitle = data.parse.title;
+    const articleId = id || articleTitle.hashCode?.() || Date.now(); // Use ID if available
+
+    const isAlreadyLiked = modalLikes.has(articleTitle);
+    const heartClass = isAlreadyLiked ? 'fas' : 'far';
+    const heartColor = isAlreadyLiked ? 'style="color:#f09433"' : '';
+
     modalHeader.innerHTML = `
         <div class="modal-nav">
             ${showBack ? '<button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>' : ''}
             <span class="breadcrumb-depth">Depth: ${depth}</span>
         </div>
-        <button class="close-modal" onclick="closeModal()">&times;</button>
+        <div class="modal-actions">
+            <button class="modal-like-btn" id="modal-like-btn" onclick="toggleModalLike('${articleTitle.replace(/'/g, "\\'")}')">
+                <i class="${heartClass} fa-heart" ${heartColor}></i>
+            </button>
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+        </div>
     `;
 
-    modalTitle.textContent = data.parse.title;
+    modalTitle.textContent = articleTitle;
     modalBody.innerHTML = `${contentHtml}`;
 
     // 4. Attach link interceptors
@@ -332,14 +325,9 @@ async function fetchWikiContent(title) {
 }
 
 function processWikiHtml(html) {
-    // Remove some wikipedia clutter if possible, or just return
-    // Maybe strip style tags or specific classes
     const div = document.createElement('div');
     div.innerHTML = html;
-
-    // Remove edit sections, referecnes, etc.
     div.querySelectorAll('.mw-editsection, .reference, .mbox-small').forEach(el => el.remove());
-
     return div.innerHTML;
 }
 
@@ -428,38 +416,16 @@ function renderTree() {
 
 function renderProfile() {
     bookmarksContainer.innerHTML = '';
-
     if (likedArticles.size === 0) {
-        bookmarksContainer.innerHTML = '<p style="color:#888; text-align:center;">No bookmarks yet. Like articles to save them!</p>';
+        bookmarksContainer.innerHTML = '<p style="color:#888;text-align:center">No bookmarks yet. Like articles to save them!</p>';
         return;
     }
-
-    const likedIds = Array.from(likedArticles);
-    // Ideally we would have stored the full article metadata in likedArticles, 
-    // but we only stored IDs. For now, we can try to find them in 'articles' (feed cache)
-    // OR we might have to fetch them if missing. 
-    // Simpler hack for this prototype: We only show ones we have metadata for, OR we just show ID?
-    // Let's upgrade the 'like' logic so we store metadata in a separate 'likedMetadata' OR 
-    // just re-fetch.
-    // IMPROVEMENT: Let's assume for this session we only see ones in the feed.
-    // BETTER IMPROVEMENT: Let's change how we store likes right now.
-
-    // Attempt to lookup
-    let renderedCount = 0;
-    likedIds.forEach(id => {
-        // Find in current feed array
+    let count = 0;
+    Array.from(likedArticles).forEach(id => {
         const meta = articles.find(a => a.id === id);
-        if (meta) {
-            createBookmarkItem(meta);
-            renderedCount++;
-        }
-        // If not found, we can't easily render title/image without fetching. 
-        // We'll skip for this prototype scope to keep code minimal as requested.
+        if (meta) { createBookmarkItem(meta); count++; }
     });
-
-    if (renderedCount === 0 && likedIds.length > 0) {
-        bookmarksContainer.innerHTML = '<p style="color:#888; text-align:center;">Bookmarks from previous sessions are saved, but detailed metadata is not cached in this lightweight version.</p>';
-    }
+    if (count === 0) bookmarksContainer.innerHTML = '<p style="color:#888;text-align:center">Session bookmarks not available.</p>';
 }
 
 function createBookmarkItem(article) {
@@ -499,9 +465,25 @@ function updateStreakUI() {
     streakEl.textContent = streakCount;
 }
 
-// Legacy openArticle (redirect to new one if needed, or remove)
-// Keeping simple for feed clicks if index passed
-window.openArticle = function (id) {
-    // This was the old function called by the button. 
-    // Now mapped to openFullArticle in createFeedItem HTML generation
+// Like from modal (by title since we may not have feed ID)
+let currentModalTitle = null;
+window.toggleModalLike = function (title) {
+    currentModalTitle = title;
+    const btn = document.getElementById('modal-like-btn');
+    const icon = btn.querySelector('i');
+
+    // For modal likes, we store by title string
+    const isLiked = modalLikes.has(title);
+    if (isLiked) {
+        modalLikes.delete(title);
+        icon.classList.remove('fas');
+        icon.classList.add('far');
+        icon.style.color = '';
+    } else {
+        modalLikes.add(title);
+        icon.classList.remove('far');
+        icon.classList.add('fas');
+        icon.style.color = '#f09433';
+    }
+    localStorage.setItem('modalLikes', JSON.stringify([...modalLikes]));
 };
