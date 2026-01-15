@@ -284,7 +284,7 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
     // 3. Render with navigation header
     const contentHtml = processWikiHtml(data.parse.text['*']);
     const depth = navStack.length;
-    const showBack = navStack.length > 1;
+    const showBack = true;
 
     // Update modal header with nav and like button
     const modalHeader = document.querySelector('.modal-header');
