@@ -42,6 +42,9 @@ let minimizedArticle = null; // {title, scrollPos}
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    // Initial History State
+    history.replaceState({ view: 'home', navStack: [] }, '', '');
+
     loadArticles();
     updateStreakUI();
 
@@ -74,13 +77,42 @@ document.addEventListener('DOMContentLoaded', () => {
     closeTreeBtn.addEventListener('click', () => showView('home'));
     profileBtn.addEventListener('click', () => showView('profile'));
     homeBtn.addEventListener('click', () => showView('home'));
+
+    // Handle Browser Back Button
+    window.addEventListener('popstate', (event) => {
+        const state = event.state;
+        if (!state) {
+            // Fallback to home if no state
+            closeModal(true);
+            showView('home', true);
+            return;
+        }
+
+        if (state.view === 'home') {
+            closeModal(true);
+            showView('home', true);
+        } else if (state.view === 'article') {
+            // Restore Nav Stack
+            navStack = state.navStack || [];
+
+            // Re-open article (this will not push to history or tree because isBackNav=true)
+            openFullArticle(null, state.title, state.parentId, true);
+        } else if (state.view) {
+            closeModal(true); // Ensure modal is closed if we switch to a main view
+            showView(state.view, true);
+        }
+    });
 });
 
-function showView(view) {
+function showView(view, fromHistory = false) {
     hideAllViews();
     if (view === 'explore') { renderTree(); treeView.classList.add('active'); }
     if (view === 'profile') { renderProfile(); profileView.classList.add('active'); }
     setActiveNav(view);
+
+    if (!fromHistory) {
+        history.pushState({ view: view }, '', '#view=' + view);
+    }
 }
 
 function hideAllViews() {
@@ -97,9 +129,19 @@ function setActiveNav(target) {
     });
 }
 
-function closeModal() {
+function closeModal(fromHistory = false) {
+    if (!fromHistory) {
+        // If closed manually, push Home state so Back button returns to this article if desired?
+        // OR: "Close" means "Reset".
+        // If we push 'home', then Back goes to Article.
+        history.pushState({ view: 'home', navStack: [] }, '', '#');
+    }
+
     modal.classList.remove('active');
-    navStack = [];
+    // We don't clear navStack blindly if it's fromHistory (handled by popstate)
+    // But if manual close, we are at home, so stack is empty.
+    if (!fromHistory) navStack = [];
+
     minimizedArticle = null;
     document.getElementById('minimized-pip').classList.add('hidden');
 }
@@ -127,14 +169,8 @@ window.resumeArticle = function () {
 };
 
 window.goBack = function () {
-    if (navStack.length > 1) {
-        navStack.pop(); // Remove current
-        const prev = navStack[navStack.length - 1];
-        // Re-open without adding to navStack
-        openFullArticle(null, prev.title, prev.parentId, true); // true = isBackNav
-    } else {
-        closeModal();
-    }
+    // With History API, goBack simply triggers browser back
+    history.back();
 };
 
 // --- CORE FEED LOGIC ---
@@ -279,6 +315,15 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
 
         // Push to nav stack for back button
         navStack.push({ title: data.parse.title, parentId: parentId || 'root' });
+
+        // Update Browser History
+        history.pushState({
+            view: 'article',
+            title: data.parse.title,
+            parentId: parentId || 'root',
+            nodeId: nodeId,
+            navStack: [...navStack]
+        }, '', '#article=' + encodeURIComponent(data.parse.title));
     }
 
     // 3. Render with navigation header
