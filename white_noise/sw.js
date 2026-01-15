@@ -1,5 +1,5 @@
 // Service Worker for White Noise PWA
-const CACHE_NAME = 'white-noise-v1';
+const CACHE_NAME = 'white-noise-v2';
 const urlsToCache = [
   '/white_noise/',
   '/white_noise/index.html',
