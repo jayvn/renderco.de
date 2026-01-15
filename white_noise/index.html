@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>White Noise</title>
+    <meta name="theme-color" content="#1a1a1a">
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <link rel="manifest" href="/white_noise/manifest.json">
+
+    <!-- Shared Navigation -->
+    <link rel="stylesheet" href="/shared/nav.css">
+
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+        button {
+            background: #f0f0f0;
+            color: #1a1a1a;
+            border: none;
+            padding: 0;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 200px;
+            height: 200px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            outline: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        }
+        button:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+        button.playing {
+            background: #ff4444;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+        }
+
+        .hint {
+            margin-top: 2rem;
+            color: #666;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <button id="btn" aria-label="Toggle White Noise">Play</button>
+    <div class="hint">Click to toggle white noise</div>
+
+    <script>
+        let audioCtx;
+        let buffer;
+        let source;
+        let isPlaying = false;
+        const btn = document.getElementById('btn');
+
+        function init() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                alert('Web Audio API is not supported in this browser');
+                return;
+            }
+            audioCtx = new AudioContext();
+
+            // Create a 2-second buffer
+            const bufferSize = audioCtx.sampleRate * 2;
+            buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            // Fill with random noise
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+        }
+
+        function toggleNoise() {
+            if (!audioCtx) {
+                init();
+            }
+
+            // Resume audio context if it was suspended (autoplay policy)
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if (isPlaying) {
+                if (source) {
+                    try {
+                        source.stop();
+                    } catch (e) {
+                        console.error('Error stopping source:', e);
+                    }
+                    source = null;
+                }
+                isPlaying = false;
+                btn.textContent = 'Play';
+                btn.classList.remove('playing');
+            } else {
+                if (!audioCtx) return;
+
+                source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.loop = true;
+
+                // Create a gain node to control volume
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.5; // Reduce volume a bit
+
+                source.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                source.start();
+                isPlaying = true;
+                btn.textContent = 'Stop';
+                btn.classList.add('playing');
+            }
+        }
+
+        btn.addEventListener('click', toggleNoise);
+
+        // Register service worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/white_noise/sw.js')
+                    .then(reg => console.log('Service Worker registered:', reg))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+
+    <!-- Shared Navigation -->
+    <script src="/shared/nav.js"></script>
+</body>
+</html>
