@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jyotish Square Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #020202; color: #eee; font-family: ui-monospace, monospace; overflow: hidden; }
+        .lcd { background: #080808; border: 1px solid #1a1a1a; box-shadow: inset 0 0 15px #000; }
+        .glow-amber { text-shadow: 0 0 12px #f59e0b; color: #f59e0b; }
+        .glow-red { text-shadow: 0 0 12px #ef4444; color: #ef4444; }
+        .glow-green { text-shadow: 0 0 12px #10b981; color: #10b981; }
+        .chart-cell { background: #030303; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; border: 1px solid #111; }
+        .casing {
+            background: #0f0f0f;
+            border: 6px solid #1a1a1a;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 2px 4px #333;
+        }
+        .side-btn {
+            position: absolute;
+            right: -24px;
+            top: 40%;
+            width: 22px;
+            height: 70px;
+            background: #1a1a1a;
+            border-radius: 0 10px 10px 0;
+            border: 2px solid #222;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .side-btn:active { transform: translateX(-4px); }
+        .alarm-active { animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 select-none">
+
+    <div class="relative casing w-full max-w-[460px] aspect-square rounded-[2.5rem] p-10 flex flex-col">
+
+        <div onclick="next()" class="side-btn flex flex-col items-center justify-center gap-2">
+            <div class="w-1 h-5 bg-zinc-800 rounded-full"></div>
+            <div class="w-1 h-5 bg-zinc-800 rounded-full"></div>
+        </div>
+
+        <main id="v0" class="flex-1 flex flex-col justify-between">
+            <div class="flex justify-between items-start">
+                <div>
+                    <div id="time" class="text-7xl font-black tracking-tighter glow-amber cursor-pointer" onclick="toggleAlarmMode()">00:00</div>
+                    <p id="date" class="text-[10px] text-zinc-600 tracking-[0.4em] uppercase mt-1">DEC 21 2025</p>
+                </div>
+                <div class="text-right flex flex-col gap-1">
+                    <div class="text-[9px] text-amber-700 font-bold">☀️ 06:42</div>
+                    <div class="text-[9px] text-amber-700 font-bold">🌑 18:14</div>
+                    <div id="alarm-indicator" class="text-[9px] text-zinc-800 font-black mt-2">ALARM OFF</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="lcd p-4 rounded-2xl border-red-900/20">
+                    <span class="text-[8px] font-black glow-red block mb-1 uppercase">Rahu / രാഹു</span>
+                    <span id="rahu" class="text-xs text-zinc-500 font-mono">--:--</span>
+                </div>
+                <div class="lcd p-4 rounded-2xl border-emerald-900/20">
+                    <span class="text-[8px] font-black glow-green block mb-1 uppercase">Amrit / അമൃത</span>
+                    <span id="amrit" class="text-xs text-zinc-500 font-mono">--:--</span>
+                </div>
+            </div>
+
+            <div class="h-24 p-5 bg-zinc-900/30 rounded-2xl border border-zinc-800/30 flex flex-col justify-center">
+                <span class="text-[7px] text-zinc-600 font-bold mb-1 tracking-widest uppercase">Horoscope / ഫലം</span>
+                <p id="msg" class="text-[10px] leading-snug text-amber-200/60 italic"></p>
+            </div>
+        </main>
+
+        <main id="v1" class="hidden flex-1 flex flex-col">
+            <div class="text-center text-[9px] font-black tracking-[0.3em] text-zinc-700 mb-6 uppercase">Planetary States / ഗ്രഹസ്ഥിതി</div>
+            <div id="p-list" class="grid grid-cols-2 gap-2 overflow-y-auto"></div>
+        </main>
+
+        <main id="v2" class="hidden flex-1 flex flex-col justify-center">
+            <div class="grid grid-cols-4 grid-rows-4 gap-1 aspect-square bg-zinc-950 p-1 border border-zinc-900 rounded-2xl">
+                <div class="chart-cell" data-idx="11">♓<div class="ps"></div></div><div class="chart-cell" data-idx="0">♈<div class="ps"></div></div><div class="chart-cell" data-idx="1">♉<div class="ps"></div></div><div class="chart-cell" data-idx="2"> Gemini <div class="ps"></div></div>
+                <div class="chart-cell" data-idx="10">♒<div class="ps"></div></div><div class="col-span-2 row-span-2 bg-black flex items-center justify-center text-[10px] text-zinc-800 font-black uppercase tracking-widest">South Chart</div><div class="chart-cell" data-idx="3">♋<div class="ps"></div></div>
+                <div class="chart-cell" data-idx="9">♑<div class="ps"></div></div><div class="chart-cell" data-idx="4">♌<div class="ps"></div></div>
+                <div class="chart-cell" data-idx="8">♐<div class="ps"></div></div><div class="chart-cell" data-idx="7">♏<div class="ps"></div></div><div class="chart-cell" data-idx="6">♎<div class="ps"></div></div><div class="chart-cell" data-idx="5">♍<div class="ps"></div></div>
+            </div>
+        </main>
+
+        <main id="v3" class="hidden flex-1 flex flex-col justify-center">
+            <div class="relative w-full aspect-square border border-zinc-900 rounded-2xl bg-black overflow-hidden">
+                <svg viewBox="0 0 100 100" class="w-full h-full stroke-zinc-900 fill-none" stroke-width="0.2">
+                    <path d="M0 0 L100 100 M0 100 L100 0 M50 0 L0 50 L50 100 L100 50 Z" />
+                </svg>
+                <div id="north-planets" class="absolute inset-0 text-[7px] pointer-events-none"></div>
+            </div>
+        </main>
+
+        <footer class="mt-8 flex items-center justify-center gap-4">
+            <div class="dot w-1.5 h-1.5 rounded-full bg-amber-600 shadow-[0_0_5px_#f59e0b]"></div>
+            <div class="dot w-1.5 h-1.5 rounded-full bg-zinc-900"></div>
+            <div class="dot w-1.5 h-1.5 rounded-full bg-zinc-900"></div>
+            <div class="dot w-1.5 h-1.5 rounded-full bg-zinc-900"></div>
+        </footer>
+    </div>
+
+    <div id="alarm-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-6 z-50">
+        <div class="bg-zinc-900 p-8 rounded-[2rem] border border-zinc-800 w-full max-w-xs text-center">
+            <div class="text-[10px] font-black text-amber-500 tracking-widest mb-6">SET ALARM</div>
+            <input type="time" id="alarm-time" class="bg-black text-amber-500 text-4xl font-bold p-4 rounded-xl border border-zinc-800 mb-6 w-full outline-none">
+            <div class="flex gap-4">
+                <button onclick="saveAlarm()" class="flex-1 bg-amber-600 text-black font-black p-3 rounded-xl text-xs">SAVE</button>
+                <button onclick="toggleAlarmMode()" class="flex-1 bg-zinc-800 text-white font-black p-3 rounded-xl text-xs">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let idx = 0;
+        let alarmTime = null;
+        const planets = [
+            { id: 'Su', s: '☀️', p: 365, o: 280 }, { id: 'Mo', s: '🌙', p: 27, o: 200 },
+            { id: 'Ma', s: '♂️', p: 687, o: 15 }, { id: 'Me', s: '☿', p: 88, o: 60 },
+            { id: 'Ju', s: '♃', p: 4333, o: 130 }, { id: 'Ve', s: '♀️', p: 224, o: 95 },
+            { id: 'Sa', s: '♄', p: 10759, o: 305 }, { id: 'Ra', s: '🐉', p: 6793, o: 160, r: true }
+        ];
+        const rashis = ["മേടം", "ഇടവം", "മിഥുനം", "കർക്കടകം", "ചിങ്ങം", "കന്നി", "തുലാം", "വൃശ്ചികം", "ധനു", "മകരം", "കുംഭം", "മീനം"];
+        const predictions = [
+            "പലവിധത്തിലുള്ള നേട്ടങ്ങൾ കൈവരും. സന്തോഷം നിലനിൽക്കും.",
+            "പുതിയ ഉത്തരവാദിത്തങ്ങൾ ഏറ്റെടുക്കും. ശ്രദ്ധ വേണം.",
+            "കർമ്മരംഗത്ത് ഗുണപരമായ മാറ്റങ്ങൾ. സാമ്പത്തികമായി മെച്ചപ്പെടും.",
+            "തടസ്സങ്ങൾ മാറി കാര്യങ്ങൾ അനുകൂലമാകും. സഹായം ലഭിക്കും.",
+            "മനസ്സിൽ ഉദ്ദേശിച്ച കാര്യങ്ങൾ സഫലമാകും. യാത്രകൾക്ക് യോഗം.",
+            "ഉദ്യോഗത്തിൽ ഉന്നതിയുണ്ടാകും. കുടുംബത്തിൽ സമാധാനം.",
+            "ചിലവുകൾ വർദ്ധിക്കാൻ സാധ്യത. സംസാരത്തിൽ നിയന്ത്രണം."
+        ];
+
+        function next() {
+            idx = (idx + 1) % 4;
+            document.querySelectorAll('main').forEach((m, i) => m.classList.toggle('hidden', i !== idx));
+            document.querySelectorAll('.dot').forEach((d, i) => {
+                d.classList.toggle('bg-amber-600', i === idx);
+                d.classList.toggle('shadow-[0_0_5px_#f59e0b]', i === idx);
+                d.classList.toggle('bg-zinc-900', i !== idx);
+            });
+            if (idx === 1) renderList();
+            if (idx === 2) renderSouth();
+            if (idx === 3) renderNorth();
+        }
+
+        function getPlanetaryData() {
+            const doy = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 864e5);
+            return planets.map(p => {
+                let deg = Math.floor((p.o + (doy * (360/p.p))) % 360);
+                if (p.r) deg = (p.o - (doy * (360/p.p))) % 360;
+                if (deg < 0) deg += 360;
+                return { ...p, deg, ri: Math.floor(deg/30), rd: Math.floor(deg%30) };
+            });
+        }
+
+        function renderList() {
+            document.getElementById('p-list').innerHTML = getPlanetaryData().map(p => `
+                <div class="lcd p-2.5 rounded-xl flex flex-col border-l-2 border-amber-600">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm">${p.s}</span>
+                        <span class="text-[8px] font-mono text-amber-600">${p.rd}°</span>
+                    </div>
+                    <div class="text-[7px] font-black text-zinc-600 uppercase">${p.id} — ${rashis[p.ri]}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderSouth() {
+            document.querySelectorAll('.ps').forEach(e => e.innerHTML = '');
+            getPlanetaryData().forEach(p => {
+                const c = document.querySelector(`.chart-cell[data-idx="${p.ri}"] .ps`);
+                if (c) c.innerHTML += `<span class="px-0.5 text-amber-600 font-black">${p.id}</span>`;
+            });
+        }
+
+        function renderNorth() {
+            const lagna = 4;
+            const coords = [[50,25],[25,15],[15,45],[25,75],[50,85],[75,75],[85,45],[75,15],[50,45],[25,45],[50,70],[75,45]];
+            const data = getPlanetaryData();
+            let html = '';
+            for(let i=0; i<12; i++) {
+                const sNum = (lagna + i) % 12 || 12;
+                const pos = coords[i];
+                html += `<div class="absolute text-zinc-800 font-black" style="left:${pos[0]}%; top:${pos[1]}%; transform:translate(-50%,-50%)">${sNum}</div>`;
+                const ps = data.filter(p => p.ri === (lagna + i) % 12);
+                if (ps.length) html += `<div class="absolute text-amber-600 font-black" style="left:${pos[0]}%; top:${pos[1]+7}%; transform:translate(-50%,-50%)">${ps.map(p=>p.id).join(' ')}</div>`;
+            }
+            document.getElementById('north-planets').innerHTML = html;
+        }
+
+        function toggleAlarmMode() {
+            document.getElementById('alarm-modal').classList.toggle('hidden');
+        }
+
+        function saveAlarm() {
+            alarmTime = document.getElementById('alarm-time').value;
+            const ind = document.getElementById('alarm-indicator');
+            ind.innerText = alarmTime ? `ALARM: ${alarmTime}` : "ALARM OFF";
+            ind.classList.toggle('text-amber-500', !!alarmTime);
+            toggleAlarmMode();
+        }
+
+        function tick() {
+            const n = new Date();
+            const timeStr = n.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' });
+            document.getElementById('time').innerText = timeStr;
+
+            if (alarmTime === timeStr) {
+                document.getElementById('time').classList.add('alarm-active');
+            } else {
+                document.getElementById('time').classList.remove('alarm-active');
+            }
+
+            const d = n.getDay(), seg = 1.5, rM = [7, 1, 6, 4, 5, 2, 3];
+            const rs = 7.5 + seg * (rM[d] - 1);
+            document.getElementById('rahu').innerText = `${f(rs)} - ${f(rs + seg)}`;
+            document.getElementById('amrit').innerText = `${f(7.5 + seg * 2)} - ${f(7.5 + seg * 3)}`;
+            document.getElementById('msg').innerText = predictions[n.getDate() % predictions.length];
+
+            // Update Date
+            const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+            document.getElementById('date').innerText = n.toLocaleDateString('en-US', dateOptions).toUpperCase();
+        }
+
+        function f(d) {
+            const h = Math.floor(d), m = Math.round((d - h) * 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        setInterval(tick, 1000);
+        window.onload = tick;
+    </script>
+</body>
+</html>
