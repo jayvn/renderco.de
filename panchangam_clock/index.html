@@ -13,6 +13,7 @@
             --screen-bg: #101214;
             --screen-glow: #1a1d21;
             --accent: #ffb74d;
+            --alert: #ff5252;
             --text-main: #eceff1;
             --text-dim: #90a4ae;
             --knob-metal: #cfd8dc;
@@ -29,7 +30,6 @@
             overflow: hidden;
         }
 
-        /* Device Chassis */
         .device {
             width: 500px;
             height: 500px;
@@ -49,7 +49,6 @@
             border: 8px solid #3e2723;
         }
 
-        /* The Screen */
         .screen-bezel {
             width: 440px;
             height: 440px;
@@ -73,20 +72,29 @@
             color: var(--text-main);
         }
 
-        /* UI Views */
         .view {
             flex: 1;
             display: none;
             flex-direction: column;
             padding: 20px;
             animation: fadeIn 0.3s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: var(--wood-light) transparent;
+        }
+
+        .view::-webkit-scrollbar { width: 6px; }
+        .view::-webkit-scrollbar-thumb {
+            background-color: var(--wood-light);
+            border-radius: 10px;
+            border: 2px solid var(--screen-bg);
         }
 
         .view.active { display: flex; }
 
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
-        /* Header */
         .header {
             display: flex;
             justify-content: space-between;
@@ -94,19 +102,21 @@
             border-bottom: 1px solid rgba(255,255,255,0.1);
             padding-bottom: 10px;
             margin-bottom: 10px;
+            flex-shrink: 0;
         }
 
         .time-display { font-size: 2.5em; font-weight: 700; color: var(--accent); }
         .date-display { font-size: 1.2em; color: var(--text-dim); text-align: right; }
         .date-sub { font-size: 0.8em; opacity: 0.7; }
 
-        /* Rasi Grid (Chart) */
+        /* Rasi Grid */
         .rasi-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(4, 1fr);
             gap: 2px;
             flex: 1;
+            min-height: 350px;
             background: rgba(255,255,255,0.05);
             border: 2px solid var(--text-dim);
         }
@@ -122,7 +132,6 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        /* Center empty space in South Indian Chart */
         .rasi-cell.center {
             grid-column: 2 / 4;
             grid-row: 2 / 4;
@@ -137,22 +146,58 @@
 
         .center-info h2 { margin: 0; color: var(--accent); font-size: 1.4em; }
         .center-info p { margin: 5px 0; color: var(--text-dim); font-size: 0.9em; }
-
         .planet { color: var(--accent); font-weight: bold; font-size: 1.2em; margin-top: 2px; }
         .rashi-name { position: absolute; top: 2px; left: 2px; font-size: 0.7em; color: var(--text-dim); opacity: 0.7; }
+        .gulikan { color: #ffab91; font-size: 0.8em; }
 
-        /* Panchangam View */
+        /* Block Grid for Panchangam */
+        .panchang-blocks {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding-bottom: 20px;
+        }
+
+        .block-item {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border-top: 3px solid var(--accent);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            height: 80px; /* Fixed height for uniformity */
+        }
+
+        .block-item.special {
+            border-top-color: var(--alert);
+            background: rgba(255, 82, 82, 0.1);
+            grid-column: span 2; /* Special events take full width */
+            height: auto;
+        }
+
+        /* Standard List Item for Settings */
         .list-item {
             background: rgba(255,255,255,0.05);
             margin: 5px 0;
             padding: 15px;
             border-radius: 8px;
             border-left: 3px solid var(--accent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .label { color: var(--text-dim); font-size: 0.9em; }
-        .value { font-size: 1.2em; font-weight: bold; }
 
-        /* Knob (Rotary Encoder) */
+        .label { color: var(--text-dim); font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px;}
+        .value { font-size: 1.1em; font-weight: bold; }
+
+        /* Block specific label/value adjustments */
+        .block-item .label { font-size: 0.7em; margin-bottom: 5px; }
+        .block-item .value { font-size: 1.1em; }
+        .block-item .sub-value { font-size: 0.75em; color: var(--text-dim); margin-top: 2px; }
+
         .knob-container {
             position: absolute;
             right: -25px;
@@ -160,7 +205,7 @@
             transform: translateY(-50%);
             width: 50px;
             height: 100px;
-            background: #212121; /* Gap filler */
+            background: #212121;
             border-radius: 0 10px 10px 0;
             display: flex;
             align-items: center;
@@ -195,7 +240,6 @@
 
         .knob:active { cursor: grabbing; }
 
-        /* Mode Indicator */
         .mode-toast {
             position: absolute;
             bottom: 20px;
@@ -208,14 +252,13 @@
             font-weight: bold;
             opacity: 0;
             transition: opacity 0.5s;
+            pointer-events: none;
         }
-
     </style>
 </head>
 <body>
 
     <div class="device">
-        <!-- Screen -->
         <div class="screen-bezel">
             <div class="screen">
 
@@ -226,42 +269,72 @@
                     </div>
 
                     <div class="rasi-grid">
-                        <!-- Standard South Indian Layout (Clockwise) -->
-                        <!-- Row 1 -->
-                        <div class="rasi-cell"><span class="rashi-name">മീനം</span><div class="planet">രാ</div></div> <!-- Pisces -->
-                        <div class="rasi-cell"><span class="rashi-name">മേടം</span></div> <!-- Aries -->
-                        <div class="rasi-cell"><span class="rashi-name">ഇടവം</span><div class="planet">ഗു</div></div> <!-- Taurus -->
-                        <div class="rasi-cell"><span class="rashi-name">മിഥുനം</span></div> <!-- Gemini -->
+                        <div class="rasi-cell"><span class="rashi-name">മീനം</span><div class="planet">രാ</div></div>
+                        <div class="rasi-cell"><span class="rashi-name">മേടം</span><div class="gulikan">ഗുളികൻ</div></div>
+                        <div class="rasi-cell"><span class="rashi-name">ഇടവം</span><div class="planet">ഗു</div></div>
+                        <div class="rasi-cell"><span class="rashi-name">മിഥുനം</span></div>
 
-                        <!-- Row 2 -->
-                        <div class="rasi-cell"><span class="rashi-name">കുംഭം</span><div class="planet">ശ</div></div> <!-- Aquarius -->
+                        <div class="rasi-cell"><span class="rashi-name">കുംഭം</span><div class="planet">ശനി</div></div>
 
-                        <!-- Center Block -->
                         <div class="rasi-cell center">
                             <div class="center-info">
-                                <h2>തിരുവോണം</h2> <!-- Nakshatra -->
-                                <p id="star-name">ഉദയം: 06:45 AM</p>
+                                <h2>തിരുവോണം</h2>
+                                <p>ഉദയം: 06:45 AM</p>
                                 <p style="font-size:0.9em;">അസ്തമയം: 06:12 PM</p>
                             </div>
                         </div>
 
-                        <div class="rasi-cell"><span class="rashi-name">കർക്കടകം</span><div class="planet">ചൊ</div></div> <!-- Cancer -->
-
-                        <!-- Row 3 -->
-                        <div class="rasi-cell"><span class="rashi-name">മകരം</span><div class="planet">സൂ</div></div> <!-- Capricorn -->
-                        <!-- Center occupied by grid column span -->
-                        <div class="rasi-cell"><span class="rashi-name">ചിങ്ങം</span></div> <!-- Leo -->
-
-                        <!-- Row 4 -->
-                        <div class="rasi-cell"><span class="rashi-name">ധനു</span><div class="planet">ബു</div></div> <!-- Sagittarius -->
-                        <div class="rasi-cell"><span class="rashi-name">വൃശ്ചികം</span><div class="planet">ശു</div></div> <!-- Scorpio -->
-                        <div class="rasi-cell"><span class="rashi-name">തുലാം</span><div class="planet">കേ</div></div> <!-- Libra -->
-                        <div class="rasi-cell"><span class="rashi-name">കന്നി</span><div class="planet">ച</div></div> <!-- Virgo -->
+                        <div class="rasi-cell"><span class="rashi-name">കർക്കടകം</span><div class="planet">ചൊ</div></div>
+                        <div class="rasi-cell"><span class="rashi-name">മകരം</span><div class="planet">സൂ</div></div>
+                        <div class="rasi-cell"><span class="rashi-name">ചിങ്ങം</span></div>
+                        <div class="rasi-cell"><span class="rashi-name">ധനു</span><div class="planet">ബു</div></div>
+                        <div class="rasi-cell"><span class="rashi-name">വൃശ്ചികം</span><div class="planet">ശു</div></div>
+                        <div class="rasi-cell"><span class="rashi-name">തുലാം</span><div class="planet">കേ</div></div>
+                        <div class="rasi-cell"><span class="rashi-name">കന്നി</span><div class="planet">ച</div></div>
                     </div>
                 </div>
 
-                <!-- View 2: Panchangam -->
+                <!-- View 2: Panchangam (Blocks) -->
                 <div class="view" id="view-panchang">
+                    <div class="header">
+                        <div class="time-display" style="font-size: 1.5em;">പഞ്ചാംഗം</div>
+                    </div>
+
+                    <div class="panchang-blocks" id="panchang-blocks">
+                         <!-- Special Events Top -->
+                        <div id="special-events-container" style="display: contents;"></div>
+
+                        <div class="block-item">
+                            <div class="label">നക്ഷത്രം</div>
+                            <div class="value">തിരുവോണം</div>
+                            <div class="sub-value">04:30 PM വരെ</div>
+                        </div>
+                        <div class="block-item">
+                            <div class="label">തിഥി</div>
+                            <div class="value">അമാവാസി</div>
+                            <div class="sub-value">(വാവു)</div>
+                        </div>
+                        <div class="block-item">
+                            <div class="label">രാഹുകാലം</div>
+                            <div class="value">10:30 - 12:00</div>
+                        </div>
+                        <div class="block-item">
+                            <div class="label">ഗുളികകാലം</div>
+                            <div class="value">07:30 - 09:00</div>
+                        </div>
+                        <div class="block-item">
+                            <div class="label">അഭിജിത്ത്</div>
+                            <div class="value">12:15 - 12:55</div>
+                        </div>
+                        <div class="block-item">
+                            <div class="label">കരണം</div>
+                            <div class="value">ബവ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View 3: Fortune (Has Clock) -->
+                <div class="view" id="view-fortune">
                     <div class="header">
                         <div class="time-display" id="clock">10:42</div>
                         <div class="date-display">
@@ -269,89 +342,70 @@
                             <div id="date-ml" class="date-sub">മകരം 2</div>
                         </div>
                     </div>
-                    <div style="overflow-y: auto;">
-                        <div class="list-item">
-                            <div class="label">നക്ഷത്രം</div>
-                            <div class="value">തിരുവോണം</div>
-                            <div class="label">04:30 PM വരെ</div>
-                        </div>
-                        <div class="list-item">
-                            <div class="label">തിഥി</div>
-                            <div class="value">ദ്വാദശി</div>
-                        </div>
-                        <div class="list-item">
-                            <div class="label">രാഹുകാലം</div>
-                            <div class="value">10:30 AM - 12:00 PM</div>
-                        </div>
-                        <div class="list-item">
-                            <div class="label">ഗുളികകാലം</div>
-                            <div class="value">07:30 AM - 09:00 AM</div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- View 3: Fortune -->
-                <div class="view" id="view-fortune">
-                    <div class="header">
-                        <div class="time-display" style="font-size: 1.5em;">രാശിഫലം</div>
-                    </div>
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                        <h2 style="color: var(--accent); margin-bottom: 20px; font-size: 2em;">ഇന്നത്തെ ഫലം</h2>
+                    <div style="flex:1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 10px;">
+                        <!-- Title removed as requested -->
+                        <p style="font-size: 0.8em; color: var(--text-dim); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">
+                            Daily Prediction
+                        </p>
+
                         <p style="font-size: 1.4em; line-height: 1.6; color: var(--text-main);">
                             തൊഴിൽ രംഗത്ത് നേട്ടങ്ങൾ ഉണ്ടാകും.<br>
                             സാമ്പത്തിക നില മെച്ചപ്പെടും.<br>
-                            ആരോഗ്യം ശ്രദ്ധിക്കുക.
-                        </p>
-                        <p style="font-size: 0.9em; color: var(--text-dim); margin-top: 30px;">
-                            (പൊതുഫലം)
+                            ആരോഗ്യം ശ്രദ്ധിക്കുക.<br>
+                            കുടുംബത്തിൽ സമാധാനം നിലനിൽക്കും.
                         </p>
                     </div>
                 </div>
 
-                <!-- View 4: Settings -->
+                <!-- View 4: Settings (English Tech) -->
                 <div class="view" id="view-settings">
                      <div class="header">
-                        <div class="time-display" style="font-size: 1.5em;">ക്രമീകരണങ്ങൾ</div>
+                        <div class="time-display" style="font-size: 1.5em;">Settings</div>
                     </div>
                      <div class="list-item">
-                        <div class="label">നിങ്ങളുടെ നക്ഷത്രം</div>
+                        <div class="label">നിങ്ങളുടെ നക്ഷത്രം</div> <!-- User Star kept in ML -->
                         <div class="value">തിരുവോണം</div>
                     </div>
                     <div class="list-item">
-                        <div class="label">സ്ഥലം</div>
-                        <div class="value">കൊച്ചി, IN</div>
+                        <div class="label">Location</div>
+                        <div class="value">Kochi, IN</div>
                     </div>
                     <div class="list-item">
-                        <div class="label">അയനാംശം</div>
-                        <div class="value">ലാഹിരി</div>
+                        <div class="label">Ayanamsa</div>
+                        <div class="value">Lahiri</div>
                     </div>
                     <div class="list-item">
-                        <div class="label">തെളിച്ചം</div>
+                        <div class="label">Brightness</div>
                         <div class="value">80%</div>
                     </div>
                      <div class="list-item">
-                        <div class="label">വൈഫൈ</div>
-                        <div class="value">ബന്ധിപ്പിച്ചു (MalabarHost)</div>
+                        <div class="label">WiFi</div>
+                        <div class="value">Connected</div>
+                    </div>
+                    <div class="list-item">
+                        <div class="label">Update</div>
+                        <div class="value">Checking...</div>
+                    </div>
+                    <div class="list-item">
+                        <div class="label">Version</div>
+                        <div class="value">v1.0.5 Beta</div>
                     </div>
                 </div>
 
-                <!-- Toast -->
                 <div id="toast" class="mode-toast">Mode Changed</div>
-
             </div>
         </div>
 
-        <!-- Physical Knob -->
         <div class="knob" id="knob" title="Rotate to Switch Views"></div>
-
     </div>
 
     <script>
-        /* Clock Logic */
         function updateClock() {
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
+
             const clockEl = document.getElementById('clock');
             if(clockEl) clockEl.innerText = `${hours}:${minutes}`;
 
@@ -362,10 +416,27 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        /* Knob Interaction Logic */
+        /* Special Events Logic */
+        const isVaavuToday = true;
+        const specialContainer = document.getElementById('special-events-container');
+
+        if (isVaavuToday && specialContainer) {
+            if(specialContainer.innerHTML === "") {
+                const vaavuBlock = document.createElement('div');
+                vaavuBlock.className = 'block-item special';
+                vaavuBlock.innerHTML = `
+                    <div class="label" style="color: var(--alert)">Special Event</div>
+                    <div class="value">കറുത്ത വാവു</div>
+                    <div class="sub-value">ബലിതർപ്പണം</div>
+                `;
+                specialContainer.appendChild(vaavuBlock);
+            }
+        }
+
+        /* Knob Logic */
         const knob = document.getElementById('knob');
         const views = ['view-chart', 'view-panchang', 'view-fortune', 'view-settings'];
-        const viewNames = ["രാശിചക്രം", "പഞ്ചാംഗം", "രാശിഫലം", "ക്രമീകരണങ്ങൾ"];
+        const viewNames = ["രാശിചക്രം", "പഞ്ചാംഗം", "രാശിഫലം", "Settings"];
         let currentViewIndex = 0;
         let rotation = 0;
         let isDragging = false;
@@ -373,27 +444,23 @@
         let startRotation = 0;
 
         function switchView(direction) {
-            // Hide current
             document.getElementById(views[currentViewIndex]).classList.remove('active');
 
-            // Calculate next
             if (direction > 0) {
                 currentViewIndex = (currentViewIndex + 1) % views.length;
             } else {
                 currentViewIndex = (currentViewIndex - 1 + views.length) % views.length;
             }
 
-            // Show next
-            document.getElementById(views[currentViewIndex]).classList.add('active');
+            const nextView = document.getElementById(views[currentViewIndex]);
+            nextView.classList.add('active');
 
-            // Feedback
             const toast = document.getElementById('toast');
             toast.innerText = viewNames[currentViewIndex];
             toast.style.opacity = '1';
             setTimeout(() => toast.style.opacity = '0', 1000);
         }
 
-        /* Mouse/Touch Drag for Knob */
         knob.addEventListener('mousedown', (e) => {
             isDragging = true;
             startY = e.clientY;
@@ -411,29 +478,23 @@
 
             const deltaY = startY - e.clientY;
             const newRotation = startRotation + deltaY;
-
-            // Visual rotation
             knob.style.transform = `rotate(${newRotation}deg)`;
 
-            // Trigger switch every 30 degrees
             if (Math.abs(newRotation - rotation) > 30) {
                 switchView(deltaY > 0 ? 1 : -1);
                 rotation = newRotation;
-                startRotation = newRotation; // Reset baseline to prevent rapid firing
+                startRotation = newRotation;
                 startY = e.clientY;
             }
         });
 
-        /* Click for instant switch */
         knob.addEventListener('click', () => {
-           // Simple click advances view
            if(!isDragging) {
                rotation += 30;
                knob.style.transform = `rotate(${rotation}deg)`;
                switchView(1);
            }
         });
-
     </script>
 </body>
 </html>
