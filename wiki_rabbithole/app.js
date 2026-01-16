@@ -198,7 +198,7 @@ async function loadArticles() {
 }
 
 async function fetchRandomArticles() {
-    const endpoint = `https://en.wikipedia.org/w/api.php?action=query&format=json&generator=random&grnnamespace=0&prop=extracts|pageimages&grnlimit=5&exintro&explaintext&pithumbsize=1000&origin=*`;
+    const endpoint = `https://en.wikipedia.org/w/api.php?action=query&format=json&generator=random&grnnamespace=0&prop=extracts|pageimages&grnlimit=5&exintro&explaintext&pithumbsize=600&origin=*`;
     const response = await fetch(endpoint);
     const data = await response.json();
     if (!data.query?.pages) return [];
@@ -207,10 +207,31 @@ async function fetchRandomArticles() {
         .map(p => ({ id: p.pageid, title: p.title, summary: p.extract, image: p.thumbnail.source }));
 }
 
+// Image Lazy Loading Observer
+const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const item = entry.target;
+            const imageUrl = item.dataset.bgImage;
+            if (imageUrl) {
+                item.style.backgroundImage = `url(${imageUrl})`;
+                item.removeAttribute('data-bg-image');
+                observer.unobserve(item);
+            }
+        }
+    });
+}, {
+    root: feedContainer,
+    rootMargin: '600px 0px', // Preload next screen
+    threshold: 0.01
+});
+
 function createFeedItem(article) {
     const item = document.createElement('div');
     item.className = 'feed-item';
-    item.style.backgroundImage = `url(${article.image})`;
+    // Lazy load background image
+    item.dataset.bgImage = article.image;
+    imageObserver.observe(item);
 
     // Click handler for the whole card
     item.onclick = (e) => {
@@ -392,6 +413,7 @@ function processWikiHtml(html) {
     const div = document.createElement('div');
     div.innerHTML = html;
     div.querySelectorAll('.mw-editsection, .reference, .mbox-small').forEach(el => el.remove());
+    div.querySelectorAll('img').forEach(img => img.loading = 'lazy');
     return div.innerHTML;
 }
 
