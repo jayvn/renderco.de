@@ -40,6 +40,24 @@ const streakEl = document.getElementById('streak-count');
 // Minimize state
 let minimizedArticle = null; // {title, scrollPos}
 
+// Lazy Load Observer
+const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const item = entry.target;
+            const url = item.dataset.bg;
+            if (url) {
+                item.style.backgroundImage = `url(${url})`;
+                item.removeAttribute('data-bg'); // Clean up
+                observer.unobserve(item);
+            }
+        }
+    });
+}, {
+    rootMargin: '600px 0px', // Preload next item (approx 1 screen height)
+    threshold: 0.01
+});
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
     // Initial History State
@@ -210,7 +228,8 @@ async function fetchRandomArticles() {
 function createFeedItem(article) {
     const item = document.createElement('div');
     item.className = 'feed-item';
-    item.style.backgroundImage = `url(${article.image})`;
+    item.dataset.bg = article.image;
+    imageObserver.observe(item);
 
     // Click handler for the whole card
     item.onclick = (e) => {
