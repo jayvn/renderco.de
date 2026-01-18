@@ -113,7 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function showView(view, fromHistory = false) {
-    hideAllViews();
+    // Hide all overlay views
+    treeView.classList.remove('active');
+    profileView.classList.remove('active');
+    searchWrapper.classList.remove('active');
 
     // Handle feed mode views
     if (view === 'home' || view === 'foryou') {
@@ -121,7 +124,6 @@ function showView(view, fromHistory = false) {
         if (feedMode !== newMode) {
             feedMode = newMode;
             localStorage.setItem('feedMode', feedMode);
-            // Clear feed and reload
             articles = [];
             feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><p>Loading...</p></div>';
             loadArticles();
@@ -130,25 +132,15 @@ function showView(view, fromHistory = false) {
 
     if (view === 'explore') { renderTree(); treeView.classList.add('active'); }
     if (view === 'profile') { renderProfile(); profileView.classList.add('active'); }
-    setActiveNav(view);
+
+    // Update nav state
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === view);
+    });
 
     if (!fromHistory) {
         history.pushState({ view: view }, '', '#view=' + view);
     }
-}
-
-function hideAllViews() {
-    treeView.classList.remove('active');
-    profileView.classList.remove('active');
-    // search wrapper usually closes on selection, but good to ensure
-    searchWrapper.classList.remove('active');
-}
-
-function setActiveNav(target) {
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        if (btn.dataset.target === target) btn.classList.add('active');
-        else btn.classList.remove('active');
-    });
 }
 
 function closeModal(fromHistory = false) {
@@ -452,18 +444,18 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
 
     modalHeader.innerHTML = `
         <div class="modal-nav">
-            ${showBack ? '<button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>' : ''}
+            ${showBack ? '<button class="circle-btn back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>' : ''}
             <span class="breadcrumb-depth">Depth: ${depth}</span>
         </div>
         <h2 class="modal-title">${articleTitle}</h2>
         <div class="modal-actions">
-            <button class="modal-like-btn" id="modal-like-btn" onclick="toggleLike('${articleTitle.replace(/'/g, "\\'")}')">
+            <button class="circle-btn modal-like-btn" id="modal-like-btn" onclick="toggleLike('${articleTitle.replace(/'/g, "\\'")}')">
                 <i class="${heartClass} fa-heart" ${heartColor}></i>
             </button>
-            <button class="minimize-modal" onclick="minimizeModal()">
+            <button class="circle-btn minimize-modal" onclick="minimizeModal()">
                 <i class="fas fa-minus"></i>
             </button>
-            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <button class="circle-btn close-modal" onclick="closeModal()">&times;</button>
         </div>
     `;
 

@@ -5,6 +5,31 @@
     --card-bg: #1a1a1a;
     --glass-bg: rgba(255, 255, 255, 0.1);
     --glass-border: rgba(255, 255, 255, 0.2);
+    --transition-fast: 0.2s ease;
+    --transition-bounce: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reusable circular button */
+.circle-btn {
+    background: var(--glass-bg);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast), transform 0.1s;
+}
+
+.circle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.circle-btn:active {
+    transform: scale(0.95);
 }
 
 /* Feed Mode Toggle */
@@ -293,11 +318,6 @@ body {
 }
 
 /* Modal and Article Content */
-.article-modal {
-    padding: 0;
-    background: #000;
-}
-
 .modal-content {
     height: 100%;
     display: flex;
@@ -324,32 +344,17 @@ body {
 }
 
 .back-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 1rem;
-    transition: background 0.2s, transform 0.1s;
 }
 
-.back-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.back-btn:active {
-    transform: scale(0.95);
+.modal-like-btn {
+    font-size: 1.1rem;
 }
 
 .breadcrumb-depth {
     font-size: 0.85rem;
     color: #888;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--glass-bg);
     padding: 4px 10px;
     border-radius: 12px;
 }
@@ -358,29 +363,6 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-}
-
-.modal-like-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    transition: background 0.2s, transform 0.1s;
-}
-
-.modal-like-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.modal-like-btn:active {
-    transform: scale(0.95);
 }
 
 .modal-body-content {
@@ -424,13 +406,12 @@ body {
     left: 0;
     right: 0;
     bottom: 60px;
-    /* Above nav */
     background: #111;
     z-index: 90;
     padding: 20px;
     overflow-y: auto;
     transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform var(--transition-bounce);
     color: white;
 }
 
@@ -454,17 +435,14 @@ body {
 /* Modal */
 .article-modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: #000;
     color: #eee;
     z-index: 100;
     padding: 0;
     overflow-y: auto;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform var(--transition-bounce);
 }
 
 .article-modal.active {
@@ -473,19 +451,7 @@ body {
 
 .close-modal,
 .minimize-modal {
-    position: static;
-    /* Part of flex header now */
     font-size: 1.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    cursor: pointer;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
 }
 
 .loading-state {
