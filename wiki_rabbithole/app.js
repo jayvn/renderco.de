@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadArticles();
     updateStreakUI();
+    updateFeedModeUI();
 
     // Infinite Scroll
     feedContainer.addEventListener('scroll', throttle(() => {
