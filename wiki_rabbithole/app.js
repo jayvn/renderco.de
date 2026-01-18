@@ -26,7 +26,7 @@ const foryouBtn = document.getElementById('foryou-btn');
 // State
 let articles = [];
 let loading = false;
-let historyTree = {}; // {key: {articleTitle, parentId}} where key = title|parentId
+let historyTree = JSON.parse(localStorage.getItem('historyTree') || '{}'); // {key: {articleTitle, parentId}} where key = title|parentId
 let navStack = []; // For back button: [{title, nodeId}]
 let currentArticleId = null;
 let currentArticleTitle = null; // Sync state for modal
@@ -405,6 +405,7 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
     if (!isBackNav) {
         // Object key naturally deduplicates
         historyTree[nodeKey] = { articleTitle: data.parse.title, parentId: parentKey };
+        localStorage.setItem('historyTree', JSON.stringify(historyTree));
         currentArticleId = nodeKey;
 
         navStack.push({ title: data.parse.title, parentId: parentKey });
