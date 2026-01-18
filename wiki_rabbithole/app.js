@@ -380,9 +380,11 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
         return;
     }
 
-    // 2. Track History (Rabbithole) - only if not back navigation
+    // 2. Track History (Rabbithole) - only if not back navigation and not duplicate
     const nodeId = Date.now();
-    if (!isBackNav) {
+    const isDuplicate = historyTree.some(n => n.articleTitle === data.parse.title && n.parentId === (parentId || 'root'));
+
+    if (!isBackNav && !isDuplicate) {
         historyTree.push({
             nodeId: nodeId,
             articleTitle: data.parse.title,
@@ -390,7 +392,6 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
         });
         currentArticleId = nodeId;
 
-        // Push to nav stack for back button
         navStack.push({ title: data.parse.title, parentId: parentId || 'root' });
 
         // Update Browser History
