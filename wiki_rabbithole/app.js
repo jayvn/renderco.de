@@ -40,6 +40,21 @@ let streakCount = parseInt(localStorage.getItem('streakCount') || '0');
 const streakEl = document.getElementById('streak-count');
 let minimizedArticle = null;
 
+// Lazy Loading Observer
+const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const item = entry.target;
+            const bgUrl = item.dataset.bg;
+            if (bgUrl) {
+                item.style.backgroundImage = `url(${bgUrl})`;
+                item.removeAttribute('data-bg');
+                observer.unobserve(item);
+            }
+        }
+    });
+}, { rootMargin: '600px' });
+
 // Wikipedia API helper
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 async function wikiApi(params) {
@@ -309,7 +324,11 @@ async function fetchRecommendedArticles() {
 function createFeedItem(article) {
     const item = document.createElement('div');
     item.className = 'feed-item';
-    item.style.backgroundImage = `url(${article.image})`;
+
+    if (article.image) {
+        item.dataset.bg = article.image;
+        imageObserver.observe(item);
+    }
 
     // Click handler for the whole card
     item.onclick = (e) => {
