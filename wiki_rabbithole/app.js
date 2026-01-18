@@ -29,6 +29,7 @@ let historyTree = []; // Array of {nodeId, articleTitle, parentId}
 let navStack = []; // For back button: [{title, nodeId}]
 let currentArticleId = null;
 let currentArticleTitle = null; // Sync state for modal
+let feedMode = localStorage.getItem('feedMode') || 'random'; // 'random' | 'recommended'
 let likedArticles = JSON.parse(localStorage.getItem('likedArticles') || '{}');
 // Legacy migration: if it was an array/set (from previous version), reset to object
 if (Array.isArray(likedArticles)) likedArticles = {};
@@ -185,7 +186,13 @@ async function loadArticles() {
     loading = true;
 
     try {
-        const newArticles = await fetchRandomArticles();
+        let newArticles;
+        if (feedMode === 'recommended' && Object.keys(likedArticles).length > 0) {
+            newArticles = await fetchRecommendedArticles();
+        } else {
+            newArticles = await fetchRandomArticles();
+        }
+
         // Remove initial loader if present
         const loader = document.querySelector('.loading-state');
         if (loader) loader.remove();
@@ -210,6 +217,118 @@ async function fetchRandomArticles() {
     return Object.values(data.query.pages)
         .filter(p => p.thumbnail && p.extract)
         .map(p => ({ id: p.pageid, title: p.title, summary: p.extract, image: p.thumbnail.source }));
+}
+
+// Fetch categories for an article
+async function fetchArticleCategories(title) {
+    const endpoint = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=categories&cllimit=10&clshow=!hidden&format=json&origin=*`;
+    try {
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        const pages = data.query?.pages;
+        if (!pages) return [];
+        const page = Object.values(pages)[0];
+        if (!page.categories) return [];
+        return page.categories
+            .map(c => c.title.replace('Category:', ''))
+            .filter(c => !c.includes('articles') && !c.includes('Pages') && !c.includes('Wikipedia') && !c.includes('CS1'));
+    } catch (e) {
+        console.error('Failed to fetch categories:', e);
+        return [];
+    }
+}
+
+// Fetch recommended articles based on liked article categories
+async function fetchRecommendedArticles() {
+    // Collect all categories from liked articles
+    const allCategories = [];
+    Object.values(likedArticles).forEach(article => {
+        if (article.categories) {
+            allCategories.push(...article.categories);
+        }
+    });
+
+    if (allCategories.length === 0) {
+        console.log('No categories found, falling back to random');
+        return fetchRandomArticles();
+    }
+
+    // Pick a random category
+    const randomCategory = allCategories[Math.floor(Math.random() * allCategories.length)];
+    console.log('Fetching recommendations from category:', randomCategory);
+
+    try {
+        // Get articles from this category
+        const endpoint = `https://en.wikipedia.org/w/api.php?action=query&list=categorymembers&cmtitle=Category:${encodeURIComponent(randomCategory)}&cmlimit=20&cmnamespace=0&format=json&origin=*`;
+        const response = await fetch(endpoint);
+        const data = await response.json();
+
+        if (!data.query?.categorymembers?.length) {
+            return fetchRandomArticles();
+        }
+
+        // Shuffle and pick up to 5
+        const members = data.query.categorymembers
+            .filter(m => !Object.keys(likedArticles).includes(m.title)) // Exclude already liked
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 5);
+
+        if (members.length === 0) {
+            return fetchRandomArticles();
+        }
+
+        // Fetch full details for these articles
+        const titles = members.map(m => m.title).join('|');
+        const detailEndpoint = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=extracts|pageimages&exintro&explaintext&pithumbsize=1000&format=json&origin=*`;
+        const detailResponse = await fetch(detailEndpoint);
+        const detailData = await detailResponse.json();
+
+        if (!detailData.query?.pages) return fetchRandomArticles();
+
+        const results = Object.values(detailData.query.pages)
+            .filter(p => p.extract) // Require extract, image optional for recommendations
+            .map(p => ({
+                id: p.pageid,
+                title: p.title,
+                summary: p.extract,
+                image: p.thumbnail?.source || null,
+                fromCategory: randomCategory
+            }));
+
+        return results.length > 0 ? results : fetchRandomArticles();
+    } catch (e) {
+        console.error('Recommendation fetch failed:', e);
+        return fetchRandomArticles();
+    }
+}
+
+// Toggle feed mode
+window.toggleFeedMode = function () {
+    feedMode = feedMode === 'random' ? 'recommended' : 'random';
+    localStorage.setItem('feedMode', feedMode);
+    updateFeedModeUI();
+
+    // Clear feed and reload with new mode
+    articles = [];
+    feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><p>Loading...</p></div>';
+    loadArticles();
+};
+
+function updateFeedModeUI() {
+    const toggle = document.getElementById('feed-mode-toggle');
+    if (toggle) {
+        const icon = toggle.querySelector('i');
+        const text = toggle.querySelector('span');
+        if (feedMode === 'recommended') {
+            icon.className = 'fas fa-star';
+            text.textContent = 'For You';
+            toggle.classList.add('active');
+        } else {
+            icon.className = 'fas fa-random';
+            text.textContent = 'Random';
+            toggle.classList.remove('active');
+        }
+    }
 }
 
 function createFeedItem(article) {
@@ -527,7 +646,7 @@ function updateLikeIcon(icon, isLiked, likedColor) {
     icon.style.color = isLiked ? likedColor : '';
 }
 
-window.toggleLike = function (title) {
+window.toggleLike = async function (title) {
     const isLiked = Object.prototype.hasOwnProperty.call(likedArticles, title);
 
     if (isLiked) {
@@ -535,11 +654,17 @@ window.toggleLike = function (title) {
     } else {
         // Try to find metadata from feed articles
         const feedMeta = articles.find(a => a.title === title);
+
+        // Fetch categories for recommendations
+        const categories = await fetchArticleCategories(title);
+        console.log('Fetched categories for', title, ':', categories);
+
         likedArticles[title] = {
             title: title,
             id: feedMeta?.id || null,
             image: feedMeta?.image || null,
-            summary: feedMeta?.summary || null
+            summary: feedMeta?.summary || null,
+            categories: categories
         };
     }
 

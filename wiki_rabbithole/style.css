@@ -7,6 +7,43 @@
     --glass-border: rgba(255, 255, 255, 0.2);
 }
 
+/* Feed Mode Toggle */
+.feed-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #aaa;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.feed-mode-toggle:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+}
+
+.feed-mode-toggle.active {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: white;
+}
+
+.feed-mode-toggle i {
+    font-size: 0.85rem;
+}
+
+.feed-mode-toggle span {
+    white-space: nowrap;
+}
+
 * {
     margin: 0;
     padding: 0;
