@@ -19,8 +19,9 @@ const closeTreeBtn = document.querySelector('.close-tree-btn');
 
 const profileView = document.getElementById('profile-view');
 const bookmarksContainer = document.getElementById('bookmarks-container');
-const profileBtn = document.querySelector('[data-target="profile"]');
-const homeBtn = document.querySelector('[data-target="home"]');
+const profileBtn = document.getElementById('profile-btn');
+const homeBtn = document.getElementById('home-btn');
+const foryouBtn = document.getElementById('foryou-btn');
 
 // State
 let articles = [];
@@ -48,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadArticles();
     updateStreakUI();
-    updateFeedModeUI();
 
     // Infinite Scroll
     feedContainer.addEventListener('scroll', throttle(() => {
@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeTreeBtn.addEventListener('click', () => showView('home'));
     profileBtn.addEventListener('click', () => showView('profile'));
     homeBtn.addEventListener('click', () => showView('home'));
+    foryouBtn.addEventListener('click', () => showView('foryou'));
 
     // Handle Browser Back Button
     window.addEventListener('popstate', (event) => {
@@ -113,6 +114,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function showView(view, fromHistory = false) {
     hideAllViews();
+
+    // Handle feed mode views
+    if (view === 'home' || view === 'foryou') {
+        const newMode = view === 'foryou' ? 'recommended' : 'random';
+        if (feedMode !== newMode) {
+            feedMode = newMode;
+            localStorage.setItem('feedMode', feedMode);
+            // Clear feed and reload
+            articles = [];
+            feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><p>Loading...</p></div>';
+            loadArticles();
+        }
+    }
+
     if (view === 'explore') { renderTree(); treeView.classList.add('active'); }
     if (view === 'profile') { renderProfile(); profileView.classList.add('active'); }
     setActiveNav(view);
@@ -300,35 +315,6 @@ async function fetchRecommendedArticles() {
     } catch (e) {
         console.error('Recommendation fetch failed:', e);
         return fetchRandomArticles();
-    }
-}
-
-// Toggle feed mode
-window.toggleFeedMode = function () {
-    feedMode = feedMode === 'random' ? 'recommended' : 'random';
-    localStorage.setItem('feedMode', feedMode);
-    updateFeedModeUI();
-
-    // Clear feed and reload with new mode
-    articles = [];
-    feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><p>Loading...</p></div>';
-    loadArticles();
-};
-
-function updateFeedModeUI() {
-    const toggle = document.getElementById('feed-mode-toggle');
-    if (toggle) {
-        const icon = toggle.querySelector('i');
-        const text = toggle.querySelector('span');
-        if (feedMode === 'recommended') {
-            icon.className = 'fas fa-star';
-            text.textContent = 'For You';
-            toggle.classList.add('active');
-        } else {
-            icon.className = 'fas fa-random';
-            text.textContent = 'Random';
-            toggle.classList.remove('active');
-        }
     }
 }
 

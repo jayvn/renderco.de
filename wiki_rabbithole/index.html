@@ -20,10 +20,6 @@
         <!-- Top Bar -->
         <header class="top-bar">
             <h1 class="app-logo">WikiFeed</h1>
-            <button class="feed-mode-toggle" id="feed-mode-toggle" onclick="toggleFeedMode()">
-                <i class="fas fa-random"></i>
-                <span>Random</span>
-            </button>
             <div class="header-right">
                 <div class="search-container">
                     <button class="icon-btn" id="search-toggle-btn">
@@ -57,14 +53,21 @@
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <button class="nav-item active" data-target="home">
-                <i class="fas fa-home"></i>
+            <button class="nav-item active" data-target="home" id="home-btn">
+                <i class="fas fa-random"></i>
+                <span class="nav-label">Random</span>
             </button>
-            <button class="nav-item" data-target="explore" id="explore-btn" title="Your Journey">
-                <i class="fas fa-history"></i>
+            <button class="nav-item" data-target="foryou" id="foryou-btn">
+                <i class="fas fa-star"></i>
+                <span class="nav-label">For You</span>
             </button>
-            <button class="nav-item" data-target="profile">
-                <i class="fas fa-user"></i>
+            <button class="nav-item" data-target="explore" id="explore-btn">
+                <i class="fas fa-code-branch"></i>
+                <span class="nav-label">Journey</span>
+            </button>
+            <button class="nav-item" data-target="profile" id="profile-btn">
+                <i class="fas fa-heart"></i>
+                <span class="nav-label">Liked</span>
             </button>
         </nav>
     </div>
