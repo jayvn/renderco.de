@@ -81,7 +81,6 @@ body {
     color: var(--text-color);
     font-family: 'Outfit', sans-serif;
     overflow: hidden;
-    /* Prevent body scroll, handle in feed-container */
     height: 100vh;
 }
 
@@ -90,13 +89,11 @@ body {
     flex-direction: column;
     height: 100%;
     max-width: 500px;
-    /* Mobile width cap for desktop view */
     margin: 0 auto;
     position: relative;
     background: #000;
 }
 
-/* Top Bar */
 .top-bar {
     position: absolute;
     top: 0;
@@ -109,7 +106,6 @@ body {
     align-items: center;
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
     pointer-events: none;
-    /* Let clicks pass through to content */
 }
 
 .top-bar * {
@@ -154,7 +150,6 @@ body {
 
 .feed-item {
     height: 100%;
-    /* Full screen per item */
     width: 100%;
     scroll-snap-align: start;
     position: relative;
@@ -162,7 +157,6 @@ body {
     flex-direction: column;
     justify-content: flex-end;
     padding: 20px 20px 80px 20px;
-    /* Bottom padding for nav */
     background-size: cover;
     background-position: center;
     background-color: #222;
@@ -282,7 +276,6 @@ body {
     transform: translateY(-10px);
     transition: all 0.2s;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    /* Better depth */
 }
 
 .search-input-wrapper.active {
@@ -297,7 +290,6 @@ body {
     border: none;
     color: white;
     padding: 12px;
-    /* Larger touch area */
     border-radius: 5px;
     font-size: 1rem;
 }
@@ -317,7 +309,7 @@ body {
     background: #333;
 }
 
-/* Modal and Article Content */
+/* Modal */
 .modal-content {
     height: 100%;
     display: flex;
@@ -387,7 +379,6 @@ body {
 
 .modal-body-content a {
     color: #f09433;
-    /* Accent color */
     text-decoration: none;
     border-bottom: 1px dotted #f09433;
 }
@@ -399,26 +390,28 @@ body {
     margin: 20px 0;
 }
 
-/* Tree View */
-.tree-view {
+/* Shared overlay view base */
+.overlay-view {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 60px;
-    background: #111;
     z-index: 90;
     padding: 20px;
     overflow-y: auto;
+    color: white;
+}
+
+.tree-view {
+    background: #111;
     transform: translateX(100%);
     transition: transform var(--transition-bounce);
-    color: white;
 }
 
 .tree-view.active {
     transform: translateX(0);
 }
-
 
 .close-tree-btn {
     position: absolute;
@@ -432,7 +425,6 @@ body {
     cursor: pointer;
 }
 
-/* Modal */
 .article-modal {
     position: fixed;
     inset: 0;
@@ -479,19 +471,11 @@ body {
     }
 }
 
-/* Profile / Bookmarks */
 .profile-view {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 60px;
     background: #000;
-    z-index: 90;
     display: none;
     flex-direction: column;
-    padding: 70px 20px 20px 20px;
-    overflow-y: auto;
+    padding-top: 70px;
 }
 
 .profile-view.active {

@@ -38,9 +38,15 @@ if (Array.isArray(likedArticles)) likedArticles = {};
 let offlineCache = JSON.parse(localStorage.getItem('offlineCache') || '[]');
 let streakCount = parseInt(localStorage.getItem('streakCount') || '0');
 const streakEl = document.getElementById('streak-count');
+let minimizedArticle = null;
 
-// Minimize state
-let minimizedArticle = null; // {title, scrollPos}
+// Wikipedia API helper
+const WIKI_API = 'https://en.wikipedia.org/w/api.php';
+async function wikiApi(params) {
+    const url = `${WIKI_API}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`;
+    const res = await fetch(url);
+    return res.json();
+}
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
@@ -49,6 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadArticles();
     updateStreakUI();
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(e => console.log('SW failed:', e));
+    }
 
     // Infinite Scroll
     feedContainer.addEventListener('scroll', throttle(() => {
@@ -218,25 +228,23 @@ async function loadArticles() {
 }
 
 async function fetchRandomArticles() {
-    const endpoint = `https://en.wikipedia.org/w/api.php?action=query&format=json&generator=random&grnnamespace=0&prop=extracts|pageimages&grnlimit=5&exintro&explaintext&pithumbsize=1000&origin=*`;
-    const response = await fetch(endpoint);
-    const data = await response.json();
+    const data = await wikiApi({
+        action: 'query', generator: 'random', grnnamespace: 0, prop: 'extracts|pageimages',
+        grnlimit: 5, exintro: 1, explaintext: 1, pithumbsize: 1000
+    });
     if (!data.query?.pages) return [];
     return Object.values(data.query.pages)
         .filter(p => p.thumbnail && p.extract)
         .map(p => ({ id: p.pageid, title: p.title, summary: p.extract, image: p.thumbnail.source }));
 }
 
-// Fetch categories for an article
 async function fetchArticleCategories(title) {
-    const endpoint = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=categories&cllimit=10&clshow=!hidden&format=json&origin=*`;
     try {
-        const response = await fetch(endpoint);
-        const data = await response.json();
-        const pages = data.query?.pages;
-        if (!pages) return [];
-        const page = Object.values(pages)[0];
-        if (!page.categories) return [];
+        const data = await wikiApi({
+            action: 'query', titles: title, prop: 'categories', cllimit: 10, clshow: '!hidden'
+        });
+        const page = Object.values(data.query?.pages || {})[0];
+        if (!page?.categories) return [];
         return page.categories
             .map(c => c.title.replace('Category:', ''))
             .filter(c => !c.includes('articles') && !c.includes('Pages') && !c.includes('Wikipedia') && !c.includes('CS1'));
@@ -246,63 +254,33 @@ async function fetchArticleCategories(title) {
     }
 }
 
-// Fetch recommended articles based on liked article categories
 async function fetchRecommendedArticles() {
-    // Collect all categories from liked articles
-    const allCategories = [];
-    Object.values(likedArticles).forEach(article => {
-        if (article.categories) {
-            allCategories.push(...article.categories);
-        }
-    });
+    const allCategories = Object.values(likedArticles).flatMap(a => a.categories || []);
+    if (allCategories.length === 0) return fetchRandomArticles();
 
-    if (allCategories.length === 0) {
-        console.log('No categories found, falling back to random');
-        return fetchRandomArticles();
-    }
-
-    // Pick a random category
     const randomCategory = allCategories[Math.floor(Math.random() * allCategories.length)];
-    console.log('Fetching recommendations from category:', randomCategory);
-
     try {
-        // Get articles from this category
-        const endpoint = `https://en.wikipedia.org/w/api.php?action=query&list=categorymembers&cmtitle=Category:${encodeURIComponent(randomCategory)}&cmlimit=20&cmnamespace=0&format=json&origin=*`;
-        const response = await fetch(endpoint);
-        const data = await response.json();
+        const data = await wikiApi({
+            action: 'query', list: 'categorymembers', cmtitle: `Category:${randomCategory}`,
+            cmlimit: 20, cmnamespace: 0
+        });
+        if (!data.query?.categorymembers?.length) return fetchRandomArticles();
 
-        if (!data.query?.categorymembers?.length) {
-            return fetchRandomArticles();
-        }
-
-        // Shuffle and pick up to 5
         const members = data.query.categorymembers
-            .filter(m => !Object.keys(likedArticles).includes(m.title)) // Exclude already liked
+            .filter(m => !Object.keys(likedArticles).includes(m.title))
             .sort(() => Math.random() - 0.5)
             .slice(0, 5);
+        if (members.length === 0) return fetchRandomArticles();
 
-        if (members.length === 0) {
-            return fetchRandomArticles();
-        }
-
-        // Fetch full details for these articles
         const titles = members.map(m => m.title).join('|');
-        const detailEndpoint = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=extracts|pageimages&exintro&explaintext&pithumbsize=1000&format=json&origin=*`;
-        const detailResponse = await fetch(detailEndpoint);
-        const detailData = await detailResponse.json();
-
+        const detailData = await wikiApi({
+            action: 'query', titles, prop: 'extracts|pageimages', exintro: 1, explaintext: 1, pithumbsize: 1000
+        });
         if (!detailData.query?.pages) return fetchRandomArticles();
 
         const results = Object.values(detailData.query.pages)
-            .filter(p => p.extract) // Require extract, image optional for recommendations
-            .map(p => ({
-                id: p.pageid,
-                title: p.title,
-                summary: p.extract,
-                image: p.thumbnail?.source || null,
-                fromCategory: randomCategory
-            }));
-
+            .filter(p => p.extract)
+            .map(p => ({ id: p.pageid, title: p.title, summary: p.extract, image: p.thumbnail?.source || null }));
         return results.length > 0 ? results : fetchRandomArticles();
     } catch (e) {
         console.error('Recommendation fetch failed:', e);
@@ -341,14 +319,10 @@ function createFeedItem(article) {
 // --- SEARCH LOGIC ---
 
 async function handleSearch(query) {
-    if (query.length < 2) {
-        searchResults.innerHTML = '';
-        return;
-    }
+    if (query.length < 2) { searchResults.innerHTML = ''; return; }
 
-    const endpoint = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=5&origin=*`;
-    const response = await fetch(endpoint);
-    const [, titles] = await response.json();
+    const data = await wikiApi({ action: 'opensearch', search: query, limit: 5 });
+    const titles = data[1] || [];
 
     searchResults.innerHTML = '';
     titles.forEach(title => {
@@ -480,15 +454,7 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
 };
 
 async function fetchWikiContent(title) {
-    const endpoint = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(title)}&format=json&prop=text&mobileformat=1&origin=*`;
-    try {
-        const response = await fetch(endpoint);
-        const data = await response.json();
-        return data;
-    } catch (e) {
-        console.error(e);
-        throw e; // Re-throw to be caught by openFullArticle
-    }
+    return wikiApi({ action: 'parse', page: title, prop: 'text', mobileformat: 1 });
 }
 
 function processWikiHtml(html) {
@@ -545,13 +511,6 @@ function renderTree() {
             if (!roots.includes(node.nodeId)) roots.push(node.nodeId);
         }
     });
-
-    // Debug: Log tree data structures
-    console.log('=== Tree Traversal Data ===');
-    console.log('historyTree:', historyTree.map(n => ({ id: n.nodeId, title: n.articleTitle, parent: n.parentId })));
-    console.log('childrenMap:', childrenMap);
-    console.log('nodesMap:', Object.keys(nodesMap).map(k => ({ id: k, title: nodesMap[k].articleTitle })));
-    console.log('roots:', roots);
 
     // Recursively build nested ul/li tree
     const buildTreeList = (nodeIds) => {

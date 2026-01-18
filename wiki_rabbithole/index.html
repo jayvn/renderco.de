@@ -86,27 +86,19 @@
     </div>
 
     <!-- Rabbithole Tree Modal/View -->
-    <div id="tree-view" class="tree-view hidden">
+    <div id="tree-view" class="overlay-view tree-view hidden">
         <h2>Your Journey</h2>
         <div id="tree-container"></div>
         <button class="close-tree-btn">Close</button>
     </div>
 
     <!-- Profile / Bookmarks View -->
-    <div id="profile-view" class="profile-view hidden">
+    <div id="profile-view" class="overlay-view profile-view hidden">
         <h2 class="profile-header">Your Bookmarks</h2>
         <div id="bookmarks-container" class="bookmarks-grid"></div>
     </div>
 
     <script src="app.js"></script>
-    <script>
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('SW registered'))
-                .catch(err => console.log('SW registration failed:', err));
-        }
-    </script>
 </body>
 
 </html>
