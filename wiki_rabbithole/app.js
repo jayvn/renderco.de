@@ -26,7 +26,7 @@ const foryouBtn = document.getElementById('foryou-btn');
 // State
 let articles = [];
 let loading = false;
-let historyTree = []; // Array of {nodeId, articleTitle, parentId}
+let historyTree = {}; // {key: {articleTitle, parentId}} where key = title|parentId
 let navStack = []; // For back button: [{title, nodeId}]
 let currentArticleId = null;
 let currentArticleTitle = null; // Sync state for modal
@@ -380,26 +380,22 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
         return;
     }
 
-    // 2. Track History (Rabbithole) - only if not back navigation and not duplicate
-    const nodeId = Date.now();
-    const isDuplicate = historyTree.some(n => n.articleTitle === data.parse.title && n.parentId === (parentId || 'root'));
+    // 2. Track History (Rabbithole) - only if not back navigation
+    const parentKey = parentId || 'root';
+    const nodeKey = `${data.parse.title}|${parentKey}`;
 
-    if (!isBackNav && !isDuplicate) {
-        historyTree.push({
-            nodeId: nodeId,
-            articleTitle: data.parse.title,
-            parentId: parentId || 'root'
-        });
-        currentArticleId = nodeId;
+    if (!isBackNav) {
+        // Object key naturally deduplicates
+        historyTree[nodeKey] = { articleTitle: data.parse.title, parentId: parentKey };
+        currentArticleId = nodeKey;
 
-        navStack.push({ title: data.parse.title, parentId: parentId || 'root' });
+        navStack.push({ title: data.parse.title, parentId: parentKey });
 
-        // Update Browser History
         history.pushState({
             view: 'article',
             title: data.parse.title,
-            parentId: parentId || 'root',
-            nodeId: nodeId,
+            parentId: parentKey,
+            nodeId: nodeKey,
             navStack: [...navStack]
         }, '', '#article=' + encodeURIComponent(data.parse.title));
     }
@@ -489,44 +485,47 @@ function saveToOfflineCache(title, data) {
 
 function renderTree() {
     treeContainer.innerHTML = '';
+    const entries = Object.entries(historyTree);
 
-    if (historyTree.length === 0) {
+    if (entries.length === 0) {
         treeContainer.innerHTML = '<p class="tree-empty">Start reading to build your journey!</p>';
         return;
     }
 
-    // Build hierarchy map: parentId -> [childNodeIds]
+    // Build hierarchy map: parentId -> [nodeKeys]
     const childrenMap = {};
     const nodesMap = {};
     const roots = [];
 
-    historyTree.forEach(node => {
-        nodesMap[node.nodeId] = node;
+    entries.forEach(([key, node]) => {
+        nodesMap[key] = node;
         if (!childrenMap[node.parentId]) childrenMap[node.parentId] = [];
-        childrenMap[node.parentId].push(node.nodeId);
+        childrenMap[node.parentId].push(key);
     });
 
-    // Find root nodes (parentId === 'root' or parent not found in tree)
-    historyTree.forEach(node => {
-        if (node.parentId === 'root' || !nodesMap[node.parentId]) {
-            if (!roots.includes(node.nodeId)) roots.push(node.nodeId);
+    // Find root nodes (parentId === 'root' or parent not in tree)
+    entries.forEach(([key, node]) => {
+        const parentKey = Object.keys(nodesMap).find(k => nodesMap[k].articleTitle === node.parentId);
+        if (node.parentId === 'root' || !parentKey) {
+            if (!roots.includes(key)) roots.push(key);
         }
     });
 
     // Recursively build nested ul/li tree
-    const buildTreeList = (nodeIds) => {
-        if (!nodeIds || nodeIds.length === 0) return '';
+    const buildTreeList = (nodeKeys) => {
+        if (!nodeKeys || nodeKeys.length === 0) return '';
 
         let html = '<ul class="tree-list">';
-        nodeIds.forEach((nodeId, index) => {
-            const node = nodesMap[nodeId];
+        nodeKeys.forEach((key, index) => {
+            const node = nodesMap[key];
             if (!node) return;
 
-            const children = childrenMap[nodeId] || [];
-            const isLast = index === nodeIds.length - 1;
+            // Find children: nodes whose parentId matches this node's articleTitle
+            const children = Object.keys(nodesMap).filter(k => nodesMap[k].parentId === node.articleTitle);
+            const isLast = index === nodeKeys.length - 1;
 
             html += `<li class="tree-item${isLast ? ' last' : ''}${children.length > 0 ? ' has-children' : ''}">`;
-            html += `<span class="tree-label" onclick="openFullArticle(null, '${node.articleTitle.replace(/'/g, "\\'")}', '${node.parentId}')">${node.articleTitle}</span>`;
+            html += `<span class="tree-label" onclick="openFullArticle(null, '${node.articleTitle.replace(/'/g, "\\'")}', '${node.articleTitle}')">${node.articleTitle}</span>`;
 
             if (children.length > 0) {
                 html += buildTreeList(children);
