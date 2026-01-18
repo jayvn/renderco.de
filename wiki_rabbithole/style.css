@@ -380,24 +380,6 @@ body {
     transform: translateX(0);
 }
 
-.tree-node {
-    padding: 15px;
-    margin-left: 20px;
-    border-left: 2px solid #333;
-    position: relative;
-    cursor: pointer;
-}
-
-.tree-node::before {
-    content: '';
-    position: absolute;
-    left: -7px;
-    top: 22px;
-    width: 12px;
-    height: 12px;
-    background: var(--accent-gradient);
-    border-radius: 50%;
-}
 
 .close-tree-btn {
     position: absolute;
@@ -532,39 +514,99 @@ body {
     color: white;
 }
 
-.tree-node {
-    margin: 10px 0;
-    border-left: 2px solid #444;
-    padding: 15px;
-    padding-left: 15px;
-    position: relative;
-    cursor: pointer;
+/* Tree View - Nested List Structure */
+.tree-empty {
+    color: #888;
+    text-align: center;
+    padding: 40px 20px;
 }
 
-.tree-node::before {
+.tree-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    padding-left: 20px;
+}
+
+.tree-container>.tree-list {
+    padding-left: 10px;
+}
+
+.tree-item {
+    position: relative;
+    padding: 8px 0;
+}
+
+/* Vertical line connecting siblings */
+.tree-item::before {
     content: '';
     position: absolute;
-    left: -7px;
-    top: 6px;
+    left: -15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #444;
+}
+
+/* Horizontal line from parent to node */
+.tree-item::after {
+    content: '';
+    position: absolute;
+    left: -15px;
+    top: 18px;
     width: 12px;
-    height: 12px;
+    height: 2px;
+    background: #444;
+}
+
+/* Remove vertical line extending past last sibling */
+.tree-item.last::before {
+    bottom: calc(100% - 20px);
+}
+
+/* Node label styling */
+.tree-label {
+    display: inline-block;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    font-weight: 500;
+}
+
+/* Gradient dot before label */
+.tree-label::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
     background: var(--accent-gradient);
     border-radius: 50%;
+    z-index: 1;
 }
 
-.tree-node:hover {
-    background: rgba(255, 255, 255, 0.05);
+.tree-label:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(3px);
 }
 
-.tree-node-content {
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 5px;
-    transition: background 0.2s;
-}
-
-.tree-node-content:hover {
-    background: rgba(255, 255, 255, 0.1);
+/* Branch indicator for nodes with children */
+.tree-item.has-children>.tree-label::after {
+    content: '';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid #666;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
 }
 
 /* Minimized Article PIP */
@@ -607,7 +649,9 @@ body {
 .minimized-article i {
     color: #f09433;
     font-size: 1.1rem;
-}.feed-actions {
+}
+
+.feed-actions {
     display: flex;
     align-items: center;
     gap: 15px;

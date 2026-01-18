@@ -95,6 +95,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Restore Nav Stack
             navStack = state.navStack || [];
 
+            // CRITICAL: Restore currentArticleId so new links branch from here
+            if (state.nodeId) {
+                currentArticleId = state.nodeId;
+            }
+
             // Re-open article (this will not push to history or tree because isBackNav=true)
             openFullArticle(null, state.title, state.parentId, true);
         } else if (state.view) {
@@ -421,59 +426,61 @@ function renderTree() {
     treeContainer.innerHTML = '';
 
     if (historyTree.length === 0) {
-        treeContainer.innerHTML = '<p>Start reading to build your journey!</p>';
+        treeContainer.innerHTML = '<p class="tree-empty">Start reading to build your journey!</p>';
         return;
     }
 
-    // Build hierarchy map
-    // { root: [child1, child2], child1: [child3] }
+    // Build hierarchy map: parentId -> [childNodeIds]
     const childrenMap = {};
     const nodesMap = {};
-    let roots = [];
+    const roots = [];
 
     historyTree.forEach(node => {
         nodesMap[node.nodeId] = node;
         if (!childrenMap[node.parentId]) childrenMap[node.parentId] = [];
         childrenMap[node.parentId].push(node.nodeId);
-
-        if (node.parentId === 'root') {
-            roots.push(node.nodeId);
-        }
     });
 
-    // If we have nodes with missing parents (e.g. restarts), treat them as roots
-    // Or just simple recursion starting from known roots
-    // Let's just render explicitly known roots. 
-    // If a node says parentId=X but X isn't in tree, treat as root.
+    // Find root nodes (parentId === 'root' or parent not found in tree)
     historyTree.forEach(node => {
-        if (node.parentId !== 'root' && !nodesMap[node.parentId]) {
+        if (node.parentId === 'root' || !nodesMap[node.parentId]) {
             if (!roots.includes(node.nodeId)) roots.push(node.nodeId);
         }
     });
 
-    const createTreeHTML = (nodeId, depth) => {
-        const node = nodesMap[nodeId];
-        if (!node) return '';
+    // Debug: Log tree data structures
+    console.log('=== Tree Traversal Data ===');
+    console.log('historyTree:', historyTree.map(n => ({ id: n.nodeId, title: n.articleTitle, parent: n.parentId })));
+    console.log('childrenMap:', childrenMap);
+    console.log('nodesMap:', Object.keys(nodesMap).map(k => ({ id: k, title: nodesMap[k].articleTitle })));
+    console.log('roots:', roots);
 
-        let html = `
-            <div class="tree-node" style="margin-left: ${depth * 20}px">
-                <div class="tree-node-content" onclick="openFullArticle(null, '${node.articleTitle.replace(/'/g, "\\'")}', '${node.parentId}')">
-                    <strong>${node.articleTitle}</strong>
-                </div>
-            </div>
-        `;
+    // Recursively build nested ul/li tree
+    const buildTreeList = (nodeIds) => {
+        if (!nodeIds || nodeIds.length === 0) return '';
 
-        const children = childrenMap[nodeId] || [];
-        children.forEach(childId => {
-            html += createTreeHTML(childId, depth + 1);
+        let html = '<ul class="tree-list">';
+        nodeIds.forEach((nodeId, index) => {
+            const node = nodesMap[nodeId];
+            if (!node) return;
+
+            const children = childrenMap[nodeId] || [];
+            const isLast = index === nodeIds.length - 1;
+
+            html += `<li class="tree-item${isLast ? ' last' : ''}${children.length > 0 ? ' has-children' : ''}">`;
+            html += `<span class="tree-label" onclick="openFullArticle(null, '${node.articleTitle.replace(/'/g, "\\'")}', '${node.parentId}')">${node.articleTitle}</span>`;
+
+            if (children.length > 0) {
+                html += buildTreeList(children);
+            }
+
+            html += '</li>';
         });
-
+        html += '</ul>';
         return html;
     };
 
-    roots.forEach(rootId => {
-        treeContainer.innerHTML += createTreeHTML(rootId, 0);
-    });
+    treeContainer.innerHTML = buildTreeList(roots);
 }
 
 // --- PROFILE / BOOKMARKS ---
@@ -520,7 +527,7 @@ function updateLikeIcon(icon, isLiked, likedColor) {
     icon.style.color = isLiked ? likedColor : '';
 }
 
-window.toggleLike = function(title) {
+window.toggleLike = function (title) {
     const isLiked = Object.prototype.hasOwnProperty.call(likedArticles, title);
 
     if (isLiked) {
@@ -569,7 +576,7 @@ function updateStreakUI() {
 function throttle(func, limit) {
     let lastFunc;
     let lastRan;
-    return function() {
+    return function () {
         const context = this;
         const args = arguments;
         if (!lastRan) {
@@ -577,7 +584,7 @@ function throttle(func, limit) {
             lastRan = Date.now();
         } else {
             clearTimeout(lastFunc);
-            lastFunc = setTimeout(function() {
+            lastFunc = setTimeout(function () {
                 if ((Date.now() - lastRan) >= limit) {
                     func.apply(context, args);
                     lastRan = Date.now();
