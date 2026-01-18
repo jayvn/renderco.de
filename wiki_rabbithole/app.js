@@ -50,10 +50,28 @@ async function wikiApi(params) {
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
-    // Initial History State
-    history.replaceState({ view: 'home', navStack: [] }, '', '');
+    // Check URL hash for article or view to restore on refresh
+    const hash = window.location.hash;
+    const articleMatch = hash.match(/^#article=(.+)$/);
+    const viewMatch = hash.match(/^#view=(.+)$/);
 
-    loadArticles();
+    if (articleMatch) {
+        // Restore article from URL - decode the title
+        const title = decodeURIComponent(articleMatch[1]);
+        history.replaceState({ view: 'article', title, parentId: 'root', nodeId: `${title}|root`, navStack: [{ title, parentId: 'root' }] }, '', hash);
+        loadArticles(); // Load feed in background
+        openFullArticle(null, title, null, true); // Open the article (isBackNav=true to avoid double push)
+    } else if (viewMatch) {
+        // Restore view from URL
+        const view = viewMatch[1];
+        history.replaceState({ view }, '', hash);
+        loadArticles();
+        if (view !== 'home') showView(view, true);
+    } else {
+        // Default: home view
+        history.replaceState({ view: 'home', navStack: [] }, '', '');
+        loadArticles();
+    }
     updateStreakUI();
     // Register Service Worker
     if ('serviceWorker' in navigator) {
