@@ -39,6 +39,7 @@ let offlineCache = JSON.parse(localStorage.getItem('offlineCache') || '[]');
 let streakCount = parseInt(localStorage.getItem('streakCount') || '0');
 const streakEl = document.getElementById('streak-count');
 let minimizedArticle = null;
+let imageObserver = null;
 
 // Wikipedia API helper
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
@@ -76,6 +77,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Register Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(e => console.log('SW failed:', e));
+    }
+
+    // Initialize Image Observer
+    if ('IntersectionObserver' in window) {
+        imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const item = entry.target;
+                    if (item.dataset.bg) {
+                        item.style.backgroundImage = `url(${item.dataset.bg})`;
+                        item.removeAttribute('data-bg');
+                        observer.unobserve(item);
+                    }
+                }
+            });
+        }, { root: feedContainer, rootMargin: '600px' });
     }
 
     // Infinite Scroll
@@ -309,7 +326,13 @@ async function fetchRecommendedArticles() {
 function createFeedItem(article) {
     const item = document.createElement('div');
     item.className = 'feed-item';
-    item.style.backgroundImage = `url(${article.image})`;
+
+    if (imageObserver && article.image) {
+        item.dataset.bg = article.image;
+        imageObserver.observe(item);
+    } else {
+        item.style.backgroundImage = `url(${article.image})`;
+    }
 
     // Click handler for the whole card
     item.onclick = (e) => {
