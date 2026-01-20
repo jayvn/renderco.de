@@ -451,7 +451,10 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
 
     // Re-bind modalTitle if needed, or rely on innerHTML
     // modalTitle.textContent = articleTitle; // No longer needed as it's in HTML
-    modalBody.innerHTML = `${contentHtml}`;
+
+    // Performance: Append DOM directly to avoid re-parsing
+    modalBody.innerHTML = '';
+    modalBody.appendChild(contentHtml);
 
     // 4. Attach link interceptors
     modalBody.querySelectorAll('a').forEach(link => {
@@ -477,7 +480,13 @@ function processWikiHtml(html) {
     const div = document.createElement('div');
     div.innerHTML = html;
     div.querySelectorAll('.mw-editsection, .reference, .mbox-small').forEach(el => el.remove());
-    return div.innerHTML;
+
+    // Return a DocumentFragment to avoid extra wrapper div
+    const fragment = document.createDocumentFragment();
+    while (div.firstChild) {
+        fragment.appendChild(div.firstChild);
+    }
+    return fragment;
 }
 
 // --- OFFLINE CACHE LOGIC ---
