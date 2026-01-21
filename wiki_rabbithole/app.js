@@ -283,10 +283,14 @@ async function fetchRecommendedArticles() {
         });
         if (!data.query?.categorymembers?.length) return fetchRandomArticles();
 
-        const members = data.query.categorymembers
-            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title))
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 5);
+        let members = data.query.categorymembers
+            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title));
+
+        // Optimization: Fisher-Yates shuffle for O(n) unbiased randomization
+        shuffleArray(members);
+
+        members = members.slice(0, 5);
+
         if (members.length === 0) return fetchRandomArticles();
 
         const titles = members.map(m => m.title).join('|');
@@ -659,6 +663,18 @@ window.toggleLike = async function (title) {
 
 function updateStreakUI() {
     streakEl.textContent = streakCount;
+}
+
+/**
+ * Fisher-Yates Shuffle
+ * O(n) complexity and unbiased distribution compared to sort(random - 0.5)
+ */
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array; // Return for chaining if needed, though inplace
 }
 
 function throttle(func, limit) {
