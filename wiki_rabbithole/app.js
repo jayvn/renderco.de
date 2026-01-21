@@ -23,8 +23,7 @@ const homeBtn = document.getElementById('home-btn');
 const foryouBtn = document.getElementById('foryou-btn');
 
 // State
-let articles = [];
-let articleIds = new Set();
+let articlesMap = new Map();
 let loading = false;
 let historyTree = JSON.parse(localStorage.getItem('historyTree') || '{}'); // {key: {articleTitle, parentId}} where key = title|parentId
 let navStack = []; // For back button: [{title, nodeId}]
@@ -152,8 +151,7 @@ function showView(view, fromHistory = false) {
         if (feedMode !== newMode) {
             feedMode = newMode;
             localStorage.setItem('feedMode', feedMode);
-            articles = [];
-            articleIds.clear();
+            articlesMap.clear();
             feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><p>Loading...</p></div>';
             loadArticles();
         }
@@ -235,10 +233,9 @@ async function loadArticles() {
         if (loader) loader.remove();
 
         newArticles.forEach(article => {
-            if (!articleIds.has(article.id)) {
+            if (!articlesMap.has(article.title)) {
                 createFeedItem(article);
-                articles.push(article);
-                articleIds.add(article.id);
+                articlesMap.set(article.title, article);
             }
         });
     } catch (error) {
@@ -549,7 +546,7 @@ function renderTree() {
             if (!node) return;
 
             // Find children: nodes whose parentId matches this node's articleTitle
-            const children = Object.keys(nodesMap).filter(k => nodesMap[k].parentId === node.articleTitle);
+            const children = childrenMap[node.articleTitle] || [];
             const isLast = index === nodeKeys.length - 1;
 
             html += `<li class="tree-item${isLast ? ' last' : ''}${children.length > 0 ? ' has-children' : ''}">`;
@@ -619,7 +616,7 @@ window.toggleLike = async function (title) {
         delete likedArticles[title];
     } else {
         // Try to find metadata from feed articles
-        const feedMeta = articles.find(a => a.title === title);
+        const feedMeta = articlesMap.get(title);
 
         // Fetch categories for recommendations
         const categories = await fetchArticleCategories(title);
