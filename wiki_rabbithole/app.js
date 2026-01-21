@@ -375,16 +375,17 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
 
     // 1. Fetch Full Content (Check Offline Cache First if needed, or just fetch and cache)
     let data;
-    try {
-        data = await fetchWikiContent(title);
-        // Cache success
-        saveToOfflineCache(title, data);
-    } catch (e) {
-        // Try to find in cache
-        const cached = offlineCache.find(item => item.title === title);
-        if (cached) {
-            data = cached.data;
-        } else {
+
+    // Performance: Check cache first to avoid network (especially for back nav)
+    const cached = offlineCache.find(item => item.title === title);
+    if (cached) {
+        data = cached.data;
+    } else {
+        try {
+            data = await fetchWikiContent(title);
+            // Cache success
+            saveToOfflineCache(title, data);
+        } catch (e) {
             modalBody.innerHTML = '<p>Error loading article. Check connection.</p>';
             return;
         }
