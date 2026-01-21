@@ -2,7 +2,6 @@ const feedContainer = document.getElementById('feed-container');
 
 // UI Elements
 const modal = document.getElementById('article-modal');
-const modalTitle = document.querySelector('#article-modal h2') || document.createElement('h2'); // Fallback/Caution
 const modalBody = document.getElementById('modal-body');
 const closeModalBtn = document.querySelector('.close-modal');
 const minimizeModalBtn = document.querySelector('.minimize-modal');
@@ -381,12 +380,10 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
         // Cache success
         saveToOfflineCache(title, data);
     } catch (e) {
-        console.log("Fetch failed, trying offline cache");
         // Try to find in cache
         const cached = offlineCache.find(item => item.title === title);
         if (cached) {
             data = cached.data;
-            console.log("Loaded from cache");
         } else {
             modalBody.innerHTML = '<p>Error loading article. Check connection.</p>';
             return;
@@ -623,7 +620,6 @@ window.toggleLike = async function (title) {
 
         // Fetch categories for recommendations
         const categories = await fetchArticleCategories(title);
-        console.log('Fetched categories for', title, ':', categories);
 
         likedArticles[title] = {
             title: title,
