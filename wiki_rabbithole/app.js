@@ -24,6 +24,7 @@ const foryouBtn = document.getElementById('foryou-btn');
 
 // State
 let articles = [];
+let articleIds = new Set();
 let loading = false;
 let historyTree = JSON.parse(localStorage.getItem('historyTree') || '{}'); // {key: {articleTitle, parentId}} where key = title|parentId
 let navStack = []; // For back button: [{title, nodeId}]
@@ -152,6 +153,7 @@ function showView(view, fromHistory = false) {
             feedMode = newMode;
             localStorage.setItem('feedMode', feedMode);
             articles = [];
+            articleIds.clear();
             feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><p>Loading...</p></div>';
             loadArticles();
         }
@@ -233,9 +235,10 @@ async function loadArticles() {
         if (loader) loader.remove();
 
         newArticles.forEach(article => {
-            if (!articles.find(a => a.id === article.id)) {
+            if (!articleIds.has(article.id)) {
                 createFeedItem(article);
                 articles.push(article);
+                articleIds.add(article.id);
             }
         });
     } catch (error) {
@@ -284,7 +287,7 @@ async function fetchRecommendedArticles() {
         if (!data.query?.categorymembers?.length) return fetchRandomArticles();
 
         const members = data.query.categorymembers
-            .filter(m => !Object.keys(likedArticles).includes(m.title))
+            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title))
             .sort(() => Math.random() - 0.5)
             .slice(0, 5);
         if (members.length === 0) return fetchRandomArticles();
