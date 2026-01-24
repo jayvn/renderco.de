@@ -694,3 +694,16 @@ body {
     margin: 0 10px;
     color: white;
 }
+/* Math Equation Styles */
+.mwe-math-fallback-image-inline,
+.mwe-math-fallback-image-display,
+.mw-invert {
+    filter: invert(1);
+}
+
+.mwe-math-fallback-image-display {
+    display: block;
+    margin: 1em auto;
+    max-width: 100%;
+    height: auto;
+}

@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     foryouBtn.addEventListener('click', () => showView('foryou'));
 
     // Handle Browser Back Button
-    window.addEventListener('popstate', (event) => {
+    window.addEventListener('popstate', async (event) => {
         const state = event.state;
         if (!state) {
             // Fallback to home if no state
@@ -131,7 +131,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Re-open article (this will not push to history or tree because isBackNav=true)
-            openFullArticle(null, state.title, state.parentId, true);
+            await openFullArticle(null, state.title, state.parentId, true);
+
+            // Restore scroll position
+            if (state.scrollPos) {
+                modalBody.scrollTop = state.scrollPos;
+            }
         } else if (state.view) {
             closeModal(true); // Ensure modal is closed if we switch to a main view
             showView(state.view, true);
@@ -458,6 +463,14 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
     modalBody.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
+
+            // Save scroll position of current article before navigating
+            const scrollTop = modalBody.scrollTop;
+            if (history.state) {
+                const updatedState = { ...history.state, scrollPos: scrollTop };
+                history.replaceState(updatedState, '', location.hash);
+            }
+
             const href = link.getAttribute('href');
             // Check if it's a wiki link (usually starts with /wiki/)
             if (href && href.startsWith('/wiki/')) {
