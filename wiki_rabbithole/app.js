@@ -237,12 +237,16 @@ async function loadArticles() {
         const loader = document.querySelector('.loading-state');
         if (loader) loader.remove();
 
+        // Optimization: Batch DOM insertions to minimize reflows
+        const fragment = document.createDocumentFragment();
         newArticles.forEach(article => {
             if (!articlesMap.has(article.title)) {
-                createFeedItem(article);
+                const item = createFeedItem(article);
+                fragment.appendChild(item);
                 articlesMap.set(article.title, article);
             }
         });
+        feedContainer.appendChild(fragment);
     } catch (error) {
         console.error("Failed to fetch articles:", error);
     }
@@ -335,7 +339,7 @@ function createFeedItem(article) {
             </div>
         </div>
     `;
-    feedContainer.appendChild(item);
+    return item;
 }
 
 // --- SEARCH LOGIC ---
@@ -347,6 +351,7 @@ async function handleSearch(query) {
     const titles = data[1] || [];
 
     searchResults.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     titles.forEach(title => {
         const div = document.createElement('div');
         div.className = 'search-result-item';
@@ -357,8 +362,9 @@ async function handleSearch(query) {
             searchInput.value = '';
             searchResults.innerHTML = '';
         };
-        searchResults.appendChild(div);
+        fragment.appendChild(div);
     });
+    searchResults.appendChild(fragment);
 }
 
 // --- FULL ARTICLE & RABBITHOLE LOGIC ---
@@ -589,10 +595,16 @@ function renderProfile() {
         return;
     }
 
+    // Optimization: Batch DOM insertions
+    const fragment = document.createDocumentFragment();
     keys.forEach(title => {
         const meta = likedArticles[title];
-        if (meta) createBookmarkItem(meta);
+        if (meta) {
+            const item = createBookmarkItem(meta);
+            fragment.appendChild(item);
+        }
     });
+    bookmarksContainer.appendChild(fragment);
 }
 
 function createBookmarkItem(article) {
@@ -613,7 +625,7 @@ function createBookmarkItem(article) {
         </div>
     `;
     item.onclick = () => openFullArticle(article.id, article.title, 'root'); // Restart journey from bookmark
-    bookmarksContainer.appendChild(item);
+    return item;
 }
 
 // --- UTILS ---
