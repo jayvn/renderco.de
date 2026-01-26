@@ -237,12 +237,15 @@ async function loadArticles() {
         const loader = document.querySelector('.loading-state');
         if (loader) loader.remove();
 
+        const fragment = document.createDocumentFragment();
         newArticles.forEach(article => {
             if (!articlesMap.has(article.title)) {
-                createFeedItem(article);
+                const item = createFeedItem(article);
+                fragment.appendChild(item);
                 articlesMap.set(article.title, article);
             }
         });
+        feedContainer.appendChild(fragment);
     } catch (error) {
         console.error("Failed to fetch articles:", error);
     }
@@ -288,10 +291,10 @@ async function fetchRecommendedArticles() {
         });
         if (!data.query?.categorymembers?.length) return fetchRandomArticles();
 
-        const members = data.query.categorymembers
-            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title))
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 5);
+        let members = data.query.categorymembers
+            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title));
+
+        members = shuffleArray(members).slice(0, 5);
         if (members.length === 0) return fetchRandomArticles();
 
         const titles = members.map(m => m.title).join('|');
@@ -335,7 +338,7 @@ function createFeedItem(article) {
             </div>
         </div>
     `;
-    feedContainer.appendChild(item);
+    return item;
 }
 
 // --- SEARCH LOGIC ---
@@ -347,6 +350,7 @@ async function handleSearch(query) {
     const titles = data[1] || [];
 
     searchResults.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     titles.forEach(title => {
         const div = document.createElement('div');
         div.className = 'search-result-item';
@@ -357,8 +361,9 @@ async function handleSearch(query) {
             searchInput.value = '';
             searchResults.innerHTML = '';
         };
-        searchResults.appendChild(div);
+        fragment.appendChild(div);
     });
+    searchResults.appendChild(fragment);
 }
 
 // --- FULL ARTICLE & RABBITHOLE LOGIC ---
@@ -589,10 +594,15 @@ function renderProfile() {
         return;
     }
 
+    const fragment = document.createDocumentFragment();
     keys.forEach(title => {
         const meta = likedArticles[title];
-        if (meta) createBookmarkItem(meta);
+        if (meta) {
+            const item = createBookmarkItem(meta);
+            fragment.appendChild(item);
+        }
     });
+    bookmarksContainer.appendChild(fragment);
 }
 
 function createBookmarkItem(article) {
@@ -613,7 +623,7 @@ function createBookmarkItem(article) {
         </div>
     `;
     item.onclick = () => openFullArticle(article.id, article.title, 'root'); // Restart journey from bookmark
-    bookmarksContainer.appendChild(item);
+    return item;
 }
 
 // --- UTILS ---
@@ -672,6 +682,17 @@ window.toggleLike = async function (title) {
 
 function updateStreakUI() {
     streakEl.textContent = streakCount;
+}
+
+/**
+ * Fisher-Yates shuffle for O(N) unbiased randomization.
+ */
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
 }
 
 function throttle(func, limit) {
