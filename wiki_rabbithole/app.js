@@ -291,10 +291,14 @@ async function fetchRecommendedArticles() {
         });
         if (!data.query?.categorymembers?.length) return fetchRandomArticles();
 
-        const members = data.query.categorymembers
-            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title))
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 5);
+        let members = data.query.categorymembers
+            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title));
+
+        // Optimization: Use Fisher-Yates shuffle for O(N) unbiased randomization
+        // instead of .sort(() => Math.random() - 0.5) which is O(N log N) and biased.
+        shuffleArray(members);
+
+        members = members.slice(0, 5);
         if (members.length === 0) return fetchRandomArticles();
 
         const titles = members.map(m => m.title).join('|');
@@ -701,4 +705,17 @@ function throttle(func, limit) {
             }, limit - (Date.now() - lastRan));
         }
     }
+}
+
+/**
+ * Fisher-Yates Shuffle
+ * Time Complexity: O(N)
+ * Why: Standard .sort() with Math.random() is biased and O(N log N).
+ */
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
 }
