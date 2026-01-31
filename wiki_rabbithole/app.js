@@ -546,10 +546,12 @@ function renderTree() {
     });
 
     // Find root nodes (parentId === 'root' or parent not in tree)
+    // Optimization: Create a Set of all known article titles for O(1) lookup
+    const knownTitles = new Set(Object.values(nodesMap).map(n => n.articleTitle));
+
     entries.forEach(([key, node]) => {
-        const parentKey = Object.keys(nodesMap).find(k => nodesMap[k].articleTitle === node.parentId);
-        if (node.parentId === 'root' || !parentKey) {
-            if (!roots.includes(key)) roots.push(key);
+        if (node.parentId === 'root' || !knownTitles.has(node.parentId)) {
+            roots.push(key);
         }
     });
 
