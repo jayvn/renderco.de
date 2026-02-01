@@ -537,19 +537,23 @@ function renderTree() {
     // Build hierarchy map: parentId -> [nodeKeys]
     const childrenMap = {};
     const nodesMap = {};
+    const allTitles = new Set(); // Optimization: O(1) lookup
     const roots = [];
 
     entries.forEach(([key, node]) => {
         nodesMap[key] = node;
+        allTitles.add(node.articleTitle);
         if (!childrenMap[node.parentId]) childrenMap[node.parentId] = [];
         childrenMap[node.parentId].push(key);
     });
 
     // Find root nodes (parentId === 'root' or parent not in tree)
     entries.forEach(([key, node]) => {
-        const parentKey = Object.keys(nodesMap).find(k => nodesMap[k].articleTitle === node.parentId);
-        if (node.parentId === 'root' || !parentKey) {
-            if (!roots.includes(key)) roots.push(key);
+        // Optimization: Use Set for O(1) parent existence check instead of O(N) scan
+        const parentExists = allTitles.has(node.parentId);
+
+        if (node.parentId === 'root' || !parentExists) {
+            roots.push(key);
         }
     });
 
