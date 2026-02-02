@@ -538,18 +538,20 @@ function renderTree() {
     const childrenMap = {};
     const nodesMap = {};
     const roots = [];
+    const titlesSet = new Set(); // Optimization: O(1) lookup
 
     entries.forEach(([key, node]) => {
         nodesMap[key] = node;
+        titlesSet.add(node.articleTitle);
         if (!childrenMap[node.parentId]) childrenMap[node.parentId] = [];
         childrenMap[node.parentId].push(key);
     });
 
     // Find root nodes (parentId === 'root' or parent not in tree)
     entries.forEach(([key, node]) => {
-        const parentKey = Object.keys(nodesMap).find(k => nodesMap[k].articleTitle === node.parentId);
-        if (node.parentId === 'root' || !parentKey) {
-            if (!roots.includes(key)) roots.push(key);
+        const hasParent = titlesSet.has(node.parentId);
+        if (node.parentId === 'root' || !hasParent) {
+            roots.push(key);
         }
     });
 
