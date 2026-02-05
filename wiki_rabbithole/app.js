@@ -89,6 +89,30 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalBtn.addEventListener('click', closeModal);
     minimizeModalBtn.addEventListener('click', minimizeModal);
 
+    // Event Delegation for Article Links
+    modalBody.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (!link) return;
+
+        e.preventDefault();
+
+        // Save scroll position of current article before navigating
+        const scrollTop = modalBody.scrollTop;
+        if (history.state) {
+            const updatedState = { ...history.state, scrollPos: scrollTop };
+            history.replaceState(updatedState, '', location.hash);
+        }
+
+        const href = link.getAttribute('href');
+        // Check if it's a wiki link (usually starts with /wiki/)
+        if (href && href.startsWith('/wiki/')) {
+            const newTitle = href.split('/wiki/')[1];
+            openFullArticle(null, decodeURIComponent(newTitle), currentArticleId);
+        } else if (href) {
+            window.open(href, '_blank');
+        }
+    });
+
     // Search Events
     searchToggleBtn.addEventListener('click', () => {
         searchWrapper.classList.toggle('active');
@@ -461,29 +485,6 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
     // Performance: Append DOM directly to avoid re-parsing
     modalBody.innerHTML = '';
     modalBody.appendChild(contentHtml);
-
-    // 4. Attach link interceptors
-    modalBody.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-
-            // Save scroll position of current article before navigating
-            const scrollTop = modalBody.scrollTop;
-            if (history.state) {
-                const updatedState = { ...history.state, scrollPos: scrollTop };
-                history.replaceState(updatedState, '', location.hash);
-            }
-
-            const href = link.getAttribute('href');
-            // Check if it's a wiki link (usually starts with /wiki/)
-            if (href && href.startsWith('/wiki/')) {
-                const newTitle = href.split('/wiki/')[1];
-                openFullArticle(null, decodeURIComponent(newTitle), currentArticleId);
-            } else if (href) {
-                window.open(href, '_blank');
-            }
-        });
-    });
 };
 
 async function fetchWikiContent(title) {
