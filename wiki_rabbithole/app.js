@@ -145,7 +145,8 @@ async function loadArticles() {
         if (articles.has(a.title)) continue;
         articles.set(a.title, a);
         feed.insertAdjacentHTML('beforeend', `
-            <div class="feed-item" data-title="${a.title}" ${a.image ? `style="background-image:url(${a.image})"` : ''}>
+            <div class="feed-item" data-title="${a.title}">
+                ${a.image ? `<img class="feed-bg" src="${a.image}" alt="" referrerpolicy="no-referrer">` : ''}
                 <div class="content-overlay">
                     <h2>${a.title}</h2>
                     <p>${a.summary}</p>
@@ -337,7 +338,7 @@ function showOverlay(type) {
     } else if (type === 'history') {
         content.innerHTML = history.length ? history.map(h => `
             <div class="list-item" data-title="${h.title}">
-                <div class="item-thumb" ${h.image ? `style="background-image:url(${h.image})"` : ''}></div>
+                <div class="item-thumb">${h.image ? `<img src="${h.image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
                 <div class="item-info"><div class="item-title">${h.title}</div><div class="item-meta">${timeAgo(h.time)}</div></div>
             </div>
         `).join('') : emptyState('🕐', 'No history yet', 'Articles you read will appear here');
@@ -345,7 +346,7 @@ function showOverlay(type) {
         const saved = Object.values(liked);
         content.innerHTML = saved.length ? saved.map(a => `
             <div class="list-item" data-title="${a.title}">
-                <div class="item-thumb" ${a.image ? `style="background-image:url(${a.image})"` : ''}></div>
+                <div class="item-thumb">${a.image ? `<img src="${a.image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
                 <div class="item-info"><div class="item-title">${a.title}</div></div>
             </div>
         `).join('') : emptyState('❤️', 'No saved articles', 'Tap the heart on articles to save');
