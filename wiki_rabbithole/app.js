@@ -19,6 +19,8 @@ let navStack = [];
 let feedMode = localStorage.getItem('feedMode') || 'random';
 let likedArticles = JSON.parse(localStorage.getItem('likedArticles') || '{}');
 let history = JSON.parse(localStorage.getItem('readHistory') || '[]');
+let tree = JSON.parse(localStorage.getItem('explorationTree') || '{"nodes":{},"edges":[],"sessions":[]}');
+let currentSessionId = null;
 
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 const wikiApi = async (params) => {
@@ -62,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Nav buttons
     document.getElementById('home-btn').onclick = () => switchFeed('random');
     document.getElementById('foryou-btn').onclick = () => switchFeed('foryou');
+    document.getElementById('tree-btn').onclick = () => showOverlay('tree');
     document.getElementById('history-btn').onclick = () => showOverlay('history');
     document.getElementById('saved-btn').onclick = () => showOverlay('saved');
 
@@ -242,9 +245,11 @@ window.openArticle = async function(title, isBack = false) {
     currentArticle = { title };
 
     if (!isBack) {
+        const parentTitle = navStack.length > 0 ? navStack[navStack.length - 1].title : null;
         navStack.push({ title });
         window.history.pushState({ article: title }, '', '#' + encodeURIComponent(title));
         addToHistory(title);
+        addToTree(title, parentTitle);
     }
 
     const data = await wikiApi({ action: 'parse', page: title, prop: 'text', mobileformat: 1 });
@@ -307,6 +312,7 @@ window.closeArticle = (fromPopstate = false) => {
     modal.classList.remove('active');
     navStack = [];
     currentArticle = null;
+    currentSessionId = null;
     if (!fromPopstate) window.history.pushState({}, '', location.pathname);
 };
 
@@ -370,8 +376,39 @@ function addToHistory(title) {
     localStorage.setItem('readHistory', JSON.stringify(history));
 }
 
+function addToTree(title, parentTitle) {
+    const now = Date.now();
+    
+    // Add node if new
+    if (!tree.nodes[title]) {
+        tree.nodes[title] = { title, firstSeen: now };
+    }
+    
+    if (!parentTitle) {
+        // New session - starting from feed/search
+        currentSessionId = 's' + now;
+        tree.sessions.unshift({ id: currentSessionId, root: title, time: now });
+    } else {
+        // Following a link - add edge if not duplicate in this session
+        const edgeExists = tree.edges.some(e => 
+            e.from === parentTitle && e.to === title && e.session === currentSessionId
+        );
+        if (!edgeExists) {
+            tree.edges.push({ from: parentTitle, to: title, time: now, session: currentSessionId });
+        }
+    }
+    
+    // Prune old sessions if too large
+    while (tree.sessions.length > 30) {
+        const old = tree.sessions.pop();
+        tree.edges = tree.edges.filter(e => e.session !== old.id);
+    }
+    
+    localStorage.setItem('explorationTree', JSON.stringify(tree));
+}
+
 function showOverlay(type) {
-    overlayTitle.textContent = type === 'history' ? 'History' : 'Saved';
+    overlayTitle.textContent = type === 'history' ? 'History' : type === 'tree' ? 'Exploration Tree' : 'Saved';
     overlayView.classList.add('active');
     window.history.pushState({ overlay: type }, '', '#' + type);
 
@@ -379,7 +416,9 @@ function showOverlay(type) {
         btn.classList.toggle('active', btn.dataset.target === type);
     });
 
-    if (type === 'history') {
+    if (type === 'tree') {
+        overlayContent.innerHTML = renderTreeView();
+    } else if (type === 'history') {
         if (!history.length) {
             overlayContent.innerHTML = `
                 <div class="empty-state">
@@ -455,3 +494,86 @@ function showToast(msg) {
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2000);
 }
+
+function renderTreeView() {
+    if (!tree.sessions.length) {
+        return `
+            <div class="empty-state">
+                <div class="empty-icon">🌳</div>
+                <h3>No explorations yet</h3>
+                <p>Read articles and follow links to build your exploration tree</p>
+            </div>
+        `;
+    }
+
+    // Compute stats
+    const totalNodes = Object.keys(tree.nodes).length;
+    const totalSessions = tree.sessions.length;
+    let maxDepth = 1;
+    
+    // Build tree per session and find max depth
+    const sessionTrees = tree.sessions.map(session => {
+        const edges = tree.edges.filter(e => e.session === session.id);
+        const children = {};
+        edges.forEach(e => {
+            if (!children[e.from]) children[e.from] = [];
+            children[e.from].push(e.to);
+        });
+        
+        const getDepth = (node, depth = 1) => {
+            const kids = children[node] || [];
+            return kids.length ? Math.max(...kids.map(k => getDepth(k, depth + 1))) : depth;
+        };
+        const depth = getDepth(session.root);
+        if (depth > maxDepth) maxDepth = depth;
+        
+        return { session, children, depth };
+    });
+
+    const statsHtml = `
+        <div class="tree-stats">
+            🌳 ${totalNodes} article${totalNodes !== 1 ? 's' : ''} · ${totalSessions} rabbit hole${totalSessions !== 1 ? 's' : ''} · deepest: ${maxDepth} level${maxDepth !== 1 ? 's' : ''}
+        </div>
+    `;
+
+    const sessionsHtml = sessionTrees.map(({ session, children }) => {
+        const date = new Date(session.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return `
+            <div class="tree-session">
+                <div class="tree-session-header">📅 ${date} — ${session.root}</div>
+                ${renderTreeNode(session.root, children, true)}
+            </div>
+        `;
+    }).join('');
+
+    const clearBtn = `
+        <div style="text-align:center;padding:20px">
+            <button class="feed-btn" onclick="clearTree()">🗑️ Clear tree</button>
+        </div>
+    `;
+
+    return statsHtml + sessionsHtml + clearBtn;
+}
+
+function renderTreeNode(title, children, isRoot = false) {
+    const safeTitle = title.replace(/'/g, "\\'");
+    const kids = children[title] || [];
+    
+    const kidsHtml = kids.length 
+        ? `<div class="tree-children">${kids.map(k => renderTreeNode(k, children)).join('')}</div>` 
+        : '';
+    
+    return `
+        <div class="tree-node ${isRoot ? 'tree-root' : ''}">
+            <span class="tree-label" onclick="closeOverlay(); openArticle('${safeTitle}')">${title}</span>
+            ${kidsHtml}
+        </div>
+    `;
+}
+
+window.clearTree = () => {
+    tree = { nodes: {}, edges: [], sessions: [] };
+    localStorage.removeItem('explorationTree');
+    showOverlay('tree');
+    showToast('Tree cleared');
+};

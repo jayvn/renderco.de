@@ -477,3 +477,64 @@ body {
 .infobox, .sidebar { display: none; }
 .thumbinner { background: transparent !important; border: none !important; }
 .thumbcaption { color: #888; font-size: 0.85rem; }
+
+/* Tree view */
+.tree-stats {
+    text-align: center;
+    padding: 12px;
+    color: #888;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #222;
+    margin-bottom: 15px;
+}
+
+.tree-session {
+    margin-bottom: 24px;
+}
+
+.tree-session-header {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.tree-node {
+    position: relative;
+    padding: 4px 0;
+}
+
+.tree-children {
+    padding-left: 24px;
+    margin-left: 8px;
+    border-left: 1px dashed #333;
+}
+
+.tree-children .tree-node::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 16px;
+    width: 20px;
+    border-bottom: 1px dashed #333;
+}
+
+.tree-label {
+    display: inline-block;
+    padding: 8px 14px;
+    background: #111;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid #222;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tree-label:active { background: #222; }
+
+.tree-root > .tree-label {
+    background: linear-gradient(135deg, rgba(240,148,51,0.15), rgba(220,39,67,0.15));
+    border-color: rgba(240,148,51,0.3);
+}

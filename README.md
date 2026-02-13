@@ -34,7 +34,7 @@ Avoid unnecessary exception/error handling and comments. For apps, errors should
 - **Trip Planner** - Collaborative trip planning with expense tracking and voting
 - **Group Expenses** - Expense tracker for groups
 - **Matrix Code Gen** - Pixel art editor for LED matrix displays
-- **WikiFeed** - Discover random Wikipedia articles and explore topic connections
+- **Wiki Rabbithole** - Wikipedia reader with random discovery, link following with depth tracking, and personalized recommendations
 
 ## Quick Start
 
