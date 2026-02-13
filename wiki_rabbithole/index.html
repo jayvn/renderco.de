@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -11,94 +10,71 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
-
 <body>
     <div class="app-container">
-        <!-- Top Bar -->
         <header class="top-bar">
             <h1 class="app-logo">WikiFeed</h1>
             <div class="header-right">
                 <div class="search-container">
-                    <button class="icon-btn" id="search-toggle-btn">
-                        <i class="fas fa-search"></i>
-                    </button>
-                    <div class="search-input-wrapper hidden" id="search-wrapper">
+                    <button class="icon-btn" id="search-toggle-btn">🔍</button>
+                    <div class="search-input-wrapper" id="search-wrapper">
                         <input type="text" id="wiki-search" placeholder="Search Wikipedia...">
                         <div class="search-results" id="search-results"></div>
                     </div>
                 </div>
-                <button class="icon-btn" id="streak-btn">
-                    🔥 <span id="streak-count">0</span>
-                </button>
             </div>
         </header>
 
-        <!-- Main Feed (Scroll Container) -->
         <main class="feed-container" id="feed-container">
-            <!-- Articles will be injected here via JS -->
             <div class="loading-state">
                 <div class="loader"></div>
-                <p>Falling down the rabbithole...</p>
+                <p>Loading articles...</p>
             </div>
         </main>
 
-        <!-- Minimized Article Indicator (PIP) -->
-        <div class="minimized-article hidden" id="minimized-pip" onclick="resumeArticle()">
-            <span id="pip-title">Continue reading...</span>
-            <i class="fas fa-expand"></i>
+        <div class="swipe-hint" id="swipe-hint">
+            <span>↑ Swipe for more</span>
         </div>
 
-        <!-- Bottom Navigation -->
         <nav class="bottom-nav">
             <button class="nav-item active" data-target="home" id="home-btn">
-                <i class="fas fa-random"></i>
-                <span class="nav-label">Random</span>
+                <span class="nav-icon">🎲</span>
+                <span class="nav-label">Discover</span>
             </button>
             <button class="nav-item" data-target="foryou" id="foryou-btn">
-                <i class="fas fa-star"></i>
+                <span class="nav-icon">✨</span>
                 <span class="nav-label">For You</span>
             </button>
-            <button class="nav-item" data-target="explore" id="explore-btn">
-                <i class="fas fa-code-branch"></i>
-                <span class="nav-label">Journey</span>
+            <button class="nav-item" data-target="history" id="history-btn">
+                <span class="nav-icon">🕐</span>
+                <span class="nav-label">History</span>
             </button>
-            <button class="nav-item" data-target="profile" id="profile-btn">
-                <i class="fas fa-heart"></i>
-                <span class="nav-label">Liked</span>
+            <button class="nav-item" data-target="saved" id="saved-btn">
+                <span class="nav-icon">❤️</span>
+                <span class="nav-label">Saved</span>
             </button>
         </nav>
     </div>
 
-    <!-- Article Detail Modal / Full Read View -->
-    <div id="article-modal" class="article-modal hidden">
+    <div id="article-modal" class="article-modal">
+        <div class="reading-progress" id="reading-progress"></div>
         <div class="modal-content">
-            <div class="modal-header">
-                <button class="circle-btn close-modal">&times;</button>
-                <button class="circle-btn minimize-modal"><i class="fas fa-minus"></i></button>
-            </div>
-            <div class="modal-body-content" id="modal-body">
-                <!-- Content injected here -->
-            </div>
+            <div class="modal-header"></div>
+            <div class="modal-body-content" id="modal-body"></div>
         </div>
     </div>
 
-    <!-- Rabbithole Tree Modal/View -->
-    <div id="tree-view" class="overlay-view tree-view hidden">
-        <h2>Your Journey</h2>
-        <div id="tree-container"></div>
-        <button class="close-tree-btn">Close</button>
+    <div id="overlay-view" class="overlay-view">
+        <div class="overlay-header">
+            <h2 id="overlay-title">History</h2>
+            <button class="circle-btn" onclick="closeOverlay()">✕</button>
+        </div>
+        <div class="overlay-content" id="overlay-content"></div>
     </div>
 
-    <!-- Profile / Bookmarks View -->
-    <div id="profile-view" class="overlay-view profile-view hidden">
-        <h2 class="profile-header">Your Bookmarks</h2>
-        <div id="bookmarks-container" class="bookmarks-grid"></div>
-    </div>
+    <div id="toast" class="toast"></div>
 
     <script src="app.js"></script>
 </body>
-
 </html>

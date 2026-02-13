@@ -1,704 +1,457 @@
 const feedContainer = document.getElementById('feed-container');
-
-// UI Elements
 const modal = document.getElementById('article-modal');
 const modalBody = document.getElementById('modal-body');
-const closeModalBtn = document.querySelector('.close-modal');
-const minimizeModalBtn = document.querySelector('.minimize-modal');
-
-const searchToggleBtn = document.getElementById('search-toggle-btn');
+const modalHeader = document.querySelector('.modal-header');
 const searchWrapper = document.getElementById('search-wrapper');
 const searchInput = document.getElementById('wiki-search');
 const searchResults = document.getElementById('search-results');
+const overlayView = document.getElementById('overlay-view');
+const overlayTitle = document.getElementById('overlay-title');
+const overlayContent = document.getElementById('overlay-content');
+const readingProgress = document.getElementById('reading-progress');
+const swipeHint = document.getElementById('swipe-hint');
+const toast = document.getElementById('toast');
 
-const treeView = document.getElementById('tree-view');
-const treeContainer = document.getElementById('tree-container');
-const exploreBtn = document.getElementById('explore-btn');
-const closeTreeBtn = document.querySelector('.close-tree-btn');
-
-const profileView = document.getElementById('profile-view');
-const bookmarksContainer = document.getElementById('bookmarks-container');
-const profileBtn = document.getElementById('profile-btn');
-const homeBtn = document.getElementById('home-btn');
-const foryouBtn = document.getElementById('foryou-btn');
-
-// State
 let articlesMap = new Map();
 let loading = false;
-let historyTree = JSON.parse(localStorage.getItem('historyTree') || '{}'); // {key: {articleTitle, parentId}} where key = title|parentId
-let navStack = []; // For back button: [{title, nodeId}]
-let currentArticleId = null;
-let currentArticleTitle = null; // Sync state for modal
-let feedMode = localStorage.getItem('feedMode') || 'random'; // 'random' | 'recommended'
+let currentArticle = null;
+let navStack = [];
+let feedMode = localStorage.getItem('feedMode') || 'random';
 let likedArticles = JSON.parse(localStorage.getItem('likedArticles') || '{}');
-// Legacy migration: if it was an array/set (from previous version), reset to object
-if (Array.isArray(likedArticles)) likedArticles = {};
+let history = JSON.parse(localStorage.getItem('readHistory') || '[]');
 
-let offlineCache = JSON.parse(localStorage.getItem('offlineCache') || '[]');
-let streakCount = parseInt(localStorage.getItem('streakCount') || '0');
-const streakEl = document.getElementById('streak-count');
-let minimizedArticle = null;
-
-// Wikipedia API helper
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
-async function wikiApi(params) {
-    const url = `${WIKI_API}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`;
-    const res = await fetch(url);
+const wikiApi = async (params) => {
+    const res = await fetch(`${WIKI_API}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`);
     return res.json();
-}
+};
 
-// Initialization
+// Init
 document.addEventListener('DOMContentLoaded', () => {
-    // Check URL hash for article or view to restore on refresh
-    const hash = window.location.hash;
-    const articleMatch = hash.match(/^#article=(.+)$/);
-    const viewMatch = hash.match(/^#view=(.+)$/);
-
-    if (articleMatch) {
-        // Restore article from URL - decode the title
-        const title = decodeURIComponent(articleMatch[1]);
-        history.replaceState({ view: 'article', title, parentId: 'root', nodeId: `${title}|root`, navStack: [{ title, parentId: 'root' }] }, '', hash);
-        loadArticles(); // Load feed in background
-        openFullArticle(null, title, null, true); // Open the article (isBackNav=true to avoid double push)
-    } else if (viewMatch) {
-        // Restore view from URL
-        const view = viewMatch[1];
-        history.replaceState({ view }, '', hash);
-        loadArticles();
-        if (view !== 'home') showView(view, true);
+    loadArticles();
+    
+    // Hide swipe hint after first scroll
+    if (localStorage.getItem('seenHint')) {
+        swipeHint.classList.add('hidden');
     } else {
-        // Default: home view
-        history.replaceState({ view: 'home', navStack: [] }, '', '');
-        loadArticles();
-    }
-    updateStreakUI();
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(e => console.log('SW failed:', e));
+        feedContainer.addEventListener('scroll', () => {
+            swipeHint.classList.add('hidden');
+            localStorage.setItem('seenHint', '1');
+        }, { once: true });
     }
 
-    // Infinite Scroll
-    feedContainer.addEventListener('scroll', throttle(() => {
-        if (feedContainer.scrollTop + feedContainer.clientHeight >= feedContainer.scrollHeight - 600) {
+    // Infinite scroll
+    feedContainer.addEventListener('scroll', () => {
+        if (feedContainer.scrollTop + feedContainer.clientHeight >= feedContainer.scrollHeight - 800) {
             loadArticles();
         }
-    }, 200));
+    }, { passive: true });
 
-
-    // Modal Events
-    closeModalBtn.addEventListener('click', closeModal);
-    minimizeModalBtn.addEventListener('click', minimizeModal);
-
-    // Search Events
-    searchToggleBtn.addEventListener('click', () => {
+    // Search
+    document.getElementById('search-toggle-btn').onclick = () => {
         searchWrapper.classList.toggle('active');
         if (searchWrapper.classList.contains('active')) searchInput.focus();
-    });
+    };
 
-    let debounceTimer;
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => handleSearch(e.target.value), 300);
-    });
+    let searchTimer;
+    searchInput.oninput = (e) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => handleSearch(e.target.value), 300);
+    };
 
-    // Navigation
-    exploreBtn.addEventListener('click', () => showView('explore'));
-    closeTreeBtn.addEventListener('click', () => showView('home'));
-    profileBtn.addEventListener('click', () => showView('profile'));
-    homeBtn.addEventListener('click', () => showView('home'));
-    foryouBtn.addEventListener('click', () => showView('foryou'));
+    // Nav buttons
+    document.getElementById('home-btn').onclick = () => switchFeed('random');
+    document.getElementById('foryou-btn').onclick = () => switchFeed('foryou');
+    document.getElementById('history-btn').onclick = () => showOverlay('history');
+    document.getElementById('saved-btn').onclick = () => showOverlay('saved');
 
-    // Handle Browser Back Button
-    window.addEventListener('popstate', async (event) => {
-        const state = event.state;
-        if (!state) {
-            // Fallback to home if no state
-            closeModal(true);
-            showView('home', true);
-            return;
-        }
+    // Reading progress
+    modalBody.onscroll = () => {
+        const pct = (modalBody.scrollTop / (modalBody.scrollHeight - modalBody.clientHeight)) * 100;
+        readingProgress.style.width = Math.min(100, pct) + '%';
+    };
 
-        if (state.view === 'home') {
-            closeModal(true);
-            showView('home', true);
-        } else if (state.view === 'article') {
-            // Restore Nav Stack
-            navStack = state.navStack || [];
-
-            // CRITICAL: Restore currentArticleId so new links branch from here
-            if (state.nodeId) {
-                currentArticleId = state.nodeId;
+    // Back button
+    window.onpopstate = (e) => {
+        if (modal.classList.contains('active')) {
+            if (navStack.length > 1) {
+                navStack.pop();
+                openArticle(navStack[navStack.length - 1].title, true);
+            } else {
+                closeArticle(true);
             }
-
-            // Re-open article (this will not push to history or tree because isBackNav=true)
-            await openFullArticle(null, state.title, state.parentId, true);
-
-            // Restore scroll position
-            if (state.scrollPos) {
-                modalBody.scrollTop = state.scrollPos;
-            }
-        } else if (state.view) {
-            closeModal(true); // Ensure modal is closed if we switch to a main view
-            showView(state.view, true);
+        } else if (overlayView.classList.contains('active')) {
+            closeOverlay(true);
         }
-    });
+    };
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
 });
 
-function showView(view, fromHistory = false) {
-    // Hide all overlay views
-    treeView.classList.remove('active');
-    profileView.classList.remove('active');
-    searchWrapper.classList.remove('active');
-
-    // Handle feed mode views
-    if (view === 'home' || view === 'foryou') {
-        const newMode = view === 'foryou' ? 'recommended' : 'random';
-        if (feedMode !== newMode) {
-            feedMode = newMode;
-            localStorage.setItem('feedMode', feedMode);
-            articlesMap.clear();
-            feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><p>Loading...</p></div>';
-            loadArticles();
-        }
-    }
-
-    if (view === 'explore') { renderTree(); treeView.classList.add('active'); }
-    if (view === 'profile') { renderProfile(); profileView.classList.add('active'); }
-
-    // Update nav state
+function switchFeed(mode) {
+    const newMode = mode === 'foryou' ? 'recommended' : 'random';
+    
+    // Update nav
     document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.target === view);
+        btn.classList.toggle('active', btn.dataset.target === mode || (mode === 'random' && btn.dataset.target === 'home'));
     });
 
-    if (!fromHistory) {
-        history.pushState({ view: view }, '', '#view=' + view);
-    }
+    if (feedMode === newMode) return;
+    
+    feedMode = newMode;
+    localStorage.setItem('feedMode', feedMode);
+    articlesMap.clear();
+    feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div></div>';
+    loadArticles();
 }
-
-function closeModal(fromHistory = false) {
-    if (!fromHistory) {
-        // If closed manually, push Home state so Back button returns to this article if desired?
-        // OR: "Close" means "Reset".
-        // If we push 'home', then Back goes to Article.
-        history.pushState({ view: 'home', navStack: [] }, '', '#');
-    }
-
-    modal.classList.remove('active');
-    // We don't clear navStack blindly if it's fromHistory (handled by popstate)
-    // But if manual close, we are at home, so stack is empty.
-    if (!fromHistory) navStack = [];
-
-    minimizedArticle = null;
-    document.getElementById('minimized-pip').classList.add('hidden');
-}
-
-function minimizeModal() {
-    const title = document.querySelector('#article-modal h2')?.textContent || 'Article';
-    const scrollPos = document.getElementById('modal-body')?.scrollTop || 0;
-    minimizedArticle = { title, scrollPos };
-    modal.classList.remove('active');
-
-    const pip = document.getElementById('minimized-pip');
-    document.getElementById('pip-title').textContent = title.substring(0, 25) + (title.length > 25 ? '...' : '');
-    pip.classList.remove('hidden');
-}
-
-window.resumeArticle = function () {
-    if (minimizedArticle) {
-        modal.classList.add('active');
-        document.getElementById('minimized-pip').classList.add('hidden');
-        setTimeout(() => {
-            const body = document.getElementById('modal-body');
-            if (body) body.scrollTop = minimizedArticle.scrollPos;
-        }, 100);
-    }
-};
-
-window.goBack = function () {
-    // With History API, goBack simply triggers browser back
-    history.back();
-};
-
-// --- CORE FEED LOGIC ---
 
 async function loadArticles() {
     if (loading) return;
     loading = true;
 
-    try {
-        let newArticles;
-        if (feedMode === 'recommended' && Object.keys(likedArticles).length > 0) {
-            newArticles = await fetchRecommendedArticles();
-        } else {
-            newArticles = await fetchRandomArticles();
+    let articles;
+    if (feedMode === 'recommended' && Object.keys(likedArticles).length > 0) {
+        articles = await fetchRecommended();
+    } else {
+        if (feedMode === 'recommended') {
+            // Show empty state for For You when no likes
+            feedContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">✨</div>
+                    <h3>Your personal feed</h3>
+                    <p>Like some articles from Discover to get personalized recommendations</p>
+                </div>
+            `;
+            loading = false;
+            return;
         }
-
-        // Remove initial loader if present
-        const loader = document.querySelector('.loading-state');
-        if (loader) loader.remove();
-
-        const fragment = document.createDocumentFragment();
-        newArticles.forEach(article => {
-            if (!articlesMap.has(article.title)) {
-                const item = createFeedItem(article);
-                fragment.appendChild(item);
-                articlesMap.set(article.title, article);
-            }
-        });
-        feedContainer.appendChild(fragment);
-    } catch (error) {
-        console.error("Failed to fetch articles:", error);
+        articles = await fetchRandom();
     }
+
+    document.querySelector('.loading-state')?.remove();
+    document.querySelector('.empty-state')?.remove();
+
+    articles.forEach(article => {
+        if (!articlesMap.has(article.title)) {
+            feedContainer.appendChild(createFeedItem(article));
+            articlesMap.set(article.title, article);
+        }
+    });
+    
     loading = false;
 }
 
-async function fetchRandomArticles() {
+async function fetchRandom() {
     const data = await wikiApi({
         action: 'query', generator: 'random', grnnamespace: 0, prop: 'extracts|pageimages',
-        grnlimit: 5, exintro: 1, explaintext: 1, pithumbsize: 1000
+        grnlimit: 5, exintro: 1, explaintext: 1, pithumbsize: 800
     });
-    if (!data.query?.pages) return [];
-    return Object.values(data.query.pages)
-        .filter(p => p.thumbnail && p.extract)
-        .map(p => ({ id: p.pageid, title: p.title, summary: p.extract, image: p.thumbnail.source }));
+    return Object.values(data.query?.pages || {})
+        .filter(p => p.extract)
+        .map(p => ({
+            title: p.title,
+            summary: p.extract,
+            image: p.thumbnail?.source
+        }));
 }
 
-async function fetchArticleCategories(title) {
-    try {
-        const data = await wikiApi({
-            action: 'query', titles: title, prop: 'categories', cllimit: 10, clshow: '!hidden'
-        });
-        const page = Object.values(data.query?.pages || {})[0];
-        if (!page?.categories) return [];
-        return page.categories
-            .map(c => c.title.replace('Category:', ''))
-            .filter(c => !c.includes('articles') && !c.includes('Pages') && !c.includes('Wikipedia') && !c.includes('CS1'));
-    } catch (e) {
-        console.error('Failed to fetch categories:', e);
-        return [];
-    }
-}
+async function fetchRecommended() {
+    const allCats = Object.values(likedArticles).flatMap(a => a.categories || []);
+    if (!allCats.length) return fetchRandom();
 
-async function fetchRecommendedArticles() {
-    const allCategories = Object.values(likedArticles).flatMap(a => a.categories || []);
-    if (allCategories.length === 0) return fetchRandomArticles();
+    const cat = allCats[Math.floor(Math.random() * allCats.length)];
+    const data = await wikiApi({
+        action: 'query', list: 'categorymembers', cmtitle: `Category:${cat}`,
+        cmlimit: 15, cmnamespace: 0
+    });
 
-    const randomCategory = allCategories[Math.floor(Math.random() * allCategories.length)];
-    try {
-        const data = await wikiApi({
-            action: 'query', list: 'categorymembers', cmtitle: `Category:${randomCategory}`,
-            cmlimit: 20, cmnamespace: 0
-        });
-        if (!data.query?.categorymembers?.length) return fetchRandomArticles();
+    const members = (data.query?.categorymembers || [])
+        .filter(m => !likedArticles[m.title] && !articlesMap.has(m.title))
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5);
 
-        const members = data.query.categorymembers
-            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title))
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 5);
-        if (members.length === 0) return fetchRandomArticles();
+    if (!members.length) return fetchRandom();
 
-        const titles = members.map(m => m.title).join('|');
-        const detailData = await wikiApi({
-            action: 'query', titles, prop: 'extracts|pageimages', exintro: 1, explaintext: 1, pithumbsize: 1000
-        });
-        if (!detailData.query?.pages) return fetchRandomArticles();
+    const details = await wikiApi({
+        action: 'query', titles: members.map(m => m.title).join('|'),
+        prop: 'extracts|pageimages', exintro: 1, explaintext: 1, pithumbsize: 800
+    });
 
-        const results = Object.values(detailData.query.pages)
-            .filter(p => p.extract)
-            .map(p => ({ id: p.pageid, title: p.title, summary: p.extract, image: p.thumbnail?.source || null }));
-        return results.length > 0 ? results : fetchRandomArticles();
-    } catch (e) {
-        console.error('Recommendation fetch failed:', e);
-        return fetchRandomArticles();
-    }
+    return Object.values(details.query?.pages || {})
+        .filter(p => p.extract)
+        .map(p => ({
+            title: p.title,
+            summary: p.extract,
+            image: p.thumbnail?.source
+        }));
 }
 
 function createFeedItem(article) {
     const item = document.createElement('div');
     item.className = 'feed-item';
-    item.style.backgroundImage = `url(${article.image})`;
-
-    // Click handler for the whole card
-    item.onclick = (e) => {
-        if (!e.target.closest('.feed-like-btn')) {
-            openFullArticle(article.id, article.title.replace(/'/g, "\\'"), null);
-        }
-    };
-
-    const isLiked = Object.prototype.hasOwnProperty.call(likedArticles, article.title);
-
+    if (article.image) item.style.backgroundImage = `url(${article.image})`;
+    
+    const liked = !!likedArticles[article.title];
+    const safeTitle = article.title.replace(/'/g, "\\'");
+    
     item.innerHTML = `
         <div class="content-overlay">
             <h2 class="article-title">${article.title}</h2>
             <p class="article-excerpt">${article.summary}</p>
             <div class="feed-actions">
-                <button class="feed-like-btn" data-title="${article.title.replace(/"/g, '&quot;')}" onclick="toggleLike('${article.title.replace(/'/g, "\\'")}')">
-                    <i class="${isLiked ? 'fas' : 'far'} fa-heart" style="color: ${isLiked ? 'red' : 'white'}"></i>
+                <button class="feed-btn read-btn" onclick="openArticle('${safeTitle}')">Read →</button>
+                <button class="feed-btn like-btn ${liked ? 'liked' : ''}" data-title="${article.title}" onclick="event.stopPropagation(); toggleLike('${safeTitle}')">
+                    ${liked ? '❤️ Saved' : '🤍 Save'}
                 </button>
             </div>
         </div>
     `;
+    
+    item.onclick = (e) => {
+        if (!e.target.closest('.feed-btn')) openArticle(article.title);
+    };
+    
     return item;
 }
 
-// --- SEARCH LOGIC ---
-
 async function handleSearch(query) {
-    if (query.length < 2) { searchResults.innerHTML = ''; return; }
-
-    const data = await wikiApi({ action: 'opensearch', search: query, limit: 5 });
-    const titles = data[1] || [];
-
-    searchResults.innerHTML = '';
-    titles.forEach(title => {
-        const div = document.createElement('div');
-        div.className = 'search-result-item';
-        div.textContent = title;
-        div.onclick = () => {
-            openFullArticle(null, title, null);
-            searchWrapper.classList.remove('active');
-            searchInput.value = '';
-            searchResults.innerHTML = '';
-        };
-        searchResults.appendChild(div);
-    });
-}
-
-// --- FULL ARTICLE & RABBITHOLE LOGIC ---
-
-window.openFullArticle = async function (id, title, parentId, isBackNav = false) {
-    // Gamification
-    if (!isBackNav) {
-        streakCount++;
-        localStorage.setItem('streakCount', streakCount.toString());
-        updateStreakUI();
-    }
-
-    // Show Modal Loading
-    modal.classList.add('active');
-    modalBody.innerHTML = '<div class="loader"></div>';
-
-    currentArticleTitle = title;
-    // Don't set textContent on detached element.
-
-    // 1. Fetch Full Content (Check Offline Cache First if needed, or just fetch and cache)
-    let data;
-
-    // Performance: Check cache first to avoid network (especially for back nav)
-    const cached = offlineCache.find(item => item.title === title);
-    if (cached) {
-        data = cached.data;
-    } else {
-        try {
-            data = await fetchWikiContent(title);
-            // Cache success
-            saveToOfflineCache(title, data);
-        } catch (e) {
-            modalBody.innerHTML = '<p>Error loading article. Check connection.</p>';
-            return;
-        }
-    }
-
-    if (!data) {
-        modalBody.innerHTML = '<p>Error loading article.</p>';
+    if (query.length < 2) {
+        searchResults.innerHTML = '';
         return;
     }
 
-    // 2. Track History (Rabbithole) - only if not back navigation
-    const parentKey = parentId || 'root';
-    const nodeKey = `${data.parse.title}|${parentKey}`;
+    const data = await wikiApi({ action: 'opensearch', search: query, limit: 6 });
+    searchResults.innerHTML = (data[1] || []).map(title => {
+        const safeTitle = title.replace(/'/g, "\\'");
+        return `<div class="search-result-item" onclick="openArticle('${safeTitle}'); closeSearch()">${title}</div>`;
+    }).join('') || '<div style="padding:12px;color:#666">No results</div>';
+}
 
-    if (!isBackNav) {
-        // Object key naturally deduplicates
-        historyTree[nodeKey] = { articleTitle: data.parse.title, parentId: parentKey };
-        localStorage.setItem('historyTree', JSON.stringify(historyTree));
-        currentArticleId = nodeKey;
+window.closeSearch = () => {
+    searchWrapper.classList.remove('active');
+    searchInput.value = '';
+    searchResults.innerHTML = '';
+};
 
-        navStack.push({ title: data.parse.title, parentId: parentKey });
+window.openArticle = async function(title, isBack = false) {
+    modal.classList.add('active');
+    modalBody.innerHTML = '<div class="loader" style="margin:40px auto"></div>';
+    readingProgress.style.width = '0%';
+    currentArticle = { title };
 
-        history.pushState({
-            view: 'article',
-            title: data.parse.title,
-            parentId: parentKey,
-            nodeId: nodeKey,
-            navStack: [...navStack]
-        }, '', '#article=' + encodeURIComponent(data.parse.title));
+    if (!isBack) {
+        navStack.push({ title });
+        window.history.pushState({ article: title }, '', '#' + encodeURIComponent(title));
+        addToHistory(title);
     }
 
-    // 3. Render with navigation header
-    const contentHtml = processWikiHtml(data.parse.text['*']);
-    const depth = navStack.length;
-    const showBack = navStack.length > 1;
+    const data = await wikiApi({ action: 'parse', page: title, prop: 'text', mobileformat: 1 });
+    if (!data?.parse) {
+        modalBody.innerHTML = '<p style="padding:20px">Failed to load article</p>';
+        return;
+    }
 
-    // Update modal header with nav and like button
-    const modalHeader = document.querySelector('.modal-header');
     const articleTitle = data.parse.title;
-
-    const isAlreadyLiked = Object.prototype.hasOwnProperty.call(likedArticles, articleTitle);
-    const heartClass = isAlreadyLiked ? 'fas' : 'far';
-    const heartColor = isAlreadyLiked ? 'style="color:#f09433"' : '';
-
+    currentArticle = { title: articleTitle, ...articlesMap.get(articleTitle) };
+    
+    const liked = !!likedArticles[articleTitle];
+    const safeTitle = articleTitle.replace(/'/g, "\\'");
+    const depth = navStack.length;
+    
     modalHeader.innerHTML = `
-        <div class="modal-nav">
-            ${showBack ? '<button class="circle-btn back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>' : ''}
-            <span class="breadcrumb-depth">Depth: ${depth}</span>
+        ${depth > 1 ? '<button class="circle-btn" onclick="goBack()">←</button>' : ''}
+        <div style="flex:1;min-width:0">
+            ${depth > 1 ? `<div class="nav-path">📚 ${depth} articles deep</div>` : ''}
+            <h2 class="modal-title">${articleTitle}</h2>
         </div>
-        <h2 class="modal-title">${articleTitle}</h2>
         <div class="modal-actions">
-            <button class="circle-btn modal-like-btn" id="modal-like-btn" onclick="toggleLike('${articleTitle.replace(/'/g, "\\'")}')">
-                <i class="${heartClass} fa-heart" ${heartColor}></i>
-            </button>
-            <button class="circle-btn minimize-modal" onclick="minimizeModal()">
-                <i class="fas fa-minus"></i>
-            </button>
-            <button class="circle-btn close-modal" onclick="closeModal()">&times;</button>
+            <button class="circle-btn" id="modal-like" onclick="toggleLike('${safeTitle}')">${liked ? '❤️' : '🤍'}</button>
+            <button class="circle-btn" onclick="shareArticle()">↗️</button>
+            <button class="circle-btn" onclick="closeArticle()">✕</button>
         </div>
     `;
 
-    // Re-bind modalTitle if needed, or rely on innerHTML
-    // modalTitle.textContent = articleTitle; // No longer needed as it's in HTML
-
-    // Performance: Append DOM directly to avoid re-parsing
+    // Parse content
+    const div = document.createElement('div');
+    div.innerHTML = data.parse.text['*'];
+    div.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox').forEach(el => el.remove());
+    
     modalBody.innerHTML = '';
-    modalBody.appendChild(contentHtml);
+    modalBody.appendChild(div);
+    modalBody.scrollTop = 0;
 
-    // 4. Attach link interceptors
+    // Handle links
     modalBody.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', (e) => {
+        link.onclick = (e) => {
             e.preventDefault();
-
-            // Save scroll position of current article before navigating
-            const scrollTop = modalBody.scrollTop;
-            if (history.state) {
-                const updatedState = { ...history.state, scrollPos: scrollTop };
-                history.replaceState(updatedState, '', location.hash);
-            }
-
             const href = link.getAttribute('href');
-            // Check if it's a wiki link (usually starts with /wiki/)
-            if (href && href.startsWith('/wiki/')) {
-                const newTitle = href.split('/wiki/')[1];
-                openFullArticle(null, decodeURIComponent(newTitle), currentArticleId);
-            } else if (href) {
+            if (href?.startsWith('/wiki/') && !href.includes(':')) {
+                openArticle(decodeURIComponent(href.split('/wiki/')[1].split('#')[0]));
+            } else if (href?.startsWith('http')) {
                 window.open(href, '_blank');
             }
-        });
+        };
     });
 };
 
-async function fetchWikiContent(title) {
-    return wikiApi({ action: 'parse', page: title, prop: 'text', mobileformat: 1 });
-}
-
-function processWikiHtml(html) {
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    div.querySelectorAll('.mw-editsection, .reference, .mbox-small').forEach(el => el.remove());
-
-    // Return a DocumentFragment to avoid extra wrapper div
-    const fragment = document.createDocumentFragment();
-    while (div.firstChild) {
-        fragment.appendChild(div.firstChild);
+window.goBack = () => {
+    if (navStack.length > 1) {
+        navStack.pop();
+        openArticle(navStack[navStack.length - 1].title, true);
     }
-    return fragment;
-}
+};
 
-// --- OFFLINE CACHE LOGIC ---
+window.closeArticle = (fromPopstate = false) => {
+    modal.classList.remove('active');
+    navStack = [];
+    currentArticle = null;
+    if (!fromPopstate) window.history.pushState({}, '', location.pathname);
+};
 
-function saveToOfflineCache(title, data) {
-    // Check if already in cache to avoid dupes/re-ordering
-    const existingIndex = offlineCache.findIndex(i => i.title === title);
-    if (existingIndex !== -1) {
-        // Move to end (fresh)
-        offlineCache.splice(existingIndex, 1);
-    }
-
-    offlineCache.push({ title, data });
-
-    // Strict limit of 5
-    if (offlineCache.length > 5) {
-        offlineCache.shift(); // Remove oldest
-    }
-
-    localStorage.setItem('offlineCache', JSON.stringify(offlineCache));
-}
-
-// --- TREE VISUALIZATION (Branching) ---
-
-function renderTree() {
-    treeContainer.innerHTML = '';
-    const entries = Object.entries(historyTree);
-
-    if (entries.length === 0) {
-        treeContainer.innerHTML = '<p class="tree-empty">Start reading to build your journey!</p>';
-        return;
-    }
-
-    // Build hierarchy map: parentId -> [nodeKeys]
-    const childrenMap = {};
-    const nodesMap = {};
-    const roots = [];
-
-    entries.forEach(([key, node]) => {
-        nodesMap[key] = node;
-        if (!childrenMap[node.parentId]) childrenMap[node.parentId] = [];
-        childrenMap[node.parentId].push(key);
-    });
-
-    // Find root nodes (parentId === 'root' or parent not in tree)
-    entries.forEach(([key, node]) => {
-        const parentKey = Object.keys(nodesMap).find(k => nodesMap[k].articleTitle === node.parentId);
-        if (node.parentId === 'root' || !parentKey) {
-            if (!roots.includes(key)) roots.push(key);
-        }
-    });
-
-    // Recursively build nested ul/li tree
-    const buildTreeList = (nodeKeys) => {
-        if (!nodeKeys || nodeKeys.length === 0) return '';
-
-        let html = '<ul class="tree-list">';
-        nodeKeys.forEach((key, index) => {
-            const node = nodesMap[key];
-            if (!node) return;
-
-            // Find children: nodes whose parentId matches this node's articleTitle
-            const children = childrenMap[node.articleTitle] || [];
-            const isLast = index === nodeKeys.length - 1;
-
-            html += `<li class="tree-item${isLast ? ' last' : ''}${children.length > 0 ? ' has-children' : ''}">`;
-            html += `<span class="tree-label" onclick="openFullArticle(null, '${node.articleTitle.replace(/'/g, "\\'")}', '${node.articleTitle}')">${node.articleTitle}</span>`;
-
-            if (children.length > 0) {
-                html += buildTreeList(children);
-            }
-
-            html += '</li>';
-        });
-        html += '</ul>';
-        return html;
-    };
-
-    treeContainer.innerHTML = buildTreeList(roots);
-}
-
-// --- PROFILE / BOOKMARKS ---
-
-function renderProfile() {
-    bookmarksContainer.innerHTML = '';
-    const keys = Object.keys(likedArticles);
-    if (keys.length === 0) {
-        bookmarksContainer.innerHTML = '<p style="color:#888;text-align:center">No bookmarks yet. Like articles to save them!</p>';
-        return;
-    }
-
-    const fragment = document.createDocumentFragment();
-    keys.forEach(title => {
-        const meta = likedArticles[title];
-        if (meta) {
-            const item = createBookmarkItem(meta);
-            fragment.appendChild(item);
-        }
-    });
-    bookmarksContainer.appendChild(fragment);
-}
-
-function createBookmarkItem(article) {
-    const item = document.createElement('div');
-    item.className = 'bookmark-item';
-    if (article.image) {
-        item.style.backgroundImage = `url(${article.image})`;
+window.shareArticle = async () => {
+    if (!currentArticle) return;
+    const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(currentArticle.title)}`;
+    
+    if (navigator.share) {
+        navigator.share({ title: currentArticle.title, url });
     } else {
-        item.style.backgroundColor = '#333';
-        item.style.display = 'flex';
-        item.style.alignItems = 'center';
-        item.style.justifyContent = 'center';
+        await navigator.clipboard.writeText(url);
+        showToast('Link copied!');
     }
+};
 
-    item.innerHTML = `
-        <div class="bookmark-overlay">
-            <h3>${article.title}</h3>
-        </div>
-    `;
-    item.onclick = () => openFullArticle(article.id, article.title, 'root'); // Restart journey from bookmark
-    return item;
-}
+window.toggleLike = async function(title) {
+    const wasLiked = !!likedArticles[title];
 
-// --- UTILS ---
-
-function updateLikeIcon(icon, isLiked, likedColor) {
-    icon.classList.replace(isLiked ? 'far' : 'fas', isLiked ? 'fas' : 'far');
-    icon.style.color = isLiked ? likedColor : '';
-}
-
-window.toggleLike = async function (title) {
-    const isLiked = Object.prototype.hasOwnProperty.call(likedArticles, title);
-
-    if (isLiked) {
+    if (wasLiked) {
         delete likedArticles[title];
+        showToast('Removed from saved');
     } else {
-        // Try to find metadata from feed articles
-        const feedMeta = articlesMap.get(title);
-
-        // Fetch categories for recommendations
-        const categories = await fetchArticleCategories(title);
-
-        likedArticles[title] = {
-            title: title,
-            id: feedMeta?.id || null,
-            image: feedMeta?.image || null,
-            summary: feedMeta?.summary || null,
-            categories: categories
-        };
+        const meta = articlesMap.get(title) || {};
+        const cats = await fetchCategories(title);
+        likedArticles[title] = { title, image: meta.image, summary: meta.summary, categories: cats };
+        showToast('Saved!');
     }
 
     localStorage.setItem('likedArticles', JSON.stringify(likedArticles));
+    const nowLiked = !wasLiked;
 
-    // Update Feed Buttons
-    const feedBtns = document.querySelectorAll('.feed-like-btn');
-    feedBtns.forEach(btn => {
+    // Update feed buttons
+    document.querySelectorAll('.like-btn').forEach(btn => {
         if (btn.dataset.title === title) {
-            const icon = btn.querySelector('i');
-            updateLikeIcon(icon, !isLiked, 'red');
+            btn.innerHTML = nowLiked ? '❤️ Saved' : '🤍 Save';
+            btn.classList.toggle('liked', nowLiked);
         }
     });
 
-    // Update Modal Button
-    if (currentArticleTitle === title) {
-        const btn = document.getElementById('modal-like-btn');
-        if (btn) {
-            const icon = btn.querySelector('i');
-            updateLikeIcon(icon, !isLiked, '#f09433');
-        }
+    // Update modal button
+    if (currentArticle?.title === title) {
+        const btn = document.getElementById('modal-like');
+        if (btn) btn.innerHTML = nowLiked ? '❤️' : '🤍';
     }
+};
 
-    // Refresh profile if active
-    if (profileView.classList.contains('active')) {
-        renderProfile();
+async function fetchCategories(title) {
+    const data = await wikiApi({
+        action: 'query', titles: title, prop: 'categories', cllimit: 10, clshow: '!hidden'
+    });
+    const page = Object.values(data.query?.pages || {})[0];
+    return (page?.categories || [])
+        .map(c => c.title.replace('Category:', ''))
+        .filter(c => !/articles|Pages|Wikipedia|CS1|stub/i.test(c));
+}
+
+function addToHistory(title) {
+    history = history.filter(h => h.title !== title);
+    history.unshift({ title, time: Date.now(), image: articlesMap.get(title)?.image });
+    history = history.slice(0, 50);
+    localStorage.setItem('readHistory', JSON.stringify(history));
+}
+
+function showOverlay(type) {
+    overlayTitle.textContent = type === 'history' ? 'History' : 'Saved';
+    overlayView.classList.add('active');
+    window.history.pushState({ overlay: type }, '', '#' + type);
+
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === type);
+    });
+
+    if (type === 'history') {
+        if (!history.length) {
+            overlayContent.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🕐</div>
+                    <h3>No history yet</h3>
+                    <p>Articles you read will appear here</p>
+                </div>
+            `;
+            return;
+        }
+        overlayContent.innerHTML = history.map(h => {
+            const safeTitle = h.title.replace(/'/g, "\\'");
+            const time = formatTime(h.time);
+            return `
+                <div class="history-item" onclick="closeOverlay(); openArticle('${safeTitle}')">
+                    <div class="item-thumb" style="${h.image ? `background-image:url(${h.image})` : ''}"></div>
+                    <div class="item-info">
+                        <div class="item-title">${h.title}</div>
+                        <div class="item-meta">${time}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        const saved = Object.values(likedArticles);
+        if (!saved.length) {
+            overlayContent.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">❤️</div>
+                    <h3>No saved articles</h3>
+                    <p>Tap the heart on articles you want to save for later</p>
+                </div>
+            `;
+            return;
+        }
+        overlayContent.innerHTML = saved.map(a => {
+            const safeTitle = a.title.replace(/'/g, "\\'");
+            return `
+                <div class="saved-item" onclick="closeOverlay(); openArticle('${safeTitle}')">
+                    <div class="item-thumb" style="${a.image ? `background-image:url(${a.image})` : ''}"></div>
+                    <div class="item-info">
+                        <div class="item-title">${a.title}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 }
 
-function updateStreakUI() {
-    streakEl.textContent = streakCount;
+window.closeOverlay = (fromPopstate = false) => {
+    overlayView.classList.remove('active');
+    if (!fromPopstate) window.history.pushState({}, '', location.pathname);
+    
+    // Reset nav to current feed mode
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.toggle('active', 
+            (feedMode === 'recommended' && btn.dataset.target === 'foryou') ||
+            (feedMode === 'random' && btn.dataset.target === 'home')
+        );
+    });
+};
+
+function formatTime(ts) {
+    const diff = Date.now() - ts;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    return new Date(ts).toLocaleDateString();
 }
 
-function throttle(func, limit) {
-    let lastFunc;
-    let lastRan;
-    return function () {
-        const context = this;
-        const args = arguments;
-        if (!lastRan) {
-            func.apply(context, args);
-            lastRan = Date.now();
-        } else {
-            clearTimeout(lastFunc);
-            lastFunc = setTimeout(function () {
-                if ((Date.now() - lastRan) >= limit) {
-                    func.apply(context, args);
-                    lastRan = Date.now();
-                }
-            }, limit - (Date.now() - lastRan));
-        }
-    }
+function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
 }
