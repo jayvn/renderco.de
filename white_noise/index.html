@@ -7,284 +7,173 @@
     <meta name="theme-color" content="#1a1a1a">
     <link rel="icon" type="image/png" href="/images/favicon.png">
     <link rel="manifest" href="/white_noise/manifest.json">
-
-    <!-- Shared Navigation -->
     <link rel="stylesheet" href="/shared/nav.css">
-
     <style>
+        * { box-sizing: border-box; }
         body {
-            background-color: #1a1a1a;
+            background: #1a1a1a;
             color: #f0f0f0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            font-family: sans-serif;
-            overflow: hidden;
+            font-family: system-ui, sans-serif;
         }
-        button#btn {
-            background: #f0f0f0;
-            color: #1a1a1a;
-            border: none;
-            padding: 0;
-            font-size: 24px;
-            font-weight: bold;
+        #btn {
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
+            border: none;
+            background: #333;
+            color: #fff;
+            font-size: 3rem;
             cursor: pointer;
-            width: 200px;
-            height: 200px;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-            outline: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            z-index: 2;
+            transition: all 0.2s;
         }
-        button#btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
-        }
-        button#btn:active {
-            transform: scale(0.95);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
-        }
-        button#btn.playing {
-            background: #ff4444;
-            color: white;
+        #btn:hover { transform: scale(1.05); }
+        #btn.playing {
+            background: #e74c3c;
             animation: pulse 2s infinite;
         }
-
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); }
-            70% { box-shadow: 0 0 0 20px rgba(255, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); }
+            50% { box-shadow: 0 0 0 20px rgba(231,76,60,0); }
         }
-
-        .controls {
+        .types {
             display: flex;
             gap: 1rem;
-            margin-top: 3rem;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 0.75rem 1.5rem;
-            border-radius: 2rem;
-            align-items: center;
-        }
-
-        .control-item {
-            cursor: pointer;
-            opacity: 0.5;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-            color: #fff;
-            padding: 0.5rem;
-            user-select: none;
-            position: relative;
-        }
-
-        .control-item:hover {
-            opacity: 0.8;
-        }
-
-        .control-item.active {
-            opacity: 1;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-        }
-
-        .hint {
             margin-top: 2rem;
-            color: #666;
+        }
+        .types button {
+            background: transparent;
+            border: 2px solid #444;
+            color: #888;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            cursor: pointer;
             font-size: 0.9rem;
-            opacity: 0.8;
-            position: absolute;
-            bottom: 2rem;
+            transition: all 0.2s;
+        }
+        .types button:hover { border-color: #666; color: #aaa; }
+        .types button.active { border-color: #fff; color: #fff; }
+        .status {
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: #666;
+            min-height: 1.2em;
         }
     </style>
 </head>
 <body>
-    <button id="btn" aria-label="Toggle Noise">Play</button>
-
-    <div class="controls">
-        <div class="control-item active" data-type="brown">Deep</div>
-        <div class="control-item" data-type="pink">Balanced</div>
-        <div class="control-item" data-type="white">Bright</div>
+    <button id="btn">▶</button>
+    <div class="types">
+        <button data-type="brown" class="active">Deep</button>
+        <button data-type="pink">Balanced</button>
+        <button data-type="white">Bright</button>
     </div>
-
-    <div class="hint">Click to toggle noise</div>
+    <div class="status"></div>
 
     <script>
-        let audioCtx;
-        let source;
-        let isPlaying = false;
-        let currentType = 'brown'; // Default to Deep (Brown Noise)
         const btn = document.getElementById('btn');
-        const controlItems = document.querySelectorAll('.control-item');
+        const typeButtons = document.querySelectorAll('.types button');
+        const status = document.querySelector('.status');
 
-        const buffers = {
-            white: null,
-            pink: null,
-            brown: null
-        };
+        let ctx, processor, playing = false, wakeLock = null;
+        let type = 'brown';
 
-        const GAINS = {
-            white: 0.1,  // White is naturally loud
-            pink: 1.0,   // Pink is standard reference here
-            brown: 3.5   // Brown needs a significant boost
-        };
+        // Noise state (brown noise needs memory)
+        let lastBrown = 0;
+        let pinkB = [0, 0, 0, 0, 0, 0, 0];
 
-        function init() {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) {
-                alert('Web Audio API is not supported in this browser');
-                return;
+        function noise() {
+            const w = Math.random() * 2 - 1;
+            if (type === 'white') return w * 0.15;
+            if (type === 'pink') {
+                pinkB[0] = 0.99886 * pinkB[0] + w * 0.0555179;
+                pinkB[1] = 0.99332 * pinkB[1] + w * 0.0750759;
+                pinkB[2] = 0.96900 * pinkB[2] + w * 0.1538520;
+                pinkB[3] = 0.86650 * pinkB[3] + w * 0.3104856;
+                pinkB[4] = 0.55000 * pinkB[4] + w * 0.5329522;
+                pinkB[5] = -0.7616 * pinkB[5] - w * 0.0168980;
+                const out = (pinkB[0] + pinkB[1] + pinkB[2] + pinkB[3] + pinkB[4] + pinkB[5] + pinkB[6] + w * 0.5362) * 0.11;
+                pinkB[6] = w * 0.115926;
+                return out * 0.5;
             }
-            audioCtx = new AudioContext();
-
-            // Create buffers
-            const bufferSize = audioCtx.sampleRate * 2;
-            buffers.white = createWhiteNoise(bufferSize);
-            buffers.pink = createPinkNoise(bufferSize);
-            buffers.brown = createBrownNoise(bufferSize);
+            // brown
+            lastBrown = (lastBrown + w * 0.02) / 1.02;
+            return lastBrown * 3.5;
         }
 
-        function createWhiteNoise(bufferSize) {
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
+        async function start() {
+            if (!ctx) {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+                processor = ctx.createScriptProcessor(4096, 0, 1);
+                processor.onaudioprocess = e => {
+                    const out = e.outputBuffer.getChannelData(0);
+                    for (let i = 0; i < out.length; i++) out[i] = noise();
+                };
             }
-            return buffer;
+            if (ctx.state === 'suspended') await ctx.resume();
+            processor.connect(ctx.destination);
+            playing = true;
+            btn.textContent = '⏸';
+            btn.classList.add('playing');
+            await acquireWakeLock();
         }
 
-        function createPinkNoise(bufferSize) {
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
-
-            for (let i = 0; i < bufferSize; i++) {
-                const white = Math.random() * 2 - 1;
-                b0 = 0.99886 * b0 + white * 0.0555179;
-                b1 = 0.99332 * b1 + white * 0.0750759;
-                b2 = 0.96900 * b2 + white * 0.1538520;
-                b3 = 0.86650 * b3 + white * 0.3104856;
-                b4 = 0.55000 * b4 + white * 0.5329522;
-                b5 = -0.7616 * b5 - white * 0.0168980;
-                data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-                data[i] *= 0.11;
-                b6 = white * 0.115926;
-            }
-            return buffer;
+        function stop() {
+            if (processor) processor.disconnect();
+            playing = false;
+            btn.textContent = '▶';
+            btn.classList.remove('playing');
+            releaseWakeLock();
         }
 
-        function createBrownNoise(bufferSize) {
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            let lastOut = 0;
-
-            for (let i = 0; i < bufferSize; i++) {
-                const white = Math.random() * 2 - 1;
-                lastOut = (lastOut + (0.02 * white)) / 1.02;
-                data[i] = lastOut;
-            }
-            return buffer;
-        }
-
-        function stopSound() {
-            if (source) {
-                try {
-                    source.stop();
-                } catch (e) { console.error(e); }
-                source = null;
+        async function acquireWakeLock() {
+            if (!('wakeLock' in navigator)) return;
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                status.textContent = '🔒 Screen lock prevented';
+                wakeLock.addEventListener('release', () => {
+                    status.textContent = '';
+                    if (playing) acquireWakeLock(); // Re-acquire if still playing
+                });
+            } catch (e) {
+                status.textContent = '';
             }
         }
 
-        function startSound() {
-            if (!audioCtx) return;
-
-            stopSound(); // Ensure clean slate
-
-            source = audioCtx.createBufferSource();
-            source.buffer = buffers[currentType];
-            source.loop = true;
-
-            const gainNode = audioCtx.createGain();
-            // Apply specific gain compensation for the noise type, then master volume (0.5)
-            gainNode.gain.value = GAINS[currentType] * 0.5;
-
-            source.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            source.start();
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+            status.textContent = '';
         }
 
-        function toggleNoise() {
-            if (!audioCtx) {
-                init();
+        // Re-acquire wake lock when page becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && playing) {
+                acquireWakeLock();
+                if (ctx?.state === 'suspended') ctx.resume();
             }
-
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            if (isPlaying) {
-                stopSound();
-                isPlaying = false;
-                btn.textContent = 'Play';
-                btn.classList.remove('playing');
-            } else {
-                startSound();
-                isPlaying = true;
-                btn.textContent = 'Stop';
-                btn.classList.add('playing');
-            }
-        }
-
-        function switchNoise(type) {
-            if (currentType === type) return;
-
-            currentType = type;
-
-            // Update UI
-            controlItems.forEach(item => {
-                if (item.dataset.type === type) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-
-            // If currently playing, switch the audio seamlessly
-            if (isPlaying) {
-                // We restart with new buffer
-                startSound();
-            }
-        }
-
-        btn.addEventListener('click', toggleNoise);
-
-        controlItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                // Initialize context on any interaction if not ready
-                if (!audioCtx) init();
-                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-
-                switchNoise(e.target.dataset.type);
-            });
         });
 
-        // Register service worker for PWA functionality
+        btn.onclick = () => playing ? stop() : start();
+
+        typeButtons.forEach(b => b.onclick = () => {
+            type = b.dataset.type;
+            lastBrown = 0;
+            pinkB = [0, 0, 0, 0, 0, 0, 0];
+            typeButtons.forEach(x => x.classList.toggle('active', x === b));
+        });
+
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/white_noise/sw.js')
-                    .then(reg => console.log('Service Worker registered:', reg))
-                    .catch(err => console.log('Service Worker registration failed:', err));
-            });
+            navigator.serviceWorker.register('/white_noise/sw.js');
         }
     </script>
-
-    <!-- Shared Navigation -->
     <script src="/shared/nav.js"></script>
 </body>
 </html>
