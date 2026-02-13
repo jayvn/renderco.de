@@ -1,79 +1,22 @@
-// Service Worker for ChoreoMarker PWA
-const CACHE_NAME = 'choreomarker-v3';
-const urlsToCache = [
-  '/choreo/',
-  '/choreo/index.html',
-  '/choreo/app.js',
-  '/choreo/icon-192.png',
-  '/choreo/icon-512.png',
-  '/images/favicon.png',
-  'https://cdn.tailwindcss.com'
-];
+const CACHE = 'choreomarker-v4';
+const URLS = ['/choreo/', '/choreo/index.html', '/choreo/app.js', '/choreo/icon-192.png', '/choreo/icon-512.png', '/images/favicon.png', 'https://cdn.tailwindcss.com'];
 
-// Install event - cache resources
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch(err => console.log('Cache install error:', err))
-  );
-  // Force the waiting service worker to become the active service worker
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS)));
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  // Take control of all pages immediately
-  return self.clients.claim();
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
+  self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(response => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
-        }).catch(err => {
-          console.log('Fetch error:', err);
-          // You could return a custom offline page here
-        });
-      })
-  );
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+    if (res.status === 200 && res.type === 'basic') {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone));
+    }
+    return res;
+  })));
 });
