@@ -153,13 +153,18 @@
             status.textContent = '';
         }
 
-        // Re-acquire wake lock when page becomes visible again
+        // Re-acquire wake lock and resume audio when page becomes visible
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && playing) {
                 acquireWakeLock();
                 if (ctx?.state === 'suspended') ctx.resume();
             }
         });
+
+        // Keep audio alive on mobile - ping audio context periodically
+        setInterval(() => {
+            if (playing && ctx?.state === 'suspended') ctx.resume();
+        }, 1000);
 
         btn.onclick = () => playing ? stop() : start();
 
