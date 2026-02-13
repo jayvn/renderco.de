@@ -145,7 +145,7 @@ async function loadArticles() {
         if (articles.has(a.title)) continue;
         articles.set(a.title, a);
         feed.insertAdjacentHTML('beforeend', `
-            <div class="feed-item" data-title="${a.title}">
+            <div class="feed-item" data-title="${a.title}" ${a.image ? `style="background-image:url(${a.image})"` : ''}>
                 <div class="content-overlay">
                     <h2>${a.title}</h2>
                     <p>${a.summary}</p>
@@ -162,11 +162,11 @@ async function loadArticles() {
 
 async function fetchRandom() {
     const data = await wikiApi({
-        action: 'query', generator: 'random', grnnamespace: 0, prop: 'extracts',
-        grnlimit: 5, exintro: 1, explaintext: 1
+        action: 'query', generator: 'random', grnnamespace: 0, prop: 'extracts|pageimages',
+        grnlimit: 5, exintro: 1, explaintext: 1, pithumbsize: 800
     });
     return Object.values(data.query?.pages || {}).filter(p => p.extract).map(p => ({
-        title: p.title, summary: p.extract
+        title: p.title, summary: p.extract, image: p.thumbnail?.source
     }));
 }
 
@@ -189,11 +189,11 @@ async function fetchRecommended() {
 
     const details = await wikiApi({
         action: 'query', titles: members.map(m => m.title).join('|'),
-        prop: 'extracts', exintro: 1, explaintext: 1
+        prop: 'extracts|pageimages', exintro: 1, explaintext: 1, pithumbsize: 800
     });
 
     return Object.values(details.query?.pages || {}).filter(p => p.extract).map(p => ({
-        title: p.title, summary: p.extract
+        title: p.title, summary: p.extract, image: p.thumbnail?.source
     }));
 }
 
@@ -235,7 +235,7 @@ async function openArticle(title, isBack = false) {
 
     const body = $('.modal-body', articleDialog);
     body.innerHTML = data.parse.text['*'];
-    body.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox, img, figure, .thumb, .infobox img, .infobox, .mw-file-element').forEach(el => el.remove());
+    body.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox').forEach(el => el.remove());
     body.scrollTop = 0;
 
     body.querySelectorAll('a').forEach(link => {
@@ -272,7 +272,7 @@ async function toggleLike(title) {
     } else {
         const meta = articles.get(title) || {};
         const cats = await fetchCategories(title);
-        liked[title] = { title, summary: meta.summary, categories: cats };
+        liked[title] = { title, image: meta.image, summary: meta.summary, categories: cats };
         showToast('Saved!');
     }
     localStorage.likedArticles = JSON.stringify(liked);
@@ -302,7 +302,7 @@ async function fetchCategories(title) {
 
 function addToHistory(title) {
     history = history.filter(h => h.title !== title);
-    history.unshift({ title, time: Date.now() });
+    history.unshift({ title, time: Date.now(), image: articles.get(title)?.image });
     history = history.slice(0, 50);
     localStorage.readHistory = JSON.stringify(history);
 }
@@ -337,6 +337,7 @@ function showOverlay(type) {
     } else if (type === 'history') {
         content.innerHTML = history.length ? history.map(h => `
             <div class="list-item" data-title="${h.title}">
+                <div class="item-thumb" ${h.image ? `style="background-image:url(${h.image})"` : ''}></div>
                 <div class="item-info"><div class="item-title">${h.title}</div><div class="item-meta">${timeAgo(h.time)}</div></div>
             </div>
         `).join('') : emptyState('🕐', 'No history yet', 'Articles you read will appear here');
@@ -344,6 +345,7 @@ function showOverlay(type) {
         const saved = Object.values(liked);
         content.innerHTML = saved.length ? saved.map(a => `
             <div class="list-item" data-title="${a.title}">
+                <div class="item-thumb" ${a.image ? `style="background-image:url(${a.image})"` : ''}></div>
                 <div class="item-info"><div class="item-title">${a.title}</div></div>
             </div>
         `).join('') : emptyState('❤️', 'No saved articles', 'Tap the heart on articles to save');
