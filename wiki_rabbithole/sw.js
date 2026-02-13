@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wikifeed-v1';
+const CACHE_NAME = 'wikifeed-v3';
 const STATIC_ASSETS = [
     '/wiki_rabbithole/',
     '/wiki_rabbithole/index.html',

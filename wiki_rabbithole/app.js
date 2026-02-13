@@ -2,7 +2,6 @@ const feedContainer = document.getElementById('feed-container');
 
 // UI Elements
 const modal = document.getElementById('article-modal');
-const modalTitle = document.querySelector('#article-modal h2') || document.createElement('h2'); // Fallback/Caution
 const modalBody = document.getElementById('modal-body');
 const closeModalBtn = document.querySelector('.close-modal');
 const minimizeModalBtn = document.querySelector('.minimize-modal');
@@ -24,7 +23,7 @@ const homeBtn = document.getElementById('home-btn');
 const foryouBtn = document.getElementById('foryou-btn');
 
 // State
-let articles = [];
+let articlesMap = new Map();
 let loading = false;
 let historyTree = JSON.parse(localStorage.getItem('historyTree') || '{}'); // {key: {articleTitle, parentId}} where key = title|parentId
 let navStack = []; // For back button: [{title, nodeId}]
@@ -110,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     foryouBtn.addEventListener('click', () => showView('foryou'));
 
     // Handle Browser Back Button
-    window.addEventListener('popstate', (event) => {
+    window.addEventListener('popstate', async (event) => {
         const state = event.state;
         if (!state) {
             // Fallback to home if no state
@@ -132,7 +131,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Re-open article (this will not push to history or tree because isBackNav=true)
-            openFullArticle(null, state.title, state.parentId, true);
+            await openFullArticle(null, state.title, state.parentId, true);
+
+            // Restore scroll position
+            if (state.scrollPos) {
+                modalBody.scrollTop = state.scrollPos;
+            }
         } else if (state.view) {
             closeModal(true); // Ensure modal is closed if we switch to a main view
             showView(state.view, true);
@@ -152,7 +156,7 @@ function showView(view, fromHistory = false) {
         if (feedMode !== newMode) {
             feedMode = newMode;
             localStorage.setItem('feedMode', feedMode);
-            articles = [];
+            articlesMap.clear();
             feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><p>Loading...</p></div>';
             loadArticles();
         }
@@ -233,12 +237,15 @@ async function loadArticles() {
         const loader = document.querySelector('.loading-state');
         if (loader) loader.remove();
 
+        const fragment = document.createDocumentFragment();
         newArticles.forEach(article => {
-            if (!articles.find(a => a.id === article.id)) {
-                createFeedItem(article);
-                articles.push(article);
+            if (!articlesMap.has(article.title)) {
+                const item = createFeedItem(article);
+                fragment.appendChild(item);
+                articlesMap.set(article.title, article);
             }
         });
+        feedContainer.appendChild(fragment);
     } catch (error) {
         console.error("Failed to fetch articles:", error);
     }
@@ -285,7 +292,7 @@ async function fetchRecommendedArticles() {
         if (!data.query?.categorymembers?.length) return fetchRandomArticles();
 
         const members = data.query.categorymembers
-            .filter(m => !Object.keys(likedArticles).includes(m.title))
+            .filter(m => !Object.prototype.hasOwnProperty.call(likedArticles, m.title))
             .sort(() => Math.random() - 0.5)
             .slice(0, 5);
         if (members.length === 0) return fetchRandomArticles();
@@ -331,7 +338,7 @@ function createFeedItem(article) {
             </div>
         </div>
     `;
-    feedContainer.appendChild(item);
+    return item;
 }
 
 // --- SEARCH LOGIC ---
@@ -376,18 +383,17 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
 
     // 1. Fetch Full Content (Check Offline Cache First if needed, or just fetch and cache)
     let data;
-    try {
-        data = await fetchWikiContent(title);
-        // Cache success
-        saveToOfflineCache(title, data);
-    } catch (e) {
-        console.log("Fetch failed, trying offline cache");
-        // Try to find in cache
-        const cached = offlineCache.find(item => item.title === title);
-        if (cached) {
-            data = cached.data;
-            console.log("Loaded from cache");
-        } else {
+
+    // Performance: Check cache first to avoid network (especially for back nav)
+    const cached = offlineCache.find(item => item.title === title);
+    if (cached) {
+        data = cached.data;
+    } else {
+        try {
+            data = await fetchWikiContent(title);
+            // Cache success
+            saveToOfflineCache(title, data);
+        } catch (e) {
             modalBody.innerHTML = '<p>Error loading article. Check connection.</p>';
             return;
         }
@@ -451,12 +457,23 @@ window.openFullArticle = async function (id, title, parentId, isBackNav = false)
 
     // Re-bind modalTitle if needed, or rely on innerHTML
     // modalTitle.textContent = articleTitle; // No longer needed as it's in HTML
-    modalBody.innerHTML = `${contentHtml}`;
+
+    // Performance: Append DOM directly to avoid re-parsing
+    modalBody.innerHTML = '';
+    modalBody.appendChild(contentHtml);
 
     // 4. Attach link interceptors
     modalBody.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
+
+            // Save scroll position of current article before navigating
+            const scrollTop = modalBody.scrollTop;
+            if (history.state) {
+                const updatedState = { ...history.state, scrollPos: scrollTop };
+                history.replaceState(updatedState, '', location.hash);
+            }
+
             const href = link.getAttribute('href');
             // Check if it's a wiki link (usually starts with /wiki/)
             if (href && href.startsWith('/wiki/')) {
@@ -477,7 +494,13 @@ function processWikiHtml(html) {
     const div = document.createElement('div');
     div.innerHTML = html;
     div.querySelectorAll('.mw-editsection, .reference, .mbox-small').forEach(el => el.remove());
-    return div.innerHTML;
+
+    // Return a DocumentFragment to avoid extra wrapper div
+    const fragment = document.createDocumentFragment();
+    while (div.firstChild) {
+        fragment.appendChild(div.firstChild);
+    }
+    return fragment;
 }
 
 // --- OFFLINE CACHE LOGIC ---
@@ -540,7 +563,7 @@ function renderTree() {
             if (!node) return;
 
             // Find children: nodes whose parentId matches this node's articleTitle
-            const children = Object.keys(nodesMap).filter(k => nodesMap[k].parentId === node.articleTitle);
+            const children = childrenMap[node.articleTitle] || [];
             const isLast = index === nodeKeys.length - 1;
 
             html += `<li class="tree-item${isLast ? ' last' : ''}${children.length > 0 ? ' has-children' : ''}">`;
@@ -569,10 +592,15 @@ function renderProfile() {
         return;
     }
 
+    const fragment = document.createDocumentFragment();
     keys.forEach(title => {
         const meta = likedArticles[title];
-        if (meta) createBookmarkItem(meta);
+        if (meta) {
+            const item = createBookmarkItem(meta);
+            fragment.appendChild(item);
+        }
     });
+    bookmarksContainer.appendChild(fragment);
 }
 
 function createBookmarkItem(article) {
@@ -593,7 +621,7 @@ function createBookmarkItem(article) {
         </div>
     `;
     item.onclick = () => openFullArticle(article.id, article.title, 'root'); // Restart journey from bookmark
-    bookmarksContainer.appendChild(item);
+    return item;
 }
 
 // --- UTILS ---
@@ -610,11 +638,10 @@ window.toggleLike = async function (title) {
         delete likedArticles[title];
     } else {
         // Try to find metadata from feed articles
-        const feedMeta = articles.find(a => a.title === title);
+        const feedMeta = articlesMap.get(title);
 
         // Fetch categories for recommendations
         const categories = await fetchArticleCategories(title);
-        console.log('Fetched categories for', title, ':', categories);
 
         likedArticles[title] = {
             title: title,

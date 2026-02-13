@@ -1,5 +1,3 @@
-# Bolt's Journal
-
-## 2024-05-22 - [Infinite Scroll Throttling]
-**Learning:** Infinite scroll implementations using raw `scroll` events can cause performance bottlenecks due to frequent layout thrashing (calculating `scrollTop`, `scrollHeight`, etc.) on every pixel scrolled.
-**Action:** Always wrap scroll event handlers with a throttle function (ideally with trailing edge execution) to limit the frequency of these expensive checks.
+## 2024-10-24 - Batch DOM Insertions in wiki_rabbithole
+**Learning:** Appending elements to the DOM in a loop (e.g., `feedContainer.appendChild(item)`) causes unnecessary reflows/repaints. Using `DocumentFragment` allows batching these updates into a single reflow, improving rendering performance for lists.
+**Action:** When implementing list rendering, always use `DocumentFragment` to build the list in memory before appending it to the DOM. Refactor functions like `createItem` to return the element instead of appending it directly.
