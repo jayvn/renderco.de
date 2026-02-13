@@ -15,69 +15,56 @@
     <div class="app-container">
         <header class="top-bar">
             <h1 class="app-logo">WikiFeed</h1>
-            <div class="header-right">
-                <div class="search-container">
-                    <button class="icon-btn" id="search-toggle-btn">🔍</button>
-                    <div class="search-input-wrapper" id="search-wrapper">
-                        <input type="text" id="wiki-search" placeholder="Search Wikipedia...">
-                        <div class="search-results" id="search-results"></div>
-                    </div>
+            <div class="search-container">
+                <button class="icon-btn" popovertarget="search-popover">🔍</button>
+                <div id="search-popover" popover>
+                    <input type="search" id="wiki-search" placeholder="Search Wikipedia...">
+                    <div id="search-results"></div>
                 </div>
             </div>
         </header>
 
-        <main class="feed-container" id="feed-container">
-            <div class="loading-state">
-                <div class="loader"></div>
-                <p>Loading articles...</p>
-            </div>
-        </main>
+        <main class="feed-container" id="feed"></main>
 
-        <div class="swipe-hint" id="swipe-hint">
-            <span>↑ Swipe for more</span>
-        </div>
-
-        <nav class="bottom-nav">
-            <button class="nav-item active" data-target="home" id="home-btn">
+        <nav class="bottom-nav" id="nav">
+            <button class="nav-item active" data-mode="random">
                 <span class="nav-icon">🎲</span>
                 <span class="nav-label">Discover</span>
             </button>
-            <button class="nav-item" data-target="foryou" id="foryou-btn">
+            <button class="nav-item" data-mode="foryou">
                 <span class="nav-icon">✨</span>
                 <span class="nav-label">For You</span>
             </button>
-            <button class="nav-item" data-target="tree" id="tree-btn">
+            <button class="nav-item" data-view="tree">
                 <span class="nav-icon">🌳</span>
                 <span class="nav-label">Tree</span>
             </button>
-            <button class="nav-item" data-target="history" id="history-btn">
+            <button class="nav-item" data-view="history">
                 <span class="nav-icon">🕐</span>
                 <span class="nav-label">History</span>
             </button>
-            <button class="nav-item" data-target="saved" id="saved-btn">
+            <button class="nav-item" data-view="saved">
                 <span class="nav-icon">❤️</span>
                 <span class="nav-label">Saved</span>
             </button>
         </nav>
     </div>
 
-    <div id="article-modal" class="article-modal">
-        <div class="reading-progress" id="reading-progress"></div>
-        <div class="modal-content">
-            <div class="modal-header"></div>
-            <div class="modal-body-content" id="modal-body"></div>
-        </div>
-    </div>
+    <dialog id="article-dialog">
+        <div class="reading-progress"></div>
+        <header class="modal-header"></header>
+        <article class="modal-body"></article>
+    </dialog>
 
-    <div id="overlay-view" class="overlay-view">
-        <div class="overlay-header">
-            <h2 id="overlay-title">History</h2>
-            <button class="circle-btn" onclick="closeOverlay()">✕</button>
-        </div>
-        <div class="overlay-content" id="overlay-content"></div>
-    </div>
+    <dialog id="overlay-dialog">
+        <header class="overlay-header">
+            <h2></h2>
+            <button class="circle-btn close-overlay">✕</button>
+        </header>
+        <div class="overlay-content"></div>
+    </dialog>
 
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast" popover="manual"></div>
 
     <script src="app.js"></script>
 </body>

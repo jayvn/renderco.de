@@ -1,148 +1,162 @@
-const feedContainer = document.getElementById('feed-container');
-const modal = document.getElementById('article-modal');
-const modalBody = document.getElementById('modal-body');
-const modalHeader = document.querySelector('.modal-header');
-const searchWrapper = document.getElementById('search-wrapper');
-const searchInput = document.getElementById('wiki-search');
-const searchResults = document.getElementById('search-results');
-const overlayView = document.getElementById('overlay-view');
-const overlayTitle = document.getElementById('overlay-title');
-const overlayContent = document.getElementById('overlay-content');
-const readingProgress = document.getElementById('reading-progress');
-const swipeHint = document.getElementById('swipe-hint');
-const toast = document.getElementById('toast');
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => el.querySelectorAll(s);
 
-let articlesMap = new Map();
+const feed = $('#feed');
+const articleDialog = $('#article-dialog');
+const overlayDialog = $('#overlay-dialog');
+const searchResults = $('#search-results');
+const toast = $('#toast');
+
+let articles = new Map();
 let loading = false;
 let currentArticle = null;
 let navStack = [];
-let feedMode = localStorage.getItem('feedMode') || 'random';
-let likedArticles = JSON.parse(localStorage.getItem('likedArticles') || '{}');
-let history = JSON.parse(localStorage.getItem('readHistory') || '[]');
-let tree = JSON.parse(localStorage.getItem('explorationTree') || '{"nodes":{},"edges":[],"sessions":[]}');
-let currentSessionId = null;
+let feedMode = localStorage.feedMode || 'random';
+let liked = JSON.parse(localStorage.likedArticles || '{}');
+let history = JSON.parse(localStorage.readHistory || '[]');
+let tree = JSON.parse(localStorage.explorationTree || '{"nodes":{},"edges":[],"sessions":[]}');
+let sessionId = null;
 
-const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 const wikiApi = async (params) => {
-    const res = await fetch(`${WIKI_API}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`);
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`);
     return res.json();
 };
 
 // Init
-document.addEventListener('DOMContentLoaded', () => {
-    loadArticles();
-    
-    // Hide swipe hint after first scroll
-    if (localStorage.getItem('seenHint')) {
-        swipeHint.classList.add('hidden');
-    } else {
-        feedContainer.addEventListener('scroll', () => {
-            swipeHint.classList.add('hidden');
-            localStorage.setItem('seenHint', '1');
-        }, { once: true });
+feed.addEventListener('scroll', () => {
+    if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 800) loadArticles();
+}, { passive: true });
+
+$('#wiki-search').oninput = debounce(async (e) => {
+    const q = e.target.value;
+    if (q.length < 2) { searchResults.innerHTML = ''; return; }
+    const data = await wikiApi({ action: 'opensearch', search: q, limit: 6 });
+    searchResults.innerHTML = (data[1] || []).map(t => 
+        `<div class="search-result-item" data-title="${t}">${t}</div>`
+    ).join('') || '<div style="padding:12px;color:#666">No results</div>';
+}, 300);
+
+searchResults.onclick = (e) => {
+    const item = e.target.closest('[data-title]');
+    if (item) {
+        openArticle(item.dataset.title);
+        $('#search-popover').hidePopover();
     }
+};
 
-    // Infinite scroll
-    feedContainer.addEventListener('scroll', () => {
-        if (feedContainer.scrollTop + feedContainer.clientHeight >= feedContainer.scrollHeight - 800) {
-            loadArticles();
-        }
-    }, { passive: true });
+$('#nav').onclick = (e) => {
+    const btn = e.target.closest('.nav-item');
+    if (!btn) return;
+    if (btn.dataset.mode) switchFeed(btn.dataset.mode);
+    else if (btn.dataset.view) showOverlay(btn.dataset.view);
+};
 
-    // Search
-    document.getElementById('search-toggle-btn').onclick = () => {
-        searchWrapper.classList.toggle('active');
-        if (searchWrapper.classList.contains('active')) searchInput.focus();
-    };
+$('.modal-body', articleDialog).onscroll = (e) => {
+    const el = e.target;
+    $('.reading-progress', articleDialog).style.width = 
+        Math.min(100, (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100) + '%';
+};
 
-    let searchTimer;
-    searchInput.oninput = (e) => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => handleSearch(e.target.value), 300);
-    };
+$('.close-overlay', overlayDialog).onclick = () => overlayDialog.close();
 
-    // Nav buttons
-    document.getElementById('home-btn').onclick = () => switchFeed('random');
-    document.getElementById('foryou-btn').onclick = () => switchFeed('foryou');
-    document.getElementById('tree-btn').onclick = () => showOverlay('tree');
-    document.getElementById('history-btn').onclick = () => showOverlay('history');
-    document.getElementById('saved-btn').onclick = () => showOverlay('saved');
+articleDialog.onclick = (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'back') goBack();
+    else if (action === 'like') toggleLike(currentArticle.title);
+    else if (action === 'share') shareArticle();
+    else if (action === 'close') articleDialog.close();
+};
 
-    // Reading progress
-    modalBody.onscroll = () => {
-        const pct = (modalBody.scrollTop / (modalBody.scrollHeight - modalBody.clientHeight)) * 100;
-        readingProgress.style.width = Math.min(100, pct) + '%';
-    };
+feed.onclick = (e) => {
+    const item = e.target.closest('.feed-item');
+    if (!item) return;
+    const title = item.dataset.title;
+    if (e.target.closest('.like-btn')) toggleLike(title);
+    else openArticle(title);
+};
 
-    // Back button
-    window.onpopstate = (e) => {
-        if (modal.classList.contains('active')) {
-            if (navStack.length > 1) {
-                navStack.pop();
-                openArticle(navStack[navStack.length - 1].title, true);
-            } else {
-                closeArticle(true);
-            }
-        } else if (overlayView.classList.contains('active')) {
-            closeOverlay(true);
-        }
-    };
-
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+overlayDialog.querySelector('.overlay-content').onclick = (e) => {
+    const item = e.target.closest('[data-title]');
+    if (item) {
+        overlayDialog.close();
+        openArticle(item.dataset.title);
     }
+    if (e.target.closest('.clear-tree')) {
+        tree = { nodes: {}, edges: [], sessions: [] };
+        delete localStorage.explorationTree;
+        showOverlay('tree');
+        showToast('Tree cleared');
+    }
+};
+
+articleDialog.addEventListener('close', () => {
+    navStack = [];
+    currentArticle = null;
+    sessionId = null;
 });
 
-function switchFeed(mode) {
-    const newMode = mode === 'foryou' ? 'recommended' : 'random';
-    
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.target === mode || (mode === 'random' && btn.dataset.target === 'home'));
-    });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-    if (feedMode === newMode) return;
-    
-    feedMode = newMode;
-    localStorage.setItem('feedMode', feedMode);
-    articlesMap.clear();
-    feedContainer.innerHTML = '<div class="loading-state"><div class="loader"></div></div>';
+loadArticles();
+setActiveNav();
+
+function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function switchFeed(mode) {
+    if (feedMode === mode) return;
+    feedMode = mode;
+    localStorage.feedMode = mode;
+    articles.clear();
+    feed.innerHTML = '<div class="loading-state"><div class="loader"></div></div>';
+    setActiveNav();
     loadArticles();
+}
+
+function setActiveNav() {
+    $$('.nav-item', $('#nav')).forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === feedMode);
+    });
 }
 
 async function loadArticles() {
     if (loading) return;
     loading = true;
 
-    let articles;
-    if (feedMode === 'recommended' && Object.keys(likedArticles).length > 0) {
-        articles = await fetchRecommended();
+    let data;
+    if (feedMode === 'foryou' && Object.keys(liked).length > 0) {
+        data = await fetchRecommended();
+    } else if (feedMode === 'foryou') {
+        feed.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><h3>Your personal feed</h3><p>Like some articles to get recommendations</p></div>`;
+        loading = false;
+        return;
     } else {
-        if (feedMode === 'recommended') {
-            // Show empty state for For You when no likes
-            feedContainer.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">✨</div>
-                    <h3>Your personal feed</h3>
-                    <p>Like some articles from Discover to get personalized recommendations</p>
-                </div>
-            `;
-            loading = false;
-            return;
-        }
-        articles = await fetchRandom();
+        data = await fetchRandom();
     }
 
-    document.querySelector('.loading-state')?.remove();
-    document.querySelector('.empty-state')?.remove();
+    feed.querySelector('.loading-state')?.remove();
+    feed.querySelector('.empty-state')?.remove();
 
-    articles.forEach(article => {
-        if (!articlesMap.has(article.title)) {
-            feedContainer.appendChild(createFeedItem(article));
-            articlesMap.set(article.title, article);
-        }
-    });
-    
+    for (const a of data) {
+        if (articles.has(a.title)) continue;
+        articles.set(a.title, a);
+        feed.insertAdjacentHTML('beforeend', `
+            <div class="feed-item" data-title="${a.title}" ${a.image ? `style="background-image:url(${a.image})"` : ''}>
+                <div class="content-overlay">
+                    <h2>${a.title}</h2>
+                    <p>${a.summary}</p>
+                    <div class="feed-actions">
+                        <button class="feed-btn read-btn">Read →</button>
+                        <button class="feed-btn like-btn ${liked[a.title] ? 'liked' : ''}">${liked[a.title] ? '❤️' : '🤍'} Save</button>
+                    </div>
+                </div>
+            </div>
+        `);
+    }
     loading = false;
 }
 
@@ -151,17 +165,13 @@ async function fetchRandom() {
         action: 'query', generator: 'random', grnnamespace: 0, prop: 'extracts|pageimages',
         grnlimit: 5, exintro: 1, explaintext: 1, pithumbsize: 800
     });
-    return Object.values(data.query?.pages || {})
-        .filter(p => p.extract)
-        .map(p => ({
-            title: p.title,
-            summary: p.extract,
-            image: p.thumbnail?.source
-        }));
+    return Object.values(data.query?.pages || {}).filter(p => p.extract).map(p => ({
+        title: p.title, summary: p.extract, image: p.thumbnail?.source
+    }));
 }
 
 async function fetchRecommended() {
-    const allCats = Object.values(likedArticles).flatMap(a => a.categories || []);
+    const allCats = Object.values(liked).flatMap(a => a.categories || []);
     if (!allCats.length) return fetchRandom();
 
     const cat = allCats[Math.floor(Math.random() * allCats.length)];
@@ -171,7 +181,7 @@ async function fetchRecommended() {
     });
 
     const members = (data.query?.categorymembers || [])
-        .filter(m => !likedArticles[m.title] && !articlesMap.has(m.title))
+        .filter(m => !liked[m.title] && !articles.has(m.title))
         .sort(() => Math.random() - 0.5)
         .slice(0, 5);
 
@@ -182,113 +192,53 @@ async function fetchRecommended() {
         prop: 'extracts|pageimages', exintro: 1, explaintext: 1, pithumbsize: 800
     });
 
-    return Object.values(details.query?.pages || {})
-        .filter(p => p.extract)
-        .map(p => ({
-            title: p.title,
-            summary: p.extract,
-            image: p.thumbnail?.source
-        }));
+    return Object.values(details.query?.pages || {}).filter(p => p.extract).map(p => ({
+        title: p.title, summary: p.extract, image: p.thumbnail?.source
+    }));
 }
 
-function createFeedItem(article) {
-    const item = document.createElement('div');
-    item.className = 'feed-item';
-    if (article.image) item.style.backgroundImage = `url(${article.image})`;
-    
-    const liked = !!likedArticles[article.title];
-    const safeTitle = article.title.replace(/'/g, "\\'");
-    
-    item.innerHTML = `
-        <div class="content-overlay">
-            <h2 class="article-title">${article.title}</h2>
-            <p class="article-excerpt">${article.summary}</p>
-            <div class="feed-actions">
-                <button class="feed-btn read-btn" onclick="openArticle('${safeTitle}')">Read →</button>
-                <button class="feed-btn like-btn ${liked ? 'liked' : ''}" data-title="${article.title}" onclick="event.stopPropagation(); toggleLike('${safeTitle}')">
-                    ${liked ? '❤️ Saved' : '🤍 Save'}
-                </button>
-            </div>
-        </div>
-    `;
-    
-    item.onclick = (e) => {
-        if (!e.target.closest('.feed-btn')) openArticle(article.title);
-    };
-    
-    return item;
-}
-
-async function handleSearch(query) {
-    if (query.length < 2) {
-        searchResults.innerHTML = '';
-        return;
-    }
-
-    const data = await wikiApi({ action: 'opensearch', search: query, limit: 6 });
-    searchResults.innerHTML = (data[1] || []).map(title => {
-        const safeTitle = title.replace(/'/g, "\\'");
-        return `<div class="search-result-item" onclick="openArticle('${safeTitle}'); closeSearch()">${title}</div>`;
-    }).join('') || '<div style="padding:12px;color:#666">No results</div>';
-}
-
-window.closeSearch = () => {
-    searchWrapper.classList.remove('active');
-    searchInput.value = '';
-    searchResults.innerHTML = '';
-};
-
-window.openArticle = async function(title, isBack = false) {
-    modal.classList.add('active');
-    modalBody.innerHTML = '<div class="loader" style="margin:40px auto"></div>';
-    readingProgress.style.width = '0%';
+async function openArticle(title, isBack = false) {
+    articleDialog.showModal();
+    $('.modal-body', articleDialog).innerHTML = '<div class="loader" style="margin:40px auto"></div>';
+    $('.reading-progress', articleDialog).style.width = '0%';
     currentArticle = { title };
 
     if (!isBack) {
-        const parentTitle = navStack.length > 0 ? navStack[navStack.length - 1].title : null;
+        const parent = navStack.at(-1)?.title;
         navStack.push({ title });
-        window.history.pushState({ article: title }, '', '#' + encodeURIComponent(title));
         addToHistory(title);
-        addToTree(title, parentTitle);
+        addToTree(title, parent);
     }
 
     const data = await wikiApi({ action: 'parse', page: title, prop: 'text', mobileformat: 1 });
     if (!data?.parse) {
-        modalBody.innerHTML = '<p style="padding:20px">Failed to load article</p>';
+        $('.modal-body', articleDialog).innerHTML = '<p style="padding:20px">Failed to load</p>';
         return;
     }
 
-    const articleTitle = data.parse.title;
-    currentArticle = { title: articleTitle, ...articlesMap.get(articleTitle) };
-    
-    const liked = !!likedArticles[articleTitle];
-    const safeTitle = articleTitle.replace(/'/g, "\\'");
+    const t = data.parse.title;
+    currentArticle = { title: t, ...articles.get(t) };
     const depth = navStack.length;
-    
-    modalHeader.innerHTML = `
-        ${depth > 1 ? '<button class="circle-btn" onclick="goBack()">←</button>' : ''}
-        <div style="flex:1;min-width:0">
-            ${depth > 1 ? `<div class="nav-path">📚 ${depth} articles deep</div>` : ''}
-            <h2 class="modal-title">${articleTitle}</h2>
+
+    $('.modal-header', articleDialog).innerHTML = `
+        ${depth > 1 ? '<button class="circle-btn" data-action="back">←</button>' : ''}
+        <div class="header-title">
+            ${depth > 1 ? `<div class="nav-path">📚 ${depth} deep</div>` : ''}
+            <h2>${t}</h2>
         </div>
         <div class="modal-actions">
-            <button class="circle-btn" id="modal-like" onclick="toggleLike('${safeTitle}')">${liked ? '❤️' : '🤍'}</button>
-            <button class="circle-btn" onclick="shareArticle()">↗️</button>
-            <button class="circle-btn" onclick="closeArticle()">✕</button>
+            <button class="circle-btn" data-action="like">${liked[t] ? '❤️' : '🤍'}</button>
+            <button class="circle-btn" data-action="share">↗️</button>
+            <button class="circle-btn" data-action="close">✕</button>
         </div>
     `;
 
-    // Parse content
-    const div = document.createElement('div');
-    div.innerHTML = data.parse.text['*'];
-    div.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox').forEach(el => el.remove());
-    
-    modalBody.innerHTML = '';
-    modalBody.appendChild(div);
-    modalBody.scrollTop = 0;
+    const body = $('.modal-body', articleDialog);
+    body.innerHTML = data.parse.text['*'];
+    body.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox').forEach(el => el.remove());
+    body.scrollTop = 0;
 
-    // Handle links
-    modalBody.querySelectorAll('a').forEach(link => {
+    body.querySelectorAll('a').forEach(link => {
         link.onclick = (e) => {
             e.preventDefault();
             const href = link.getAttribute('href');
@@ -299,65 +249,46 @@ window.openArticle = async function(title, isBack = false) {
             }
         };
     });
-};
+}
 
-window.goBack = () => {
+function goBack() {
     if (navStack.length > 1) {
         navStack.pop();
-        openArticle(navStack[navStack.length - 1].title, true);
+        openArticle(navStack.at(-1).title, true);
     }
-};
+}
 
-window.closeArticle = (fromPopstate = false) => {
-    modal.classList.remove('active');
-    navStack = [];
-    currentArticle = null;
-    currentSessionId = null;
-    if (!fromPopstate) window.history.pushState({}, '', location.pathname);
-};
-
-window.shareArticle = async () => {
+async function shareArticle() {
     if (!currentArticle) return;
     const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(currentArticle.title)}`;
-    
-    if (navigator.share) {
-        navigator.share({ title: currentArticle.title, url });
-    } else {
-        await navigator.clipboard.writeText(url);
-        showToast('Link copied!');
-    }
-};
+    if (navigator.share) navigator.share({ title: currentArticle.title, url });
+    else { await navigator.clipboard.writeText(url); showToast('Link copied!'); }
+}
 
-window.toggleLike = async function(title) {
-    const wasLiked = !!likedArticles[title];
-
-    if (wasLiked) {
-        delete likedArticles[title];
-        showToast('Removed from saved');
+async function toggleLike(title) {
+    if (liked[title]) {
+        delete liked[title];
+        showToast('Removed');
     } else {
-        const meta = articlesMap.get(title) || {};
+        const meta = articles.get(title) || {};
         const cats = await fetchCategories(title);
-        likedArticles[title] = { title, image: meta.image, summary: meta.summary, categories: cats };
+        liked[title] = { title, image: meta.image, summary: meta.summary, categories: cats };
         showToast('Saved!');
     }
-
-    localStorage.setItem('likedArticles', JSON.stringify(likedArticles));
-    const nowLiked = !wasLiked;
-
-    // Update feed buttons
-    document.querySelectorAll('.like-btn').forEach(btn => {
-        if (btn.dataset.title === title) {
-            btn.innerHTML = nowLiked ? '❤️ Saved' : '🤍 Save';
-            btn.classList.toggle('liked', nowLiked);
+    localStorage.likedArticles = JSON.stringify(liked);
+    
+    // Update UI
+    $$('.feed-item').forEach(item => {
+        if (item.dataset.title === title) {
+            const btn = $('.like-btn', item);
+            btn.classList.toggle('liked', !!liked[title]);
+            btn.innerHTML = liked[title] ? '❤️ Save' : '🤍 Save';
         }
     });
-
-    // Update modal button
     if (currentArticle?.title === title) {
-        const btn = document.getElementById('modal-like');
-        if (btn) btn.innerHTML = nowLiked ? '❤️' : '🤍';
+        $('[data-action="like"]', articleDialog).innerHTML = liked[title] ? '❤️' : '🤍';
     }
-};
+}
 
 async function fetchCategories(title) {
     const data = await wikiApi({
@@ -371,117 +302,63 @@ async function fetchCategories(title) {
 
 function addToHistory(title) {
     history = history.filter(h => h.title !== title);
-    history.unshift({ title, time: Date.now(), image: articlesMap.get(title)?.image });
+    history.unshift({ title, time: Date.now(), image: articles.get(title)?.image });
     history = history.slice(0, 50);
-    localStorage.setItem('readHistory', JSON.stringify(history));
+    localStorage.readHistory = JSON.stringify(history);
 }
 
-function addToTree(title, parentTitle) {
+function addToTree(title, parent) {
     const now = Date.now();
+    tree.nodes[title] ??= { title, firstSeen: now };
     
-    // Add node if new
-    if (!tree.nodes[title]) {
-        tree.nodes[title] = { title, firstSeen: now };
+    if (!parent) {
+        sessionId = 's' + now;
+        tree.sessions.unshift({ id: sessionId, root: title, time: now });
+    } else if (!tree.edges.some(e => e.from === parent && e.to === title && e.session === sessionId)) {
+        tree.edges.push({ from: parent, to: title, time: now, session: sessionId });
     }
     
-    if (!parentTitle) {
-        // New session - starting from feed/search
-        currentSessionId = 's' + now;
-        tree.sessions.unshift({ id: currentSessionId, root: title, time: now });
-    } else {
-        // Following a link - add edge if not duplicate in this session
-        const edgeExists = tree.edges.some(e => 
-            e.from === parentTitle && e.to === title && e.session === currentSessionId
-        );
-        if (!edgeExists) {
-            tree.edges.push({ from: parentTitle, to: title, time: now, session: currentSessionId });
-        }
-    }
-    
-    // Prune old sessions if too large
     while (tree.sessions.length > 30) {
         const old = tree.sessions.pop();
         tree.edges = tree.edges.filter(e => e.session !== old.id);
     }
-    
-    localStorage.setItem('explorationTree', JSON.stringify(tree));
+    localStorage.explorationTree = JSON.stringify(tree);
 }
 
 function showOverlay(type) {
-    overlayTitle.textContent = type === 'history' ? 'History' : type === 'tree' ? 'Exploration Tree' : 'Saved';
-    overlayView.classList.add('active');
-    window.history.pushState({ overlay: type }, '', '#' + type);
-
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.target === type);
-    });
+    const header = $('h2', overlayDialog);
+    const content = $('.overlay-content', overlayDialog);
+    
+    header.textContent = type === 'history' ? 'History' : type === 'tree' ? 'Exploration Tree' : 'Saved';
+    $$('.nav-item', $('#nav')).forEach(btn => btn.classList.toggle('active', btn.dataset.view === type));
 
     if (type === 'tree') {
-        overlayContent.innerHTML = renderTreeView();
+        content.innerHTML = renderTree();
     } else if (type === 'history') {
-        if (!history.length) {
-            overlayContent.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">🕐</div>
-                    <h3>No history yet</h3>
-                    <p>Articles you read will appear here</p>
-                </div>
-            `;
-            return;
-        }
-        overlayContent.innerHTML = history.map(h => {
-            const safeTitle = h.title.replace(/'/g, "\\'");
-            const time = formatTime(h.time);
-            return `
-                <div class="history-item" onclick="closeOverlay(); openArticle('${safeTitle}')">
-                    <div class="item-thumb" style="${h.image ? `background-image:url(${h.image})` : ''}"></div>
-                    <div class="item-info">
-                        <div class="item-title">${h.title}</div>
-                        <div class="item-meta">${time}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        content.innerHTML = history.length ? history.map(h => `
+            <div class="list-item" data-title="${h.title}">
+                <div class="item-thumb" ${h.image ? `style="background-image:url(${h.image})"` : ''}></div>
+                <div class="item-info"><div class="item-title">${h.title}</div><div class="item-meta">${timeAgo(h.time)}</div></div>
+            </div>
+        `).join('') : emptyState('🕐', 'No history yet', 'Articles you read will appear here');
     } else {
-        const saved = Object.values(likedArticles);
-        if (!saved.length) {
-            overlayContent.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">❤️</div>
-                    <h3>No saved articles</h3>
-                    <p>Tap the heart on articles you want to save for later</p>
-                </div>
-            `;
-            return;
-        }
-        overlayContent.innerHTML = saved.map(a => {
-            const safeTitle = a.title.replace(/'/g, "\\'");
-            return `
-                <div class="saved-item" onclick="closeOverlay(); openArticle('${safeTitle}')">
-                    <div class="item-thumb" style="${a.image ? `background-image:url(${a.image})` : ''}"></div>
-                    <div class="item-info">
-                        <div class="item-title">${a.title}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        const saved = Object.values(liked);
+        content.innerHTML = saved.length ? saved.map(a => `
+            <div class="list-item" data-title="${a.title}">
+                <div class="item-thumb" ${a.image ? `style="background-image:url(${a.image})"` : ''}></div>
+                <div class="item-info"><div class="item-title">${a.title}</div></div>
+            </div>
+        `).join('') : emptyState('❤️', 'No saved articles', 'Tap the heart on articles to save');
     }
+    
+    overlayDialog.showModal();
 }
 
-window.closeOverlay = (fromPopstate = false) => {
-    overlayView.classList.remove('active');
-    if (!fromPopstate) window.history.pushState({}, '', location.pathname);
-    
-    // Reset nav to current feed mode
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.toggle('active', 
-            (feedMode === 'recommended' && btn.dataset.target === 'foryou') ||
-            (feedMode === 'random' && btn.dataset.target === 'home')
-        );
-    });
-};
+function emptyState(icon, title, text) {
+    return `<div class="empty-state"><div class="empty-icon">${icon}</div><h3>${title}</h3><p>${text}</p></div>`;
+}
 
-function formatTime(ts) {
+function timeAgo(ts) {
     const diff = Date.now() - ts;
     if (diff < 60000) return 'Just now';
     if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
@@ -491,89 +368,48 @@ function formatTime(ts) {
 
 function showToast(msg) {
     toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+    toast.showPopover();
+    setTimeout(() => toast.hidePopover(), 2000);
 }
 
-function renderTreeView() {
-    if (!tree.sessions.length) {
-        return `
-            <div class="empty-state">
-                <div class="empty-icon">🌳</div>
-                <h3>No explorations yet</h3>
-                <p>Read articles and follow links to build your exploration tree</p>
-            </div>
-        `;
-    }
+function renderTree() {
+    if (!tree.sessions.length) return emptyState('🌳', 'No explorations yet', 'Follow links to build your tree');
 
-    // Compute stats
     const totalNodes = Object.keys(tree.nodes).length;
-    const totalSessions = tree.sessions.length;
     let maxDepth = 1;
     
-    // Build tree per session and find max depth
-    const sessionTrees = tree.sessions.map(session => {
-        const edges = tree.edges.filter(e => e.session === session.id);
+    const sessionData = tree.sessions.map(s => {
+        const edges = tree.edges.filter(e => e.session === s.id);
         const children = {};
-        edges.forEach(e => {
-            if (!children[e.from]) children[e.from] = [];
-            children[e.from].push(e.to);
-        });
+        edges.forEach(e => (children[e.from] ??= []).push(e.to));
         
-        const getDepth = (node, depth = 1) => {
+        const getDepth = (node, d = 1) => {
             const kids = children[node] || [];
-            return kids.length ? Math.max(...kids.map(k => getDepth(k, depth + 1))) : depth;
+            return kids.length ? Math.max(...kids.map(k => getDepth(k, d + 1))) : d;
         };
-        const depth = getDepth(session.root);
-        if (depth > maxDepth) maxDepth = depth;
-        
-        return { session, children, depth };
+        const depth = getDepth(s.root);
+        maxDepth = Math.max(maxDepth, depth);
+        return { s, children };
     });
 
-    const statsHtml = `
-        <div class="tree-stats">
-            🌳 ${totalNodes} article${totalNodes !== 1 ? 's' : ''} · ${totalSessions} rabbit hole${totalSessions !== 1 ? 's' : ''} · deepest: ${maxDepth} level${maxDepth !== 1 ? 's' : ''}
-        </div>
-    `;
-
-    const sessionsHtml = sessionTrees.map(({ session, children }) => {
-        const date = new Date(session.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        return `
+    return `
+        <div class="tree-stats">🌳 ${totalNodes} articles · ${tree.sessions.length} holes · deepest: ${maxDepth}</div>
+        ${sessionData.map(({ s, children }) => `
             <div class="tree-session">
-                <div class="tree-session-header">📅 ${date} — ${session.root}</div>
-                ${renderTreeNode(session.root, children, true)}
+                <div class="tree-session-header">📅 ${new Date(s.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} — ${s.root}</div>
+                ${renderNode(s.root, children, true)}
             </div>
-        `;
-    }).join('');
-
-    const clearBtn = `
-        <div style="text-align:center;padding:20px">
-            <button class="feed-btn" onclick="clearTree()">🗑️ Clear tree</button>
-        </div>
+        `).join('')}
+        <div style="text-align:center;padding:20px"><button class="feed-btn clear-tree">🗑️ Clear tree</button></div>
     `;
-
-    return statsHtml + sessionsHtml + clearBtn;
 }
 
-function renderTreeNode(title, children, isRoot = false) {
-    const safeTitle = title.replace(/'/g, "\\'");
+function renderNode(title, children, isRoot = false) {
     const kids = children[title] || [];
-    
-    const kidsHtml = kids.length 
-        ? `<div class="tree-children">${kids.map(k => renderTreeNode(k, children)).join('')}</div>` 
-        : '';
-    
     return `
         <div class="tree-node ${isRoot ? 'tree-root' : ''}">
-            <span class="tree-label" onclick="closeOverlay(); openArticle('${safeTitle}')">${title}</span>
-            ${kidsHtml}
+            <span class="tree-label" data-title="${title}">${title}</span>
+            ${kids.length ? `<div class="tree-children">${kids.map(k => renderNode(k, children)).join('')}</div>` : ''}
         </div>
     `;
 }
-
-window.clearTree = () => {
-    tree = { nodes: {}, edges: [], sessions: [] };
-    localStorage.removeItem('explorationTree');
-    showOverlay('tree');
-    showToast('Tree cleared');
-};

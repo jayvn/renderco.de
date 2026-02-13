@@ -25,6 +25,16 @@ Note: Some of the apps require internet, like the social apps (eg., expense shar
  
 Avoid unnecessary exception/error handling and comments. For apps, errors should not be handled and should propagate to the console. Avoid React and use vanilla JavaScript. Code should be self-documenting and errors should be propagated unhandled for ease of understanding. Reduce code by using emojis instead of icons which are imported or drawn. Use default styles instead of too custom CSS. Use other refactoring methods while keeping functionality the same. Go for minimalism.
 
+### Modern Web Features
+
+Prefer native browser APIs over custom implementations:
+- `<dialog>` element for modals (native show/close, backdrop, escape key handling)
+- `popover` attribute for dropdowns and toasts (auto light-dismiss, positioning)
+- `100dvh` for mobile viewport height (accounts for browser chrome)
+- Event delegation over inline onclick handlers
+- `element.at(-1)` for last array element
+- Nullish coalescing (`??=`) for defaults
+
 
 ## Example Apps
 
