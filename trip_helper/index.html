@@ -1,315 +1,103 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Trip Helper</title>
-    <meta name="theme-color" content="#111827">
+    <meta name="theme-color" content="#000">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="logo.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; background: #000; color: #e5e7eb; min-height: 100dvh; }
+        
+        .container { max-width: 480px; margin: 0 auto; padding: 1rem; }
+        
+        /* Buttons & Inputs */
+        button { cursor: pointer; border: none; font: inherit; }
+        .btn { padding: 0.75rem 1.25rem; border-radius: 0.5rem; font-weight: 600; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-sm { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+        .btn-ghost { background: rgba(255,255,255,0.05); color: #9ca3af; }
+        .btn-danger { background: transparent; color: #ef4444; }
+        
+        input, select { width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: white; outline: none; font: inherit; }
+        input:focus { border-color: #3b82f6; }
+        input::placeholder { color: #6b7280; }
+        
+        /* Cards */
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; }
+        .card-header { font-size: 0.75rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; margin-bottom: 0.5rem; }
+        
+        /* Badges */
+        .badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.375rem; font-size: 0.75rem; }
+        
+        /* Modal */
+        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 50; }
+        .modal { background: #1f2937; border-radius: 0.75rem; padding: 1.5rem; width: 100%; max-width: 20rem; }
+        .modal h2 { text-align: center; margin-bottom: 1rem; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 0.25rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; padding: 0.25rem; margin-bottom: 1rem; }
+        .tab { flex: 1; padding: 0.5rem; text-align: center; font-size: 0.875rem; font-weight: 600; color: #6b7280; border-radius: 0.375rem; background: transparent; }
+        .tab.active { background: rgba(255,255,255,0.1); color: white; }
+        
+        /* Calendar */
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; }
+        .cal-day { aspect-ratio: 1; border-radius: 0.375rem; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; background: rgba(255,255,255,0.05); color: #6b7280; cursor: pointer; border: 1px solid transparent; }
+        .cal-day:hover { background: rgba(255,255,255,0.1); }
+        .cal-day.mine { background: rgba(34,197,94,0.2); border-color: #22c55e; color: #4ade80; }
+        .cal-day.others { background: rgba(59,130,246,0.2); border-color: #3b82f6; color: #60a5fa; }
+        .cal-day.best { background: #fbbf24 !important; color: #000 !important; font-weight: 700; }
+        .cal-day.past { opacity: 0.3; pointer-events: none; }
+        .cal-day.header { background: transparent; font-weight: 700; cursor: default; }
+        
+        /* List items */
+        .list-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; margin-bottom: 0.5rem; }
+        .list-item:hover { background: rgba(255,255,255,0.08); }
+        
+        /* Flex helpers */
+        .flex { display: flex; }
+        .flex-1 { flex: 1; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .text-center { text-align: center; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-muted { color: #6b7280; }
+        .font-bold { font-weight: 700; }
+        .hidden { display: none !important; }
+        
+        /* Header */
+        header { padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { font-size: 1.125rem; }
+        
+        /* Finalized banner */
+        .banner { background: rgba(251,191,36,0.1); border: 1px solid #fbbf24; border-radius: 0.5rem; padding: 0.5rem 0.75rem; margin-bottom: 1rem; font-size: 0.875rem; color: #fbbf24; }
+        
+        /* Vote card */
+        .vote-card { border-left: 3px solid transparent; }
+        .vote-card.voted { border-left-color: #3b82f6; }
+        
+        /* Suggestions dropdown */
+        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #1f2937; border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; margin-top: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 10; }
+        .suggestion { padding: 0.75rem; cursor: pointer; }
+        .suggestion:hover { background: rgba(255,255,255,0.05); }
+    </style>
 </head>
+<body>
+    <div id="app"></div>
 
-<body class="bg-gray-900 text-gray-100 h-[100dvh] w-full flex flex-col overflow-hidden">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    <!-- LANDING SCREEN -->
-    <div id="landing-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 hidden"
-        style="background: rgba(0,0,0,0.6)">
-        <div class="flex flex-col items-center w-full max-w-sm">
-            <img src="logo.png" alt="Trip Helper" class="w-24 h-24 mb-6">
-            <h2 class="text-4xl font-bold mb-10 text-blue-400">Trip Helper</h2>
-
-            <div id="welcome-msg" class="hidden text-gray-400 text-sm mb-4"></div>
-
-            <button id="create-trip-btn" class="w-full btn btn-primary btn-lg">
-                Start New Trip
-            </button>
-
-            <div id="recent-trips-container" class="w-full mt-8 hidden">
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="divider flex-1"></div>
-                    <span class="section-header">Recent</span>
-                    <div class="divider flex-1"></div>
-                </div>
-                <div id="recent-trips-list" class="space-y-2"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-4 hidden"
-        style="background: rgba(0,0,0,0.8)">
-        <div class="modal">
-            <h1 class="text-4xl mb-4 text-center">👋</h1>
-            <h2 class="text-xl font-bold mb-6 text-center">Who are you?</h2>
-
-            <input type="text" id="username-input" class="input mb-4 text-center text-lg" placeholder="Enter your name">
-
-            <button id="login-btn" class="w-full btn btn-primary mb-4">
-                Join Trip
-            </button>
-            <button onclick="switchTrip()" class="w-full btn btn-secondary btn-sm">
-                ← Back to Trips
-            </button>
-        </div>
-    </div>
-
-    <!-- MAIN APP -->
-    <div id="app-screen" class="flex-1 flex flex-col hidden max-w-lg mx-auto w-full h-full">
-        <!-- HEADER -->
-        <header class="p-4 pt-6 pb-2 flex justify-between items-center">
-            <div class="flex items-center gap-3 cursor-pointer group" onclick="copyTripLink()">
-                <div class="w-10 h-10 rounded-xl card flex items-center justify-center overflow-hidden">
-                    <img src="logo.png" alt="Trip Helper" class="w-8 h-8">
-                </div>
-                <h1 id="header-trip-name" class="font-bold text-base">Trip Helper</h1>
-                <button onclick="editTripName()"
-                    class="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white text-xs">✎</button>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="switchTrip()" class="btn btn-secondary btn-sm">
-                    History
-                </button>
-                <div class="relative">
-                    <button id="user-btn" onclick="toggleUserMenu()" class="btn btn-sm"
-                        style="background: rgba(59,130,246,0.1); color: #60a5fa;">
-                        <span id="user-display-name">User</span> ▼
-                    </button>
-                    <div id="user-menu" class="absolute right-0 top-full mt-2 w-48 modal hidden">
-                        <div class="pb-3 mb-3" style="border-bottom: 1px solid rgba(255,255,255,0.1)">
-                            <p class="section-header mb-1">Logged in as</p>
-                            <p id="menu-user-name" class="font-bold truncate"></p>
-                        </div>
-                        <button onclick="downloadTripData()" class="w-full btn btn-secondary btn-sm mb-2">
-                            💾 Download Data
-                        </button>
-                        <button onclick="logout()" class="w-full btn btn-danger btn-sm mb-2">
-                            🚪 Switch User
-                        </button>
-                        <button onclick="removeMe()" class="w-full btn btn-danger btn-sm">
-                            🗑️ Remove Me from Trip
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <!-- FINALIZED INFO -->
-        <div id="finalized-info" class="hidden px-4 pb-2">
-            <div class="card text-xs"
-                style="padding: 0.5rem 0.75rem; background: rgba(251,191,36,0.1); border-color: #fbbf24;">
-                <div id="finalized-dest" class="hidden mb-1">
-                    <span class="text-amber-400 font-bold">📍 <span id="finalized-dest-text"></span></span>
-                </div>
-                <div id="finalized-dates" class="hidden">
-                    <span class="text-amber-400 font-bold">📅 <span id="finalized-dates-text"></span></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- TABS -->
-        <div class="px-4 mb-2">
-            <div class="card flex p-1 gap-1">
-                <button id="tab-plan"
-                    class="flex-1 py-2 text-center text-sm font-bold text-gray-400 rounded-lg transition-all">Plan</button>
-                <button id="tab-vote"
-                    class="flex-1 py-2 text-center text-sm font-bold text-gray-400 rounded-lg transition-all">Vote</button>
-                <button id="tab-itin"
-                    class="flex-1 py-2 text-center text-sm font-bold text-gray-400 rounded-lg transition-all">Itinerary</button>
-                <button id="tab-pack"
-                    class="flex-1 py-2 text-center text-sm font-bold text-gray-400 rounded-lg transition-all">Checklist</button>
-                <button id="tab-exp" class="flex-1 py-2 text-center text-sm font-bold text-gray-400 rounded-all">Split
-                    cost</button>
-            </div>
-        </div>
-
-        <!-- SCROLLABLE CONTENT -->
-        <div class="flex-1 overflow-y-auto px-4 pb-32 space-y-4">
-
-            <!-- TAB: PLANNING -->
-            <div id="view-plan" class="space-y-4">
-                <!-- DESTINATION HEADER -->
-                <div class="card flex justify-between items-center" style="background: rgba(59,130,246,0.1)">
-                    <div class="flex-1">
-                        <h3 class="section-header text-blue-400 mb-1">Destination</h3>
-                        <div id="plan-dest-display" class="text-2xl font-bold"></div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button id="finalize-dest-btn" onclick="finalizeDestination()" class="hidden btn btn-sm"
-                            style="background: rgba(251,191,36,0.2); color: #fbbf24; font-size: 0.75rem; padding: 0.5rem 0.75rem;">
-                            🔒 Lock
-                        </button>
-                        <div id="plan-weather-icon" class="text-5xl"></div>
-                    </div>
-                </div>
-
-                <!-- MEMBERS -->
-                <div class="card">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="section-header flex items-center gap-2">
-                            👥 Squad <span id="member-count"
-                                class="bg-gray-700 text-gray-300 px-1.5 rounded text-xs">0</span>
-                        </h3>
-                        <button onclick="copyTripLink()" class="btn btn-secondary btn-sm">
-                            Invite +
-                        </button>
-                    </div>
-                    <div id="member-list" class="flex flex-wrap gap-2"></div>
-                </div>
-
-                <!-- CALENDAR -->
-                <div class="card">
-                    <div class="flex justify-between items-end mb-4">
-                        <div>
-                            <h3 class="section-header">📅 Availability</h3>
-                            <div id="calendar-header" class="text-sm font-bold text-blue-200 mt-1"></div>
-                        </div>
-                        <div class="flex gap-3 text-xs items-center">
-                            <span class="flex items-center gap-1 text-gray-400">
-                                <div class="w-2 h-2 rounded-full bg-green-500"></div> You
-                            </span>
-                            <span class="flex items-center gap-1 text-gray-400">
-                                <div class="w-2 h-2 rounded-full bg-blue-500"></div> Others
-                            </span>
-                            <span class="flex items-center gap-1 text-gray-400">
-                                <div class="w-2 h-2 rounded-full bg-amber-500"></div> Best
-                            </span>
-                        </div>
-                    </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-1.5 mb-3"></div>
-                    <div class="flex justify-between items-center mb-3">
-                        <div id="best-dates" class="text-xs font-bold text-amber-400"></div>
-                        <button id="finalize-dates-btn" onclick="finalizeDates()" class="hidden btn btn-sm"
-                            style="background: rgba(251,191,36,0.2); color: #fbbf24; font-size: 0.75rem; padding: 0.5rem 0.75rem;">
-                            🔒 Lock
-                        </button>
-                    </div>
-                    <div id="person-availability" class="mt-4 card">
-                        <h4 class="section-header mb-3">Availability by Person</h4>
-                        <div id="person-availability-list" class="space-y-2"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB: ITINERARY -->
-            <div id="view-itin" class="hidden space-y-4">
-                <div id="itin-empty-state"
-                    class="hidden flex flex-col items-center justify-center p-8 text-center card">
-                    <div class="text-4xl mb-4 opacity-50">📅</div>
-                    <h3 class="text-lg font-bold mb-2">No Itinerary Yet</h3>
-                    <p class="text-sm text-gray-400 mb-6">Lock in the best dates to start planning!</p>
-                    <button onclick="createItineraryFromBest()" class="btn btn-success">
-                        ✨ Generate Itinerary
-                    </button>
-                </div>
-                <div id="itin-add-best-dates" class="hidden card">
-                    <p class="text-sm text-gray-400 mb-3">New best dates available! Add them to your itinerary:</p>
-                    <button onclick="addMissingBestDates()" class="btn btn-success w-full">
-                        ➕ Add Best Dates
-                    </button>
-                </div>
-                <div id="itin-content" class="space-y-4"></div>
-            </div>
-
-            <!-- TAB: PACKING -->
-            <div id="view-pack" class="hidden space-y-4">
-                <div class="card">
-                    <h3 class="section-header mb-3">✅ Trip Checklist</h3>
-                    <div class="flex gap-2 mb-4">
-                        <input type="text" id="pack-input" placeholder="Add item..." class="input">
-                        <button id="add-pack-btn" class="btn btn-primary" style="padding: 0.75rem 1.25rem">+</button>
-                    </div>
-                    <div id="packing-list" class="space-y-2"></div>
-                </div>
-            </div>
-
-            <!-- TAB: VOTE -->
-            <div id="view-vote" class="hidden space-y-4">
-                <div class="card">
-
-
-                    <div class="mb-6 relative flex gap-2">
-                        <select id="search-day-select"
-                            class="bg-gray-800 border-none text-white text-sm rounded-lg p-3 w-28 focus:ring-2 focus:ring-blue-500"
-                            style="appearance: none; -webkit-appearance: none;">
-                            <option value="0">Unset</option>
-                        </select>
-                        <div class="relative flex-1">
-                            <input type="text" id="dest-input" class="input w-full" placeholder="Search City..."
-                                autocomplete="off">
-                            <div id="suggestions-list"
-                                class="absolute top-full left-0 right-0 mt-2 hidden max-h-48 overflow-y-auto z-50"
-                                style="background: #1f2937; border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="location-list" class="space-y-3"></div>
-                </div>
-            </div>
-
-            <!-- TAB: EXPENSES -->
-            <div id="view-exp" class="hidden space-y-4">
-                <div class="card flex flex-col items-center justify-center py-12 text-center">
-                    <div class="text-5xl mb-4">💸</div>
-                    <h3 class="text-xl font-bold mb-2">Split Cost App</h3>
-                    <p class="text-gray-400 text-sm mb-6 max-w-xs">
-                        Expenses have moved to a dedicated app for better tracking.
-                    </p>
-                    <button onclick="openExpensesApp()"
-                        class="btn btn-primary btn-lg w-full max-w-xs flex items-center justify-center gap-2">
-                        <span>Open App</span>
-                        <span class="text-lg">➜</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ITINERARY MODAL -->
-    <div id="itin-modal" class="hidden modal-overlay">
-        <div class="modal">
-            <h3 id="itin-modal-title" class="text-lg font-bold mb-4">Add Event</h3>
-            <input type="hidden" id="itin-modal-id">
-            <input type="hidden" id="itin-modal-date">
-
-            <label class="section-header mb-1 block">Day</label>
-            <select id="itin-day-select" class="input mb-4">
-            </select>
-
-            <label class="section-header mb-1 block">Activity</label>
-            <input type="text" id="itin-title-input" class="input mb-4" placeholder="e.g. Dinner at Mario's">
-
-            <div class="flex gap-3 mb-4">
-                <div class="flex-1">
-                    <label class="section-header mb-1 block">Time</label>
-                    <input type="time" id="itin-time-input" class="input">
-                </div>
-                <div class="flex-1">
-                    <label class="section-header mb-1 block">Cost (Est)</label>
-                    <input type="number" id="itin-cost-input" class="input" placeholder="€">
-                </div>
-            </div>
-
-            <div class="flex gap-2 mb-2">
-                <button onclick="closeItinModal()" class="flex-1 btn btn-secondary">Cancel</button>
-                <button onclick="saveItinEvent()" class="flex-1 btn btn-success">Save</button>
-            </div>
-            <button id="itin-delete-btn" onclick="deleteItinEvent()" class="w-full btn btn-danger btn-sm hidden">
-                Delete Event
-            </button>
-        </div>
-    </div>
-    </div>
-
-    <!-- Firebase Configuration -->
-    <script>
-        window.__firebase_config = JSON.stringify({
+        const app = initializeApp({
             apiKey: "AIzaSyDGrq3qdR3pqHc0dQMXnE20c2wcLOINN-8",
             authDomain: "rendercode-d73da.firebaseapp.com",
             projectId: "rendercode-d73da",
@@ -317,1141 +105,581 @@
             messagingSenderId: "798989930424",
             appId: "1:798989930424:web:7f324e5153cabc5d90494d"
         });
-    </script>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const app = initializeApp(JSON.parse(__firebase_config));
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let currentUser = { id: null, name: null };
-        let tripId = null;
-        let tripData = { locations: [], duration: '', users: {}, expenses: [], packing: [], itinerary: {} };
-
-        let currentTab = 'plan';
+        // State
+        let tripId = new URLSearchParams(location.search).get('token');
+        let user = { id: null, name: localStorage.getItem('trip_user_name') };
+        let data = { users: {}, locations: [], packing: [], itinerary: {} };
+        let tab = 'plan';
+        let calMonth = new Date();
         let unsubscribe = null;
-        let userMenuOpen = false;
 
-        const els = {
-            landing: document.getElementById('landing-screen'),
-            login: document.getElementById('login-screen'),
-            app: document.getElementById('app-screen'),
-            tabs: {
-                plan: document.getElementById('tab-plan'),
-                vote: document.getElementById('tab-vote'),
-                itin: document.getElementById('tab-itin'),
-                pack: document.getElementById('tab-pack'),
-                exp: document.getElementById('tab-exp')
-            },
-            views: {
-                plan: document.getElementById('view-plan'),
-                vote: document.getElementById('view-vote'),
-                itin: document.getElementById('view-itin'),
-                pack: document.getElementById('view-pack'),
-                exp: document.getElementById('view-exp')
-            },
-            userBtn: document.getElementById('user-btn'),
-            userMenu: document.getElementById('user-menu'),
-            userDisplay: document.getElementById('user-display-name'),
-            menuUserName: document.getElementById('menu-user-name'),
-            recentTripsCont: document.getElementById('recent-trips-container'),
-            recentTripsList: document.getElementById('recent-trips-list'),
-            nameIn: document.getElementById('username-input'),
-            memberList: document.getElementById('member-list'),
-            memberCount: document.getElementById('member-count'),
-            destDisplay: document.getElementById('plan-dest-display'),
-            destIcon: document.getElementById('plan-weather-icon'),
-        };
+        const $ = (id) => document.getElementById(id);
 
-        async function init() {
-            const urlParams = new URLSearchParams(window.location.search);
-            tripId = urlParams.get('token');
-            await signInAnonymously(auth);
-
-            if (tripId) attemptAutoJoin(); else showLanding();
-        }
-
-        async function attemptAutoJoin() {
-            const savedName = localStorage.getItem('trip_user_name');
-            if (savedName) joinTrip(savedName); else showLogin();
-        }
-
-        function showLanding() {
-            els.landing.classList.remove('hidden');
-            els.login.classList.add('hidden');
-            els.app.classList.add('hidden');
-            renderRecentTrips();
-        }
-
-        function renderRecentTrips() {
-            const userName = localStorage.getItem('trip_user_name');
-            if (userName) {
-                document.getElementById('welcome-msg').innerText = `Welcome back, ${userName}!`;
-                document.getElementById('welcome-msg').classList.remove('hidden');
-            }
-
-            const recent = JSON.parse(localStorage.getItem('my_trips') || '[]');
-            if (recent.length === 0) {
-                els.recentTripsCont.classList.add('hidden');
-            } else {
-                els.recentTripsCont.classList.remove('hidden');
-                els.recentTripsList.innerHTML = recent.map(t => `
-                <div onclick="window.location.href='?token=${t.id}'" class="list-item gap-3">
-                     <img src="logo.png" alt="Trip" class="w-6 h-6 shrink-0">
-                     <div class="flex-1 min-w-0">
-                         <span class="font-bold text-sm block truncate">${t.name}</span>
-                         <span class="block text-xs text-gray-500">ID: ${t.id.slice(0, 6)}...</span>
-                     </div>
-                     <span class="text-gray-500 text-sm shrink-0">➜</span>
-                </div>
-            `).join('');
-            }
-        }
-
-        function showLogin() {
-            els.landing.classList.add('hidden');
-            els.login.classList.remove('hidden');
-            els.app.classList.add('hidden');
-            els.nameIn.value = '';
-            els.nameIn.focus();
-        }
-
-        async function joinTrip(nameInput) {
-            const name = nameInput.trim();
-            if (!name) return;
-
-            const id = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-            currentUser = { id, name };
-            localStorage.setItem('trip_user_name', name);
-
-            setupRealtimeListener();
-
-            els.login.classList.add('hidden');
-            els.landing.classList.add('hidden');
-            els.app.classList.remove('hidden');
-
-            updateUserUI();
-            initCalendar();
-            setTab('plan');
-
-            addToRecentTrips(tripId, 'Loading...');
-        }
-
-        function updateUserUI() {
-            els.userDisplay.innerText = currentUser.name;
-            els.menuUserName.innerText = currentUser.name;
-        }
-
-        const DB = {
-            async listen(id, callback) {
-                return onSnapshot(doc(db, 'trip-planner-v1', id), (snap) => {
-                    callback(snap.exists() ? snap.data() : null);
-                }, err => {
-                    console.error("Firebase Error:", err);
-                });
-            },
-
-            async save(id, data) {
-                await setDoc(doc(db, 'trip-planner-v1', id), data, { merge: true });
-            }
-        };
-
-        function setupRealtimeListener() {
+        // Firebase
+        const sync = () => setDoc(doc(db, 'trip-planner-v1', tripId), data, { merge: true });
+        
+        function listen() {
             if (unsubscribe) unsubscribe();
-
-            unsubscribe = DB.listen(tripId, (data) => {
-                if (data) {
-                    tripData = data;
-                    if (!tripData.users) tripData.users = {};
-
-                    if (!tripData.users[currentUser.id]) {
-                        registerUserInTrip();
-                        return;
+            unsubscribe = onSnapshot(doc(db, 'trip-planner-v1', tripId), snap => {
+                if (snap.exists()) {
+                    data = snap.data();
+                    data.users = data.users || {};
+                    data.locations = data.locations || [];
+                    data.packing = data.packing || [];
+                    data.itinerary = data.itinerary || {};
+                    
+                    if (user.id && !data.users[user.id]) {
+                        data.users[user.id] = { name: user.name, dates: [] };
+                        sync();
                     }
-
-                    if (tripData.users[currentUser.id].name !== currentUser.name) {
-                    }
-
-                    updateRecentTripName();
-
-                    if (!calendarInitialized) {
-                        const dates = getTripDates();
-                        if (dates && dates.min) {
-                            const [y, m, d] = dates.min.split('-');
-                            currentCalendarDate = new Date(y, m - 1, d);
-                            renderCalendarGrid();
-                        }
-                        calendarInitialized = true;
-                    }
-
-                    render();
                 } else {
-                    tripData = {
-                        locations: [], duration: '', users: {}, expenses: [], packing: [
-                            { id: 1, text: "Book Travel Tickets", checked: false },
-                            { id: 2, text: "Book Hotels", checked: false }
-                        ],
-                        itinerary: {}
-                    };
-                    registerUserInTrip();
+                    data = { users: {}, locations: [], packing: [
+                        { id: 1, text: "Book travel", checked: false },
+                        { id: 2, text: "Book hotels", checked: false }
+                    ], itinerary: {} };
+                    data.users[user.id] = { name: user.name, dates: [] };
+                    sync();
                 }
+                render();
             });
         }
 
-        function registerUserInTrip() {
-            if (!tripData.users) tripData.users = {};
-            tripData.users[currentUser.id] = { name: currentUser.name, dates: [] };
-            sync();
+        // Helpers
+        const today = () => new Date().toISOString().split('T')[0];
+        const dateStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const formatDate = (s) => new Date(s+'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        function getDateCounts() {
+            const counts = {};
+            Object.values(data.users).forEach(u => (u.dates || []).forEach(d => counts[d] = (counts[d] || 0) + 1));
+            return counts;
+        }
+        
+        function getBestDates() {
+            const counts = getDateCounts();
+            const max = Math.max(0, ...Object.values(counts));
+            return max > 1 ? Object.keys(counts).filter(d => counts[d] === max).sort() : [];
         }
 
-        function sync() {
-            DB.save(tripId, tripData);
-        }
-
-        function addToRecentTrips(id, name) {
-            let recent = JSON.parse(localStorage.getItem('my_trips') || '[]');
-            recent = recent.filter(t => t.id !== id);
-            recent.unshift({ id, name });
-            if (recent.length > 5) recent.pop();
-            localStorage.setItem('my_trips', JSON.stringify(recent));
-        }
-
-        function updateRecentTripName() {
-            if (tripData.name) {
-                addToRecentTrips(tripId, tripData.name);
-                return;
-            }
-            const best = getBestLocation();
-            const name = best ? `Trip to ${best.name}` : `Trip ${tripId.slice(0, 4)}`;
-            addToRecentTrips(tripId, name);
-        }
-
-        function getTripDates() {
-            let userDates = [];
-            Object.values(tripData.users).forEach(u => {
-                if (u.dates) userDates = userDates.concat(u.dates);
-            });
-            if (userDates.length === 0) return null;
-            userDates.sort();
-            return { min: userDates[0], max: userDates[userDates.length - 1] };
-        }
-
-        async function fetchWeather(lat, lon, start, end) {
-            try {
-                // Open-Meteo free API only provides 16-day forecasts
-                const today = new Date();
-                const maxForecastDate = new Date(today);
-                maxForecastDate.setDate(today.getDate() + 15);
-                const maxEnd = maxForecastDate.toISOString().split('T')[0];
-
-                // Cap dates to available forecast window
-                const clampedStart = start > maxEnd ? null : (start < today.toISOString().split('T')[0] ? today.toISOString().split('T')[0] : start);
-                const clampedEnd = end > maxEnd ? maxEnd : end;
-
-                if (!clampedStart || clampedStart > clampedEnd) {
-                    return { error: 'Dates outside forecast window' };
-                }
-
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=${clampedStart}&end_date=${clampedEnd}`;
-                const res = await fetch(url);
-                return await res.json();
-            } catch (e) {
-                console.error("Weather fetch failed", e);
-                return null;
-            }
-        }
-
-        function wCodeToIcon(code) {
-            if (code === 0) return '☀️';
-            if (code <= 3) return '⛅';
-            if (code <= 48) return '🌫️';
-            if (code <= 67) return '🌧️';
-            if (code <= 77) return '❄️';
-            if (code <= 82) return '🌧️';
-            if (code <= 86) return '❄️';
-            if (code <= 99) return '⛈️';
-            return '❓';
-        }
-
-        function getBestLocation() {
-            if (!tripData.locations || tripData.locations.length === 0) return null;
-            const sorted = [...tripData.locations].sort((a, b) => b.votes.length - a.votes.length);
-            if (sorted.length > 1 && sorted[0].votes.length === sorted[1].votes.length && sorted[0].votes.length > 0) {
-                return { name: "Voting Tied...", isTie: true, votes: sorted[0].votes };
-            }
+        function getTopLocation() {
+            if (!data.locations.length) return null;
+            const sorted = [...data.locations].sort((a, b) => b.votes.length - a.votes.length);
+            if (sorted[0].votes.length === 0) return null;
             return sorted[0];
         }
 
-        window.togglePackItem = (id) => {
-            const item = tripData.packing.find(i => i.id === id);
-            if (item) {
-                item.checked = !item.checked;
-                sync();
-            }
-        };
-
-        window.deletePackItem = (id) => {
-            tripData.packing = tripData.packing.filter(i => i.id !== id);
-            sync();
-        };
-
-        function setTab(tab) {
-            currentTab = tab;
-            Object.values(els.tabs).forEach(t => {
-                t.style.background = 'transparent';
-                t.style.color = '#9ca3af';
-            });
-            Object.values(els.views).forEach(v => v.classList.add('hidden'));
-
-            els.tabs[tab].style.background = 'rgba(255,255,255,0.1)';
-            els.tabs[tab].style.color = 'white';
-            els.views[tab].classList.remove('hidden');
-            render();
+        function saveRecent() {
+            let recent = JSON.parse(localStorage.getItem('my_trips') || '[]');
+            recent = recent.filter(t => t.id !== tripId);
+            const name = data.name || (getTopLocation()?.name ? `Trip to ${getTopLocation().name}` : `Trip ${tripId.slice(0,4)}`);
+            recent.unshift({ id: tripId, name });
+            localStorage.setItem('my_trips', JSON.stringify(recent.slice(0, 5)));
         }
 
+        // Render functions
         function render() {
-            if (!tripData) return;
-            const users = Object.values(tripData.users);
-            els.memberCount.innerText = users.length;
-            els.memberList.innerHTML = users.map(u => `
-            <div class="badge">
-                <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                <span>${u.name}</span>
-            </div>
-        `).join('');
+            if (!tripId) return renderLanding();
+            if (!user.name) return renderLogin();
+            saveRecent();
+            renderApp();
+        }
 
-            document.getElementById('header-trip-name').innerText = tripData.name || "Trip Helper";
-
-            // Update finalized info banner
-            const finalizedInfo = document.getElementById('finalized-info');
-            const finalizedDest = document.getElementById('finalized-dest');
-            const finalizedDates = document.getElementById('finalized-dates');
-            let hasFinalized = false;
-
-            if (tripData.finalizedDestination) {
-                finalizedDest.classList.remove('hidden');
-                document.getElementById('finalized-dest-text').innerText = tripData.finalizedDestination;
-                hasFinalized = true;
-            } else {
-                finalizedDest.classList.add('hidden');
-            }
-
-            if (tripData.finalizedDates) {
-                finalizedDates.classList.remove('hidden');
-                const datesText = tripData.finalizedDates.map(d => {
-                    const dObj = new Date(d);
-                    return dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                }).join(', ');
-                document.getElementById('finalized-dates-text').innerText = datesText;
-                hasFinalized = true;
-            } else {
-                finalizedDates.classList.add('hidden');
-            }
-
-            if (hasFinalized) {
-                finalizedInfo.classList.remove('hidden');
-            } else {
-                finalizedInfo.classList.add('hidden');
-            }
-
-            const topLoc = getBestLocation();
-            if (currentTab === 'plan') {
-                if (topLoc && topLoc.votes.length > 0) {
-                    els.destDisplay.innerText = topLoc.name;
-                    els.destIcon.innerText = topLoc.isTie ? '⚖️' : '🌤️';
-
-                    // Show finalize button if not finalized
-                    const finalizeDestBtn = document.getElementById('finalize-dest-btn');
-                    if (!tripData.finalizedDestination && !topLoc.isTie) {
-                        finalizeDestBtn.classList.remove('hidden');
-                    } else {
-                        finalizeDestBtn.classList.add('hidden');
-                    }
-                } else {
-                    els.destDisplay.innerText = "Vote Pending";
-                    els.destIcon.innerText = '';
-                    document.getElementById('finalize-dest-btn').classList.add('hidden');
-                }
-                renderCalendar();
-            }
-
-            if (currentTab === 'itin') {
-                renderItinerary();
-            }
-
-            if (currentTab === 'pack') {
-                document.getElementById('packing-list').innerHTML = (tripData.packing || []).map(item => `
-                <div class="list-item" onclick="window.togglePackItem(${item.id})">
-                    <div class="w-5 h-5 rounded border ${item.checked ? 'bg-blue-500 border-blue-500' : 'border-gray-500'} flex items-center justify-center mr-3">
-                        ${item.checked ? '<div class="text-xs text-white font-bold">✓</div>' : ''}
+        function renderLanding() {
+            const recent = JSON.parse(localStorage.getItem('my_trips') || '[]');
+            $('app').innerHTML = `
+                <div class="container" style="padding-top: 4rem;">
+                    <div class="text-center mb-4">
+                        <img src="logo.png" alt="" style="width: 80px; margin: 0 auto 1rem;">
+                        <h1 style="font-size: 2rem; margin-bottom: 2rem;">Trip Helper</h1>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="createTrip()">Start New Trip</button>
                     </div>
-                    <span class="${item.checked ? 'text-gray-500 line-through' : 'text-gray-200'} flex-1">${item.text}</span>
-                    <button onclick="event.stopPropagation(); window.deletePackItem(${item.id})" class="text-gray-600 hover:text-red-400 p-2">✕</button>
-                </div>
-            `).join('');
-            }
-
-            if (currentTab === 'vote') {
-                const daySelect = document.getElementById('search-day-select');
-
-                // Update Day Select Options
-                // Update Day Select Options
-                if (document.activeElement !== daySelect) {
-                    const currentVal = daySelect.value;
-                    const days = parseInt(tripData.duration) || 15; // Default to 15 if unset
-                    let opts = '<option value="0">Unset</option>';
-                    for (let i = 1; i <= days; i++) {
-                        opts += `<option value="${i}">Day ${i}</option>`;
-                    }
-                    daySelect.innerHTML = opts;
-                    if (currentVal <= days) daySelect.value = currentVal;
-                }
-
-                const locs = [...(tripData.locations || [])];
-
-                // Group by Day
-                const grouped = {};
-                locs.forEach(l => {
-                    const d = l.day || 0;
-                    if (!grouped[d]) grouped[d] = [];
-                    grouped[d].push(l);
-                });
-
-                // Sort logic: Sort keys (days), then sort locations within days by votes
-                const dayKeys = Object.keys(grouped).sort((a, b) => parseInt(a) - parseInt(b));
-                // Use finalized dates for weather if available, otherwise fall back to user availability
-                let dates;
-                if (tripData.finalizedDates && tripData.finalizedDates.length > 0) {
-                    const sorted = [...tripData.finalizedDates].sort();
-                    dates = { min: sorted[0], max: sorted[sorted.length - 1] };
-                } else {
-                    dates = getTripDates();
-                }
-
-                let finalHtml = '';
-
-                dayKeys.forEach(day => {
-                    const dayLocs = grouped[day].sort((a, b) => b.votes.length - a.votes.length);
-                    const dayTitle = day == 0 ? "General / Unset" : `Day ${day}`;
-
-                    finalHtml += `
-                        <div class="mb-2 mt-4 flex items-center gap-2">
-                            <div class="h-px bg-gray-700 flex-1"></div>
-                            <span class="text-gray-400 text-xs font-bold uppercase tracking-wider">${dayTitle}</span>
-                            <div class="h-px bg-gray-700 flex-1"></div>
-                        </div>
-                    `;
-
-                    finalHtml += dayLocs.map(loc => {
-                        const hasVoted = loc.votes.includes(currentUser.id);
-                        let weatherHtml = '';
-
-                        if (!dates) {
-                            weatherHtml = `<div class="mt-2 text-xs text-gray-500 italic">📅 Select dates to see forecast</div>`;
-                        } else if (loc.coords) {
-                            if (!loc._weather && !loc._fetching) {
-                                loc._fetching = true;
-                                fetchWeather(loc.coords.lat, loc.coords.lon, dates.min, dates.max).then(w => {
-                                    loc._weather = w;
-                                    loc._fetching = false;
-                                    if (currentTab === 'vote') render();
-                                });
-                                weatherHtml = `<div class="mt-2 text-xs text-gray-500 italic">Loading forecast...</div>`;
-                            } else if (loc._weather && loc._weather.daily) {
-                                const d = loc._weather.daily;
-                                weatherHtml = `<div class="mt-3 flex gap-2 overflow-x-auto pb-1" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.5rem">`;
-                                for (let i = 0; i < d.time.length; i++) {
-                                    const dateParts = d.time[i].split('-');
-                                    const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-                                    const day = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-                                    const dateNum = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-                                    weatherHtml += `
-                                        <div class="flex flex-col items-center min-w-[4rem] p-1 card">
-                                            <span class="text-xs text-gray-400">${day}</span>
-                                            <span class="text-xs text-gray-500 mb-0.5">${dateNum}</span>
-                                            <span class="text-base my-0.5">${wCodeToIcon(d.weather_code[i])}</span>
-                                            <div class="flex gap-1 text-xs">
-                                                <span class="font-bold text-gray-300">${Math.round(d.temperature_2m_max[i])}°</span>
-                                                <span class="text-gray-500">${Math.round(d.temperature_2m_min[i])}°</span>
-                                            </div>
-                                        </div>
-                                    `;
-                                }
-                                weatherHtml += `</div>`;
-                            } else {
-                                weatherHtml = `<div class="mt-2 text-xs text-red-400 italic">⚠️ Weather unavailable</div>`;
-                            }
-                        } else {
-                            weatherHtml = `<div class="mt-2 text-xs text-gray-600 italic">No location data for weather</div>`;
-                        }
-
-                        const tripDays = parseInt(tripData.duration) || 1;
-                        let dayOptions = `<option value="0" ${(!loc.day || loc.day == 0) ? 'selected' : ''}>Unset</option>`;
-                        for (let i = 1; i <= tripDays; i++) {
-                            dayOptions += `<option value="${i}" ${(loc.day == i) ? 'selected' : ''}>Day ${i}</option>`;
-                        }
-
-                        return `
-                            <div class="card ${hasVoted ? 'border-blue-500' : ''} relative group">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex-1">
-                                        <div class="font-bold text-base mb-1">${loc.name}</div>
-                                        <div class="flex items-center gap-1 mb-2">
-                                            <span class="badge text-xs">${loc.votes.length} Votes</span>
-                                            ${hasVoted ? '<span class="text-xs text-blue-400 font-bold">YOU</span>' : ''}
-                                        </div>
-                                    </div>
-                                    <button onclick="window.toggleVote(${loc.id})"
-                                        class="w-10 h-10 rounded-xl flex items-center justify-center transition-all ${hasVoted ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'}">
-                                        ${hasVoted ? '✓' : '+'}
-                                    </button>
-                                </div>
-                                ${weatherHtml}
-                                
-                                <div class="mt-3 pt-3 flex items-center justify-between" style="border-top: 1px solid rgba(255,255,255,0.05)">
-                                    <select onchange="window.updateLocationDay(${loc.id}, this.value)" 
-                                        class="bg-gray-800 text-gray-400 text-xs py-1 px-2 rounded border border-gray-700 outline-none">
-                                        ${dayOptions}
-                                    </select>
-                                    <button onclick="window.deleteLocation(${loc.id})" class="text-gray-600 hover:text-red-500 p-1" title="Delete Location">
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>`;
-                    }).join('');
-                });
-
-                if (!finalHtml) finalHtml = '<div class="text-gray-500 text-sm italic text-center py-8">No locations added yet. Search above!</div>';
-
-                document.getElementById('location-list').innerHTML = finalHtml;
-            }
-
-
-        }
-
-        window.editTripName = () => {
-            const newName = prompt("Enter a name for this trip:", tripData.name || "Trip Helper");
-            if (newName && newName.trim()) {
-                tripData.name = newName.trim();
-                sync();
-                render();
-                updateRecentTripName();
-            }
-        };
-
-        window.switchTrip = () => window.location.href = window.location.pathname;
-        window.logout = () => { localStorage.removeItem('trip_user_name'); location.reload(); };
-        window.removeMe = async () => {
-            const confirmed = confirm(`Remove yourself from this trip?\n\nThis will:\n• Delete your availability dates\n• Remove your votes\n• Keep expenses you paid (already spent)\n\nThis cannot be undone!`);
-
-            if (!confirmed) return;
-
-            // Unsubscribe from real-time listener to prevent auto-rejoin
-            if (unsubscribe) unsubscribe();
-
-            // Remove user from users list
-            delete tripData.users[currentUser.id];
-
-            // Remove votes from all locations
-            if (tripData.locations) {
-                tripData.locations.forEach(loc => {
-                    loc.votes = loc.votes.filter(v => v !== currentUser.id);
-                });
-            }
-
-            // Keep expenses - they represent real money already spent
-            // User data remains in expense records for accountability
-
-            await DB.save(tripId, tripData);
-            localStorage.removeItem('trip_user_name');
-
-            alert('You have been removed from the trip.');
-            window.location.href = window.location.pathname;
-        };
-        window.toggleUserMenu = () => {
-            userMenuOpen = !userMenuOpen;
-            els.userMenu.classList.toggle('hidden', !userMenuOpen);
-        };
-
-        document.addEventListener('click', (e) => {
-            if (userMenuOpen && !els.userBtn.contains(e.target) && !els.userMenu.contains(e.target)) {
-                userMenuOpen = false;
-                els.userMenu.classList.add('hidden');
-            }
-        });
-
-        window.openExpensesApp = () => {
-            window.location.href = '../expenses/index.html?token=' + tripId;
-        };
-
-        window.copyTripLink = () => {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                alert("Trip Link Copied!");
-            });
-        };
-
-        window.downloadTripData = () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tripData, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "trip_data_" + tripId + ".json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        };
-
-        document.getElementById('create-trip-btn').onclick = async () => {
-            const newId = doc(collection(db, "trips")).id;
-            window.history.pushState({}, '', `?token=${newId}`);
-            tripId = newId;
-            addToRecentTrips(newId, 'New Trip');
-            attemptAutoJoin();
-        };
-        document.getElementById('login-btn').onclick = () => joinTrip(els.nameIn.value);
-        els.nameIn.onkeypress = (e) => { if (e.key === 'Enter') joinTrip(els.nameIn.value); };
-
-        Object.keys(els.tabs).forEach(k => els.tabs[k].onclick = () => setTab(k));
-
-        let debounceTimer;
-        const suggestionBox = document.getElementById('suggestions-list');
-        const destInput = document.getElementById('dest-input');
-
-        destInput.addEventListener('input', (e) => {
-            clearTimeout(debounceTimer);
-            const query = e.target.value;
-            if (query.length < 3) {
-                suggestionBox.classList.add('hidden');
-                return;
-            }
-            debounceTimer = setTimeout(async () => {
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-                    const data = await res.json();
-                    if (data && data.length > 0) {
-                        const selectedDay = document.getElementById('search-day-select').value;
-                        suggestionBox.innerHTML = data.slice(0, 5).map(place => `
-                        <div class="p-3 hover:bg-gray-700 cursor-pointer text-xs" style="border-bottom: 1px solid rgba(255,255,255,0.1)"
-                             onclick="selectLocation('${place.display_name.replace(/'/g, "\\'")}', ${place.lat}, ${place.lon}, ${selectedDay})">
-                            <div class="font-bold">${place.display_name.split(',')[0]}</div>
-                            <div class="text-gray-500 truncate">${place.display_name}</div>
-                        </div>
-                    `).join('');
-                        suggestionBox.classList.remove('hidden');
-                    }
-                } catch (e) { }
-            }, 300);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!destInput.contains(e.target) && !suggestionBox.contains(e.target)) {
-                suggestionBox.classList.add('hidden');
-            }
-        });
-
-        window.selectLocation = (fullName, lat, lon, day = 0) => {
-            const shortName = fullName.split(',')[0];
-            if (!tripData.locations.find(l => l.name === shortName)) {
-                tripData.locations.push({
-                    id: Date.now(),
-                    name: shortName,
-                    fullName: fullName,
-                    coords: { lat: parseFloat(lat), lon: parseFloat(lon) },
-                    votes: [currentUser.id],
-                    day: parseInt(day)
-                });
-                sync();
-            }
-            destInput.value = '';
-            suggestionBox.classList.add('hidden');
-        };
-
-        window.toggleVote = (id) => {
-            const l = tripData.locations.find(x => x.id === id);
-            if (!l) return;
-            if (l.votes.includes(currentUser.id)) l.votes = l.votes.filter(v => v !== currentUser.id);
-            else l.votes.push(currentUser.id);
-            sync();
-        };
-
-        window.deleteLocation = (id) => {
-            if (!confirm('Delete this location?')) return;
-            tripData.locations = tripData.locations.filter(l => l.id !== id);
-            sync();
-        };
-
-        window.updateLocationDay = (id, newDay) => {
-            const l = tripData.locations.find(x => x.id === id);
-            if (l) {
-                l.day = parseInt(newDay);
-                sync();
-            }
-        };
-
-
-
-        document.getElementById('add-pack-btn').onclick = () => {
-            const p = document.getElementById('pack-input');
-            if (p.value.trim()) {
-                tripData.packing.push({ id: Date.now(), text: p.value.trim(), checked: false });
-                sync(); p.value = '';
-            }
-        };
-
-        window.toggleVote = (id) => {
-            const l = tripData.locations.find(x => x.id === id);
-            if (!l) return;
-            if (l.votes.includes(currentUser.id)) l.votes = l.votes.filter(v => v !== currentUser.id);
-            else l.votes.push(currentUser.id);
-            sync();
-        };
-        window.togglePackItem = (id) => {
-            tripData.packing = tripData.packing.map(i => i.id === id ? { ...i, checked: !i.checked } : i);
-            sync();
-        };
-
-        let currentCalendarDate = new Date();
-        let calendarInitialized = false;
-
-        function initCalendar() {
-            renderCalendarGrid();
-        }
-
-        function changeMonth(delta) {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
-            renderCalendarGrid();
-            renderCalendar();
-        }
-
-        function renderCalendarGrid() {
-            const cal = document.getElementById('calendar-grid');
-            cal.innerHTML = '';
-
-            const year = currentCalendarDate.getFullYear();
-            const month = currentCalendarDate.getMonth();
-
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-            const header = document.getElementById('calendar-header');
-            header.innerHTML = `
-            <div class="flex items-center justify-between w-full">
-                <button onclick="changeMonth(-1)" class="p-1 hover:text-white text-gray-400">←</button>
-                <span>${monthNames[month]} ${year}</span>
-                <button onclick="changeMonth(1)" class="p-1 hover:text-white text-gray-400">→</button>
-            </div>
-        `;
-
-            ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(d => {
-                cal.innerHTML += `<div class="text-center text-xs font-bold text-gray-600 pb-1">${d}</div>`;
-            });
-
-            const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month + 1, 0);
-            const daysInMonth = lastDay.getDate();
-            const startDay = firstDay.getDay();
-
-            for (let i = 0; i < startDay; i++) {
-                cal.innerHTML += `<div></div>`;
-            }
-
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            for (let i = 1; i <= daysInMonth; i++) {
-                const d = new Date(year, month, i);
-                const yearStr = d.getFullYear();
-                const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-                const dayStr = String(d.getDate()).padStart(2, '0');
-                const ds = `${yearStr}-${monthStr}-${dayStr}`;
-
-                const btn = document.createElement('button');
-                const isToday = ds === todayStr;
-                const isPast = ds < todayStr;
-
-                btn.className = `cal-day day-cell ${isToday ? 'cal-today' : ''} ${isPast ? 'cal-past' : ''}`;
-                btn.dataset.date = ds;
-                btn.innerHTML = `<span>${i}</span>`;
-
-                btn.onclick = (e) => {
-                    if (isPast) return;
-                    if (!tripData.users[currentUser.id]) {
-                        tripData.users[currentUser.id] = { name: currentUser.name, dates: [] };
-                    }
-                    const u = tripData.users[currentUser.id];
-                    let newDates = [...(u.dates || [])];
-
-                    if (e.shiftKey && lastClickedDate) {
-                        const d1 = new Date(lastClickedDate);
-                        const d2 = new Date(ds);
-                        const start = d1 < d2 ? d1 : d2;
-                        const end = d1 < d2 ? d2 : d1;
-
-                        for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
-                            const dtYear = dt.getFullYear();
-                            const dtMonth = String(dt.getMonth() + 1).padStart(2, '0');
-                            const dtDay = String(dt.getDate()).padStart(2, '0');
-                            const dateStr = `${dtYear}-${dtMonth}-${dtDay}`;
-
-                            if (!newDates.includes(dateStr)) newDates.push(dateStr);
-                        }
-                    } else {
-                        if (newDates.includes(ds)) newDates = newDates.filter(x => x !== ds);
-                        else newDates.push(ds);
-                    }
-
-                    lastClickedDate = ds;
-                    u.dates = newDates;
-
-                    if (tripData.locations) tripData.locations.forEach(l => { l._weather = null; l._fetching = false; });
-                    sync();
-                    renderCalendar();
-                };
-                cal.appendChild(btn);
-            }
-        }
-
-        let lastClickedDate = null;
-
-        function renderCalendar() {
-            const counts = {}; let max = 0;
-            const todayStr = new Date().toISOString().split('T')[0];
-            Object.values(tripData.users).forEach(u => u.dates?.forEach(d => { counts[d] = (counts[d] || 0) + 1; max = Math.max(max, counts[d]); }));
-            document.querySelectorAll('.day-cell').forEach(c => {
-                const d = c.dataset.date;
-                const my = tripData.users[currentUser.id]?.dates.includes(d);
-                const count = counts[d] || 0;
-                const isPast = d < todayStr;
-
-                const who = Object.values(tripData.users)
-                    .filter(u => u.dates && u.dates.includes(d))
-                    .map(u => u.name)
-                    .join(', ');
-                c.title = who ? `Available: ${who}` : 'No one available';
-
-                c.className = "cal-day day-cell";
-                if (isPast) c.classList.add('cal-past');
-
-                // Apply base styling (yours vs others)
-                if (my) c.classList.add('cal-my-date');
-                else if (count > 0) c.classList.add('cal-other-date');
-
-                // Override with best styling if applicable
-                if (count === max && max > 1) c.classList.add('cal-best-date');
-
-                if (d === todayStr) {
-                    c.classList.add('cal-today');
-                }
-            });
-            document.getElementById('best-dates').innerHTML = max > 1 ? `🔥 Best Dates (${max} friends)` : "Select dates to match!";
-
-            // Show finalize dates button if we have best dates and not finalized
-            const finalizeDatesBtn = document.getElementById('finalize-dates-btn');
-            if (max > 1 && !tripData.finalizedDates) {
-                finalizeDatesBtn.classList.remove('hidden');
-            } else {
-                finalizeDatesBtn.classList.add('hidden');
-            }
-
-            // Render Person Availability
-            const users = Object.values(tripData.users).sort((a, b) => a.name.localeCompare(b.name));
-
-            if (users.length > 0 && users.some(u => u.dates && u.dates.length > 0)) {
-                const personListHtml = users.map(user => {
-                    const dates = (user.dates || []).sort();
-                    const isCurrentUser = user.name === currentUser.name;
-
-                    if (dates.length === 0) {
-                        return `
-                        <div class="card" style="padding: 0.625rem">
-                            <div class="flex items-center gap-2 mb-1">
-                                <div class="w-1.5 h-1.5 rounded-full ${isCurrentUser ? 'bg-green-500' : 'bg-blue-500'}"></div>
-                                <span class="font-bold text-xs text-gray-300">${user.name}</span>
-                            </div>
-                            <div class="text-xs text-gray-600 italic ml-3.5">No dates selected</div>
-                        </div>
-                    `;
-                    }
-
-                    const dateRanges = formatDateRanges(dates);
-
-                    return `
-                    <div class="card" style="padding: 0.625rem; ${isCurrentUser ? 'border-color: rgba(34,197,94,0.3)' : ''}">
-                        <div class="flex items-center gap-2 mb-1.5">
-                            <div class="w-1.5 h-1.5 rounded-full ${isCurrentUser ? 'bg-green-500' : 'bg-blue-500'}"></div>
-                            <span class="font-bold text-xs ${isCurrentUser ? 'text-green-300' : 'text-gray-300'}">${user.name}</span>
-                            <span class="text-xs text-gray-500">(${dates.length} ${dates.length === 1 ? 'day' : 'days'})</span>
-                        </div>
-                        <div class="text-xs text-gray-400 ml-3.5">${dateRanges}</div>
-                    </div>
-                `;
-                }).join('');
-
-                document.getElementById('person-availability-list').innerHTML = personListHtml;
-            } else {
-                document.getElementById('person-availability-list').innerHTML = `
-                <div class="text-xs text-gray-500 italic text-center py-2">No availability marked yet. Select dates on the calendar!</div>
-            `;
-            }
-        }
-
-        function formatDateRanges(dates) {
-            if (dates.length === 0) return '';
-
-            const formatted = dates.map(d => {
-                const [y, m, day] = d.split('-');
-                const dateObj = new Date(y, m - 1, day);
-                return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-
-            return formatted.join(', ');
-        }
-
-        function getBestDates() {
-            const counts = {};
-            let maxVotes = 0;
-
-            Object.values(tripData.users).forEach(u => u.dates?.forEach(d => {
-                counts[d] = (counts[d] || 0) + 1;
-                maxVotes = Math.max(maxVotes, counts[d]);
-            }));
-
-            if (maxVotes < 2) return [];
-
-            return Object.keys(counts).filter(d => counts[d] === maxVotes).sort();
-        }
-
-        window.createItineraryFromBest = () => {
-            const bestDates = getBestDates();
-
-            if (bestDates.length === 0) {
-                alert("Need more votes to determine best dates!");
-                return;
-            }
-
-            if (!tripData.itinerary) tripData.itinerary = {};
-
-            bestDates.forEach(date => {
-                if (!tripData.itinerary[date]) tripData.itinerary[date] = [];
-            });
-
-            sync();
-            renderItinerary();
-        };
-
-        window.addMissingBestDates = () => {
-            const bestDates = getBestDates();
-            if (!tripData.itinerary) tripData.itinerary = {};
-
-            bestDates.forEach(date => {
-                if (!tripData.itinerary[date]) tripData.itinerary[date] = [];
-            });
-
-            sync();
-            renderItinerary();
-        };
-
-        window.finalizeDestination = () => {
-            const topLoc = getBestLocation();
-            if (!topLoc || topLoc.isTie) return;
-
-            tripData.finalizedDestination = topLoc.name;
-            sync();
-            render();
-        };
-
-        window.finalizeDates = () => {
-            const bestDates = getBestDates();
-            if (bestDates.length === 0) {
-                alert("No overlap dates found!");
-                return;
-            }
-
-            tripData.finalizedDates = bestDates;
-
-            // Auto-create itinerary if needed
-            if (!tripData.itinerary) tripData.itinerary = {};
-            bestDates.forEach(date => {
-                if (!tripData.itinerary[date]) tripData.itinerary[date] = [];
-            });
-
-            sync();
-            render();
-        };
-
-        function renderItinerary() {
-            const itin = tripData.itinerary || {};
-            const dates = Object.keys(itin).sort();
-
-            if (dates.length === 0) {
-                document.getElementById('itin-empty-state').classList.remove('hidden');
-                document.getElementById('itin-add-best-dates').classList.add('hidden');
-                document.getElementById('itin-content').innerHTML = '';
-                return;
-            }
-
-            document.getElementById('itin-empty-state').classList.add('hidden');
-
-            const bestDates = getBestDates();
-            const missingBestDates = bestDates.filter(d => !itin[d]);
-            if (missingBestDates.length > 0 && !tripData.finalizedDates) {
-                document.getElementById('itin-add-best-dates').classList.remove('hidden');
-            } else {
-                document.getElementById('itin-add-best-dates').classList.add('hidden');
-            }
-
-            const html = dates.map(date => {
-                const dayEvents = itin[date] || [];
-                dayEvents.sort((a, b) => a.time.localeCompare(b.time));
-
-                const dObj = new Date(date);
-                const dayName = dObj.toLocaleDateString('en-US', { weekday: 'long' });
-                const datePretty = dObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-
-                return `
-                <div class="card" style="padding: 0">
-                    <div class="p-3 flex justify-between items-center" style="background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1)">
-                        <div>
-                            <span class="block section-header text-amber-500">${dayName}</span>
-                            <span class="block text-lg font-bold">${datePretty}</span>
-                        </div>
-                        <button onclick="openItinModal('${date}')" class="w-8 h-8 rounded-lg card hover:bg-amber-500/20 flex items-center justify-center text-lg font-bold">+</button>
-                    </div>
-                    <div class="p-2 space-y-2">
-                        ${dayEvents.length === 0 ? '<div class="text-center text-xs text-gray-600 py-4 italic">No events planned</div>' : ''}
-                        ${dayEvents.map(e => `
-                            <div onclick="openItinModal('${date}', '${e.id}')" class="list-item gap-4">
-                                <div class="flex flex-col items-center justify-center w-12 pr-4" style="border-right: 1px solid rgba(255,255,255,0.1)">
-                                    <span class="text-sm font-bold">${e.time}</span>
-                                </div>
-                                <div class="flex-1">
-                                    <h4 class="font-bold text-sm">${e.title}</h4>
-                                    ${e.cost ? `<span class="text-xs text-green-400 font-mono">Est: €${e.cost}</span>` : ''}
-                                </div>
+                    ${recent.length ? `
+                        <div class="card-header text-center" style="margin-top: 2rem;">Recent Trips</div>
+                        ${recent.map(t => `
+                            <div class="list-item" onclick="location.href='?token=${t.id}'" style="cursor: pointer;">
+                                <span class="flex-1 font-bold">${t.name}</span>
+                                <span class="text-muted">→</span>
                             </div>
                         `).join('')}
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderLogin() {
+            $('app').innerHTML = `
+                <div class="modal-bg">
+                    <div class="modal">
+                        <h2>👋 Who are you?</h2>
+                        <input type="text" id="name-input" placeholder="Your name" autofocus>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="joinTrip()">Join Trip</button>
+                        <button class="btn btn-ghost" style="width: 100%; margin-top: 0.5rem;" onclick="location.href=location.pathname">← Back</button>
                     </div>
-                </div>`;
-            }).join('');
-
-            document.getElementById('itin-content').innerHTML = html;
+                </div>
+            `;
+            $('name-input').onkeypress = e => e.key === 'Enter' && joinTrip();
+            $('name-input').focus();
         }
 
-        let editingDate = null;
-        let editingId = null;
+        function renderApp() {
+            const topLoc = getTopLocation();
+            const bestDates = getBestDates();
+            const members = Object.values(data.users);
+            
+            $('app').innerHTML = `
+                <div class="container">
+                    <!-- Header -->
+                    <header style="padding: 0; margin-bottom: 1rem;">
+                        <div class="flex items-center gap-2" onclick="copyLink()" style="cursor: pointer;">
+                            <img src="logo.png" style="width: 32px;">
+                            <h1>${data.name || 'Trip Helper'}</h1>
+                            <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); editName()">✎</button>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn btn-sm btn-ghost" onclick="location.href=location.pathname">History</button>
+                            <button class="btn btn-sm btn-ghost" onclick="switchUser()">${user.name} ▼</button>
+                        </div>
+                    </header>
 
-        window.openItinModal = (date, id = null) => {
-            editingDate = date;
-            editingId = id;
-            const modal = document.getElementById('itin-modal');
-            const title = document.getElementById('itin-title-input');
-            const time = document.getElementById('itin-time-input');
-            const cost = document.getElementById('itin-cost-input');
-            const delBtn = document.getElementById('itin-delete-btn');
-            const daySelect = document.getElementById('itin-day-select');
+                    <!-- Finalized info -->
+                    ${data.finalizedDestination || data.finalizedDates ? `
+                        <div class="banner">
+                            ${data.finalizedDestination ? `📍 ${data.finalizedDestination}` : ''}
+                            ${data.finalizedDestination && data.finalizedDates ? ' · ' : ''}
+                            ${data.finalizedDates ? `📅 ${data.finalizedDates.map(formatDate).join(', ')}` : ''}
+                        </div>
+                    ` : ''}
 
-            document.getElementById('itin-modal-date').innerText = date;
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab ${tab === 'plan' ? 'active' : ''}" onclick="setTab('plan')">Plan</button>
+                        <button class="tab ${tab === 'vote' ? 'active' : ''}" onclick="setTab('vote')">Vote</button>
+                        <button class="tab ${tab === 'itin' ? 'active' : ''}" onclick="setTab('itin')">Itinerary</button>
+                        <button class="tab ${tab === 'pack' ? 'active' : ''}" onclick="setTab('pack')">Checklist</button>
+                    </div>
 
-            const bestDates = tripData.finalizedDates || getBestDates();
-            const availableDates = tripData.finalizedDates ? tripData.finalizedDates : Object.keys(tripData.itinerary || {}).sort();
+                    <!-- Plan Tab -->
+                    <div class="${tab !== 'plan' ? 'hidden' : ''}">
+                        <!-- Destination -->
+                        <div class="card">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <div class="card-header">Destination</div>
+                                    <div style="font-size: 1.5rem; font-weight: 700;">
+                                        ${topLoc ? topLoc.name : 'Vote pending'}
+                                    </div>
+                                </div>
+                                ${topLoc && !data.finalizedDestination ? `
+                                    <button class="btn btn-sm" style="background: rgba(251,191,36,0.2); color: #fbbf24;" onclick="lockDest()">🔒 Lock</button>
+                                ` : ''}
+                            </div>
+                        </div>
 
-            daySelect.innerHTML = availableDates.map(d => {
-                const dObj = new Date(d);
-                const dayName = dObj.toLocaleDateString('en-US', { weekday: 'short' });
-                const datePretty = dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                return `<option value="${d}" ${d === date ? 'selected' : ''}>${dayName}, ${datePretty}</option>`;
+                        <!-- Members -->
+                        <div class="card">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="card-header">👥 Squad (${members.length})</div>
+                                <button class="btn btn-sm btn-ghost" onclick="copyLink()">Invite +</button>
+                            </div>
+                            <div class="flex gap-2" style="flex-wrap: wrap;">
+                                ${members.map(u => `<span class="badge">● ${u.name}</span>`).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Calendar -->
+                        <div class="card">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="card-header">📅 Availability</div>
+                                <div class="flex gap-2 text-xs text-muted">
+                                    <span>🟢 You</span>
+                                    <span>🔵 Others</span>
+                                    <span>🟡 Best</span>
+                                </div>
+                            </div>
+                            ${renderCalendar()}
+                            <div class="flex justify-between items-center" style="margin-top: 0.75rem;">
+                                <span class="text-sm" style="color: #fbbf24;">
+                                    ${bestDates.length ? `🔥 ${bestDates.length} best dates` : 'Select dates to match!'}
+                                </span>
+                                ${bestDates.length && !data.finalizedDates ? `
+                                    <button class="btn btn-sm" style="background: rgba(251,191,36,0.2); color: #fbbf24;" onclick="lockDates()">🔒 Lock</button>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Who's available -->
+                        <div class="card">
+                            <div class="card-header mb-2">Availability by Person</div>
+                            ${members.map(u => `
+                                <div class="list-item">
+                                    <span class="font-bold text-sm">${u.name}</span>
+                                    <span class="flex-1 text-xs text-muted" style="text-align: right;">
+                                        ${(u.dates || []).length ? (u.dates || []).sort().map(formatDate).join(', ') : 'No dates'}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Vote Tab -->
+                    <div class="${tab !== 'vote' ? 'hidden' : ''}">
+                        <div class="card">
+                            <div style="position: relative;">
+                                <input type="text" id="search-input" placeholder="Search city..." oninput="searchCity(this.value)">
+                                <div id="suggestions" class="suggestions hidden"></div>
+                            </div>
+                        </div>
+                        
+                        ${data.locations.length === 0 ? `
+                            <div class="card text-center text-muted">No locations yet. Search above!</div>
+                        ` : ''}
+                        
+                        ${[...data.locations].sort((a,b) => b.votes.length - a.votes.length).map(loc => {
+                            const voted = loc.votes.includes(user.id);
+                            return `
+                                <div class="card vote-card ${voted ? 'voted' : ''}">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <div class="font-bold">${loc.name}</div>
+                                            <span class="badge">${loc.votes.length} votes</span>
+                                            ${voted ? '<span class="text-xs" style="color: #3b82f6; margin-left: 0.5rem;">YOU</span>' : ''}
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button class="btn btn-sm ${voted ? 'btn-primary' : 'btn-ghost'}" onclick="toggleVote(${loc.id})">
+                                                ${voted ? '✓' : '+'}
+                                            </button>
+                                            <button class="btn btn-sm btn-ghost" onclick="deleteLoc(${loc.id})">🗑️</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <!-- Itinerary Tab -->
+                    <div class="${tab !== 'itin' ? 'hidden' : ''}">
+                        ${renderItinerary()}
+                    </div>
+
+                    <!-- Checklist Tab -->
+                    <div class="${tab !== 'pack' ? 'hidden' : ''}">
+                        <div class="card">
+                            <div class="flex gap-2 mb-4">
+                                <input type="text" id="pack-input" placeholder="Add item...">
+                                <button class="btn btn-primary" onclick="addPackItem()">+</button>
+                            </div>
+                            ${(data.packing || []).map(item => `
+                                <div class="list-item" onclick="togglePack(${item.id})">
+                                    <span style="opacity: ${item.checked ? 0.5 : 1}; ${item.checked ? 'text-decoration: line-through' : ''}">
+                                        ${item.checked ? '☑' : '☐'} ${item.text}
+                                    </span>
+                                    <span class="flex-1"></span>
+                                    <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); deletePack(${item.id})">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCalendar() {
+            const year = calMonth.getFullYear();
+            const month = calMonth.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const monthName = calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            
+            const counts = getDateCounts();
+            const maxCount = Math.max(0, ...Object.values(counts));
+            const myDates = data.users[user.id]?.dates || [];
+            const todayStr = today();
+            
+            let html = `
+                <div class="flex justify-between items-center mb-2">
+                    <button class="btn btn-sm btn-ghost" onclick="changeMonth(-1)">←</button>
+                    <span class="font-bold">${monthName}</span>
+                    <button class="btn btn-sm btn-ghost" onclick="changeMonth(1)">→</button>
+                </div>
+                <div class="cal-grid">
+                    ${['S','M','T','W','T','F','S'].map(d => `<div class="cal-day header">${d}</div>`).join('')}
+                    ${'<div></div>'.repeat(firstDay)}
+            `;
+            
+            for (let i = 1; i <= daysInMonth; i++) {
+                const d = new Date(year, month, i);
+                const ds = dateStr(d);
+                const isPast = ds < todayStr;
+                const isMine = myDates.includes(ds);
+                const count = counts[ds] || 0;
+                const isBest = count === maxCount && maxCount > 1;
+                
+                let cls = 'cal-day';
+                if (isPast) cls += ' past';
+                else if (isBest) cls += ' best';
+                else if (isMine) cls += ' mine';
+                else if (count > 0) cls += ' others';
+                
+                html += `<div class="${cls}" onclick="toggleDate('${ds}')">${i}</div>`;
+            }
+            
+            return html + '</div>';
+        }
+
+        function renderItinerary() {
+            const dates = Object.keys(data.itinerary || {}).sort();
+            const bestDates = data.finalizedDates || getBestDates();
+            
+            if (dates.length === 0) {
+                return `
+                    <div class="card text-center">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📅</div>
+                        <p class="text-muted mb-4">No itinerary yet</p>
+                        ${bestDates.length ? `
+                            <button class="btn btn-primary" onclick="createItinerary()">✨ Create from best dates</button>
+                        ` : '<p class="text-sm text-muted">Lock dates first to start planning!</p>'}
+                    </div>
+                `;
+            }
+            
+            return dates.map(date => {
+                const events = (data.itinerary[date] || []).sort((a,b) => a.time.localeCompare(b.time));
+                const dObj = new Date(date + 'T12:00');
+                return `
+                    <div class="card" style="padding: 0;">
+                        <div class="flex justify-between items-center" style="padding: 0.75rem; background: rgba(255,255,255,0.05);">
+                            <div>
+                                <div class="card-header" style="color: #fbbf24;">${dObj.toLocaleDateString('en-US', { weekday: 'long' })}</div>
+                                <div class="font-bold">${dObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</div>
+                            </div>
+                            <button class="btn btn-sm btn-ghost" onclick="addEvent('${date}')">+ Add</button>
+                        </div>
+                        <div style="padding: 0.5rem;">
+                            ${events.length === 0 ? '<div class="text-center text-muted text-sm" style="padding: 1rem;">No events</div>' : ''}
+                            ${events.map(e => `
+                                <div class="list-item" onclick="editEvent('${date}', '${e.id}')">
+                                    <span class="text-sm font-bold" style="width: 3rem;">${e.time}</span>
+                                    <span class="flex-1">${e.title}</span>
+                                    ${e.cost ? `<span class="text-xs" style="color: #10b981;">€${e.cost}</span>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
             }).join('');
+        }
 
-            if (id) {
-                const item = tripData.itinerary[date].find(i => i.id == id);
-                document.getElementById('itin-modal-title').innerText = "Edit Event";
-                title.value = item.title;
-                time.value = item.time;
-                cost.value = item.cost || '';
-                delBtn.classList.remove('hidden');
-            } else {
-                document.getElementById('itin-modal-title').innerText = "New Event";
-                title.value = '';
-                time.value = "12:00";
-                cost.value = '';
-                delBtn.classList.add('hidden');
-            }
-
-            modal.classList.remove('hidden');
-            title.focus();
+        // Event handlers
+        window.createTrip = async () => {
+            await signInAnonymously(getAuth(app));
+            tripId = doc(db, 'x').id;
+            history.pushState({}, '', `?token=${tripId}`);
+            render();
         };
 
-        window.closeItinModal = () => {
-            document.getElementById('itin-modal').classList.add('hidden');
+        window.joinTrip = () => {
+            const name = $('name-input').value.trim();
+            if (!name) return;
+            user = { id: name.toLowerCase().replace(/[^a-z0-9]/g, '_'), name };
+            localStorage.setItem('trip_user_name', name);
+            listen();
         };
 
-        window.saveItinEvent = () => {
-            const title = document.getElementById('itin-title-input').value;
-            const time = document.getElementById('itin-time-input').value;
-            const cost = document.getElementById('itin-cost-input').value;
-            const selectedDate = document.getElementById('itin-day-select').value;
-
-            if (!title || !time) return;
-
-            if (!tripData.itinerary) tripData.itinerary = {};
-
-            if (editingId) {
-                const idx = tripData.itinerary[editingDate].findIndex(i => i.id == editingId);
-                if (idx > -1) {
-                    const event = tripData.itinerary[editingDate][idx];
-
-                    if (selectedDate !== editingDate) {
-                        tripData.itinerary[editingDate].splice(idx, 1);
-                        if (!tripData.itinerary[selectedDate]) {
-                            tripData.itinerary[selectedDate] = [];
-                        }
-                        tripData.itinerary[selectedDate].push({
-                            ...event,
-                            title, time, cost
-                        });
-                    } else {
-                        tripData.itinerary[editingDate][idx] = {
-                            ...event,
-                            title, time, cost
-                        };
-                    }
-                }
-            } else {
-                if (!tripData.itinerary[selectedDate]) {
-                    tripData.itinerary[selectedDate] = [];
-                }
-                tripData.itinerary[selectedDate].push({
-                    id: Date.now(),
-                    title, time, cost
-                });
-            }
-
+        window.setTab = (t) => { tab = t; render(); };
+        window.changeMonth = (d) => { calMonth.setMonth(calMonth.getMonth() + d); render(); };
+        
+        window.toggleDate = (ds) => {
+            if (ds < today()) return;
+            const u = data.users[user.id];
+            if (!u) return;
+            u.dates = u.dates || [];
+            const idx = u.dates.indexOf(ds);
+            if (idx >= 0) u.dates.splice(idx, 1);
+            else u.dates.push(ds);
             sync();
-            closeItinModal();
-            renderItinerary();
         };
 
-        window.deleteItinEvent = () => {
-            if (editingDate && editingId && tripData.itinerary[editingDate]) {
-                tripData.itinerary[editingDate] = tripData.itinerary[editingDate].filter(i => i.id != editingId);
-                sync();
-                closeItinModal();
-                renderItinerary();
+        window.copyLink = () => {
+            navigator.clipboard.writeText(location.href);
+            alert('Link copied!');
+        };
+
+        window.editName = () => {
+            const name = prompt('Trip name:', data.name || '');
+            if (name !== null) { data.name = name.trim(); sync(); }
+        };
+
+        window.switchUser = () => {
+            if (confirm('Switch user?')) {
+                localStorage.removeItem('trip_user_name');
+                location.reload();
             }
         };
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
-            });
+        window.lockDest = () => {
+            const top = getTopLocation();
+            if (top) { data.finalizedDestination = top.name; sync(); }
+        };
+
+        window.lockDates = () => {
+            const best = getBestDates();
+            if (best.length) {
+                data.finalizedDates = best;
+                best.forEach(d => { if (!data.itinerary[d]) data.itinerary[d] = []; });
+                sync();
+            }
+        };
+
+        // Voting
+        let searchTimeout;
+        window.searchCity = (q) => {
+            clearTimeout(searchTimeout);
+            if (q.length < 3) { $('suggestions').classList.add('hidden'); return; }
+            searchTimeout = setTimeout(async () => {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+                const places = await res.json();
+                if (places.length) {
+                    $('suggestions').innerHTML = places.slice(0, 5).map(p => `
+                        <div class="suggestion" onclick="addLocation('${p.display_name.split(',')[0].replace(/'/g, "\\'")}', ${p.lat}, ${p.lon})">
+                            <div class="font-bold">${p.display_name.split(',')[0]}</div>
+                            <div class="text-xs text-muted">${p.display_name}</div>
+                        </div>
+                    `).join('');
+                    $('suggestions').classList.remove('hidden');
+                }
+            }, 300);
+        };
+
+        window.addLocation = (name, lat, lon) => {
+            if (!data.locations.find(l => l.name === name)) {
+                data.locations.push({ id: Date.now(), name, coords: { lat, lon }, votes: [user.id] });
+                sync();
+            }
+            $('search-input').value = '';
+            $('suggestions').classList.add('hidden');
+        };
+
+        window.toggleVote = (id) => {
+            const loc = data.locations.find(l => l.id === id);
+            if (!loc) return;
+            const idx = loc.votes.indexOf(user.id);
+            if (idx >= 0) loc.votes.splice(idx, 1);
+            else loc.votes.push(user.id);
+            sync();
+        };
+
+        window.deleteLoc = (id) => {
+            if (confirm('Delete location?')) {
+                data.locations = data.locations.filter(l => l.id !== id);
+                sync();
+            }
+        };
+
+        // Checklist
+        window.addPackItem = () => {
+            const input = $('pack-input');
+            if (input.value.trim()) {
+                data.packing.push({ id: Date.now(), text: input.value.trim(), checked: false });
+                sync();
+                input.value = '';
+            }
+        };
+
+        window.togglePack = (id) => {
+            const item = data.packing.find(i => i.id === id);
+            if (item) { item.checked = !item.checked; sync(); }
+        };
+
+        window.deletePack = (id) => {
+            data.packing = data.packing.filter(i => i.id !== id);
+            sync();
+        };
+
+        // Itinerary
+        window.createItinerary = () => {
+            const dates = data.finalizedDates || getBestDates();
+            dates.forEach(d => { if (!data.itinerary[d]) data.itinerary[d] = []; });
+            sync();
+        };
+
+        window.addEvent = (date) => showEventModal(date);
+        window.editEvent = (date, id) => showEventModal(date, id);
+
+        function showEventModal(date, eventId = null) {
+            const event = eventId ? data.itinerary[date]?.find(e => e.id == eventId) : null;
+            const dates = Object.keys(data.itinerary).sort();
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-bg';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h2>${event ? 'Edit Event' : 'Add Event'}</h2>
+                    <select id="ev-date" class="mb-2">
+                        ${dates.map(d => `<option value="${d}" ${d === date ? 'selected' : ''}>${formatDate(d)}</option>`).join('')}
+                    </select>
+                    <input type="text" id="ev-title" placeholder="Activity" class="mb-2" value="${event?.title || ''}">
+                    <div class="flex gap-2 mb-4">
+                        <input type="time" id="ev-time" value="${event?.time || '12:00'}">
+                        <input type="number" id="ev-cost" placeholder="Cost €" value="${event?.cost || ''}">
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="saveEvent('${date}', ${eventId || 'null'})">Save</button>
+                    ${event ? `<button class="btn btn-danger" style="width: 100%; margin-top: 0.5rem;" onclick="deleteEvent('${date}', ${eventId})">Delete</button>` : ''}
+                    <button class="btn btn-ghost" style="width: 100%; margin-top: 0.5rem;" onclick="this.closest('.modal-bg').remove()">Cancel</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            $('ev-title').focus();
         }
 
-        window.initCalendar = initCalendar;
-        window.changeMonth = changeMonth;
-        init();
+        window.saveEvent = (origDate, eventId) => {
+            const newDate = $('ev-date').value;
+            const title = $('ev-title').value.trim();
+            const time = $('ev-time').value;
+            const cost = $('ev-cost').value;
+            
+            if (!title || !time) return;
+            
+            if (eventId) {
+                data.itinerary[origDate] = data.itinerary[origDate].filter(e => e.id != eventId);
+            }
+            
+            if (!data.itinerary[newDate]) data.itinerary[newDate] = [];
+            data.itinerary[newDate].push({ id: eventId || Date.now(), title, time, cost });
+            
+            sync();
+            document.querySelector('.modal-bg').remove();
+        };
+
+        window.deleteEvent = (date, id) => {
+            data.itinerary[date] = data.itinerary[date].filter(e => e.id != id);
+            sync();
+            document.querySelector('.modal-bg').remove();
+        };
+
+        // Close suggestions on outside click
+        document.addEventListener('click', e => {
+            if (!e.target.closest('#search-input') && !e.target.closest('#suggestions')) {
+                $('suggestions')?.classList.add('hidden');
+            }
+        });
+
+        // Init
+        (async () => {
+            await signInAnonymously(getAuth(app));
+            if (tripId && user.name) {
+                user.id = user.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                listen();
+            } else {
+                render();
+            }
+        })();
+
+        // Service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
     </script>
 </body>
-
 </html>
