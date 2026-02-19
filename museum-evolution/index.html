@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Museum of Evolution</title>
+    <style>
+        :root {
+            --bg: #0a0a1a;
+            --text: #e0e0e0;
+            --accent: #00ffcc;
+            --accent2: #ff00ff;
+            --muted: #888;
+            --panel: #1a1a2e;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #0f0c29);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        header {
+            text-align: center;
+            padding: 4rem 1rem;
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        header h1 {
+            font-size: 3.5rem;
+            margin: 0 0 1rem 0;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulseText 2s infinite alternate;
+        }
+        @keyframes pulseText {
+            from { filter: drop-shadow(0 0 5px var(--accent)); }
+            to { filter: drop-shadow(0 0 15px var(--accent2)); }
+        }
+        .stats-badge {
+            display: inline-block;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            color: var(--accent);
+            margin: 0.5rem;
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+        }
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .timeline {
+            position: relative;
+            border-left: 4px solid var(--accent);
+            box-shadow: -2px 0 15px rgba(0, 255, 204, 0.4);
+            padding-left: 2rem;
+            margin-left: 1rem;
+        }
+        .exhibit {
+            position: relative;
+            background: rgba(30, 30, 46, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 4rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        .exhibit:hover {
+            transform: scale(1.02) translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5), 0 0 20px rgba(255, 0, 255, 0.2);
+            border-color: var(--accent2);
+        }
+        .exhibit.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .exhibit::before {
+            content: attr(data-icon);
+            position: absolute;
+            left: -3.2rem;
+            top: 1.5rem;
+            font-size: 2rem;
+            background: var(--bg);
+            border-radius: 50%;
+            padding: 0.4rem;
+            box-shadow: 0 0 15px var(--accent);
+            border: 2px solid var(--accent);
+            animation: pulseIcon 2s infinite;
+            z-index: 2;
+        }
+        @keyframes pulseIcon {
+            0% { box-shadow: 0 0 10px var(--accent); transform: scale(1); }
+            50% { box-shadow: 0 0 25px var(--accent2); transform: scale(1.1); }
+            100% { box-shadow: 0 0 10px var(--accent); transform: scale(1); }
+        }
+        .exhibit h2 {
+            margin-top: 0;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .era-date {
+            font-size: 1.1rem;
+            color: var(--era-color, var(--accent));
+            font-weight: bold;
+            animation: pulseGlow 2s infinite;
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+        .data-point strong {
+            display: block;
+            color: var(--era-color, var(--accent));
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px rgba(255,255,255,0.1);
+        }
+        .exhibit {
+            cursor: pointer;
+        }
+        .subdivisions-wrapper {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.3s ease-out;
+        }
+        .exhibit.expanded .subdivisions-wrapper {
+            grid-template-rows: 1fr;
+        }
+        .subdivisions {
+            overflow: hidden;
+        }
+        .sub-event {
+            padding: 1rem;
+            border-left: 3px solid var(--accent2);
+            margin: 1rem 0;
+            background: linear-gradient(90deg, rgba(255,0,255,0.05) 0%, transparent 100%);
+            border-radius: 0 8px 8px 0;
+            transition: transform 0.2s;
+        }
+        .sub-event:hover {
+            transform: translateX(10px);
+            background: linear-gradient(90deg, rgba(255,0,255,0.1) 0%, transparent 100%);
+        }
+        .click-hint {
+            font-size: 0.8rem;
+            color: var(--era-color, var(--muted));
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        @keyframes crash { 0% { transform: translateX(30px) rotate(10deg); } 50% { transform: translateX(0) scale(1.3) rotate(-10deg); } 100% { transform: translateX(0); } }
+        @keyframes floatUp { 0% { transform: translateY(20px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
+        @keyframes swimRight { 0% { transform: translateX(-20px) translateY(10px) rotate(90deg); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateX(120px) translateY(-10px) rotate(90deg); opacity: 0; } }
+        @keyframes meteorFall { 0% { transform: translate(50px, -50px) rotate(45deg); opacity: 1; } 100% { transform: translate(-30px, 30px) rotate(45deg); opacity: 0; } }
+        @keyframes swing { 0%, 100% { transform: rotate(-25deg); } 50% { transform: rotate(25deg); } }
+        @keyframes pulseBrain { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px var(--accent2)); } 50% { transform: scale(1.3); filter: drop-shadow(0 0 20px var(--accent2)); } }
+        @keyframes crawl { 0% { transform: translateX(-10px) rotate(15deg); } 50% { transform: translateX(15px) rotate(-15deg) scaleY(0.8); } 100% { transform: translateX(40px) rotate(15deg); opacity: 0; } }
+        @keyframes dnaSpin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+
+        @keyframes steam { 0% { transform: translateY(0) scale(1); opacity: 0.8;} 100% { transform: translateY(-20px) scale(1.5); opacity: 0;} }
+        @keyframes pulseCell { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); filter: hue-rotate(90deg); } }
+        @keyframes gasDrift { 0% { transform: translate(0, 0); opacity: 1; } 100% { transform: translate(20px, -20px); opacity: 0; } }
+        @keyframes snowFall { 0% { transform: translateY(-10px) rotate(0deg); opacity: 1;} 100% { transform: translateY(20px) rotate(180deg); opacity: 0;} }
+        @keyframes wobble { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg) scale(1.1); } }
+        @keyframes grow { 0% { transform: scaleY(0.5); } 100% { transform: scaleY(1.2); } }
+        @keyframes buzz { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(5px, -5px); } 50% { transform: translate(-5px, 2px); } 75% { transform: translate(2px, 5px); } }
+        @keyframes popUp { 0%, 100% { transform: translateY(10px); opacity: 0; } 50% { transform: translateY(0); opacity: 1; } }
+        @keyframes stretch { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.3) translateY(-5px); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        @keyframes strike { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-45deg); } }
+
+        .anim-moon { display: inline-block; animation: crash 1s infinite alternate ease-in; font-size: 1.5rem; }
+        .anim-bubble { position: absolute; font-size: 1.5rem; animation: floatUp 2s infinite linear; pointer-events: none; }
+        .anim-swim { display: inline-block; animation: swimRight 3s infinite linear; position: absolute; right: 20px; font-size: 2rem; pointer-events: none; }
+        .anim-meteor { display: inline-block; animation: meteorFall 1s infinite linear; position: absolute; right: 40px; top: 10px; font-size: 3rem; pointer-events: none; }
+        .anim-swing { display: inline-block; transform-origin: top center; animation: swing 1.5s infinite ease-in-out; font-size: 1.8rem; }
+        .anim-brain { display: inline-block; animation: pulseBrain 1.5s infinite; font-size: 1.8rem; margin-left: 10px; }
+        .anim-crawl { display: inline-block; animation: crawl 3s infinite linear; position: absolute; right: 30px; font-size: 1.8rem; pointer-events: none; }
+        .anim-dna { display: inline-block; animation: dnaSpin 3s infinite linear; font-size: 1.5rem; margin-left: 10px; }
+
+        .anim-steam { display: inline-block; animation: steam 2s infinite ease-out; position: absolute; right: 20px; font-size: 1.5rem; pointer-events: none; }
+        .anim-pulse-cell { display: inline-block; animation: pulseCell 2s infinite ease-in-out; font-size: 1.5rem; margin-left: 10px; }
+        .anim-gas { display: inline-block; animation: gasDrift 3s infinite linear; position: absolute; right: 20px; font-size: 1.5rem; pointer-events: none; }
+        .anim-snow { display: inline-block; animation: snowFall 2s infinite linear; position: absolute; right: 30px; font-size: 1.5rem; pointer-events: none; }
+        .anim-wobble { display: inline-block; animation: wobble 1s infinite ease-in-out; font-size: 1.5rem; margin-left: 10px; }
+        .anim-grow { display: inline-block; transform-origin: bottom; animation: grow 3s infinite alternate ease-in-out; font-size: 1.5rem; margin-left: 10px; }
+        .anim-buzz { display: inline-block; animation: buzz 0.5s infinite linear; position: absolute; right: 20px; font-size: 1.5rem; pointer-events: none; }
+        .anim-popup { display: inline-block; animation: popUp 3s infinite ease-in-out; position: absolute; right: 20px; font-size: 1.5rem; pointer-events: none; }
+        .anim-stretch { display: inline-block; transform-origin: bottom; animation: stretch 2s infinite ease-in-out; font-size: 1.5rem; margin-left: 10px; }
+        .anim-spin { display: inline-block; animation: spin 4s infinite linear; font-size: 1.5rem; margin-left: 10px; }
+        .anim-jump { display: inline-block; animation: jump 1s infinite ease-in-out; position: absolute; right: 20px; font-size: 1.5rem; pointer-events: none; }
+        .anim-strike { display: inline-block; transform-origin: bottom right; animation: strike 0.5s infinite ease-in-out; font-size: 1.5rem; margin-left: 10px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>✨ 🧬 Journey of Life 🌟</h1>
+    <p>A spectacular chronological exhibition from abiotic chemistry 🧪 to human consciousness 🧠.</p>
+    <div class="stats-badge">⏱️ Timespan: 4.6 Billion Years</div>
+    <div class="stats-badge">🌍 Planet: Earth</div>
+    <div class="stats-badge">🌌 Galaxy: Milky Way</div>
+</header>
+
+<main>
+    <div class="timeline" id="museum-timeline">
+
+        <section class="exhibit" data-icon="🌋">
+            <h2>Formation of Earth <span class="era-date">⏳ 4.6 - 4.5 Billion Years Ago</span></h2>
+            <p>Earth forms from the accretion disk of the young Sun. Initially a molten hellscape, it cools enough to form a solid crust and liquid oceans after the Late Heavy Bombardment.</p>
+            <div class="data-grid">
+                <div class="data-point"><strong>🔥 4.54 BYA</strong> Planet Core & Crust Formed</div>
+                <div class="data-point"><strong>💧 4.4 BYA</strong> First Oceans Formed</div>
+            </div>
+            <div class="click-hint">👇 Click to expand</div>
+            <div class="subdivisions-wrapper">
+                <div class="subdivisions">
+                    <div class="sub-event" style="position: relative;">
+                        <strong>☄️ Hadean Eon (4.6 - 4.0 BYA)</strong>
+                        <p>Extreme volcanism and frequent asteroid collisions. The Moon forms from a collision between Earth and a Mars-sized body named Theia. <span class="anim-moon">🌑</span>💥<span class="anim-moon" style="animation-direction: alternate-reverse">🌍</span></p>
+                    </div>
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🛡️ Archean Crust (4.0 - 3.8 BYA)</strong>
+                        <span class="anim-steam">♨️</span>
+                        <p>The planet cools sufficiently for continental plates to begin forming. Water vapor condenses to create the first global oceans.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="exhibit" data-icon="🦠">
+            <h2>The Spark of Life <span class="era-date">⏳ 3.8 - 3.5 Billion Years Ago</span></h2>
+            <p>Single-celled prokaryotic microorganisms emerge in the primordial soup. These simple life forms lack a nucleus and survive in extremely harsh, oxygen-free environments.</p>
+            <div class="data-grid">
+                <div class="data-point"><strong>🪨 3.7 BYA</strong> Oldest Known Fossils (Stromatolites)</div>
+                <div class="data-point"><strong>🧪 100%</strong> Prokaryotic Biosphere</div>
+            </div>
+            <div class="click-hint">👇 Click to expand</div>
+            <div class="subdivisions-wrapper">
+                <div class="subdivisions">
+                    <div class="sub-event">
+                        <strong>🧬 RNA World Hypothesis <span class="anim-dna">🧬</span></strong>
+                        <p>Self-replicating RNA molecules likely preceded DNA and proteins, storing genetic information and catalyzing chemical reactions.</p>
+                    </div>
+                    <div class="sub-event">
+                        <strong>👑 LUCA (~3.5 BYA) <span class="anim-pulse-cell">🦠</span></strong>
+                        <p>The Last Universal Common Ancestor. Not the first living organism, but the population from which all extant life on Earth descends.</p>
+                    </div>
+                    <div class="sub-event" style="position: relative;">
+                        <strong>💨 Methanogenesis</strong>
+                        <span class="anim-gas">💨</span>
+                        <p>Early Archaea thrive in the anoxic atmosphere by producing methane as a metabolic byproduct.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="exhibit" data-icon="☀️">
+            <h2>Great Oxidation & Eukaryotes <span class="era-date">⏳ 2.4 - 1.5 Billion Years Ago</span></h2>
+            <p>Cyanobacteria begin producing oxygen via photosynthesis. This oxygenates the atmosphere. Later, an archaea engulfs a bacterium without digesting it (endosymbiosis), creating the first complex Eukaryotic cell with mitochondria.</p>
+            <div class="data-grid">
+                <div class="data-point"><strong>🫧 2.4 BYA</strong> Oxygen Accumulates</div>
+                <div class="data-point"><strong>🧫 ~2.0 BYA</strong> First Eukaryotic Cells</div>
+            </div>
+            <div class="click-hint">👇 Click to expand</div>
+            <div class="subdivisions-wrapper">
+                <div class="subdivisions">
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🟢 Cyanobacteria Bloom (2.7 - 2.4 BYA)</strong>
+                        <span class="anim-bubble" style="left: 70%">🫧</span>
+                        <span class="anim-bubble" style="left: 85%; animation-delay: 1s">🫧</span>
+                        <p>Evolution of oxygenic photosynthesis drastically alters atmospheric chemistry, toxic to most early obligate anaerobes.</p>
+                    </div>
+                    <div class="sub-event" style="position: relative;">
+                        <strong>❄️ Huronian Glaciation (2.4 - 2.1 BYA)</strong>
+                        <span class="anim-snow">❄️</span>
+                        <span class="anim-snow" style="right: 50px; animation-delay: 1s">❄️</span>
+                        <p>Free oxygen reacts with atmospheric greenhouse methane, plunging Earth into its first and longest "Snowball Earth" ice age.</p>
+                    </div>
+                    <div class="sub-event">
+                        <strong>🤝 Endosymbiotic Theory (~1.5 BYA) <span class="anim-wobble">🤝</span></strong>
+                        <p>An archaeal host cell engulfs an aerobic bacterium, establishing a symbiotic relationship that eventually becomes the mitochondrion.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="exhibit" data-icon="🦐">
+            <h2>The Cambrian Explosion <span class="era-date">⏳ 541 - 530 Million Years Ago</span></h2>
+            <p>An unparalleled, sudden radiation of complex multicellular life in the oceans. Hard body parts like shells and exoskeletons evolve, leaving a rich fossil record.</p>
+            <div class="data-grid">
+                <div class="data-point"><strong>💥 20-35</strong> New Major Animal Phyla</div>
+                <div class="data-point"><strong>⏱️ ~20M Years</strong> Duration of "Explosion"</div>
+            </div>
+            <div class="click-hint">👇 Click to expand</div>
+            <div class="subdivisions-wrapper">
+                <div class="subdivisions">
+                    <div class="sub-event">
+                        <strong>🪱 Ediacaran Biota (~600 MYA) <span class="anim-swing">🌿</span></strong>
+                        <p>Pre-Cambrian enigmatic, soft-bodied tubular or frond-shaped organisms that represent early experiments in multicellularity.</p>
+                    </div>
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🦑 Burgess Shale Fauna (505 MYA)</strong>
+                        <span class="anim-swim">🦑</span>
+                        <p>Bizarre anatomical experiments abound, including the five-eyed Opabinia and the apex arthropod predator Anomalocaris.</p>
+                    </div>
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🐟 Early Chordates (530 MYA)</strong>
+                        <span class="anim-swim" style="animation-duration: 2s; right: 40px;">🐟</span>
+                        <p>Creatures like Pikaia develop a primitive notochord, serving as early precursors to all vertebrate life.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="exhibit" data-icon="🌿">
+            <h2>Conquest of Land <span class="era-date">⏳ 400 - 350 Million Years Ago</span></h2>
+            <p>Ozone layer formation protects the surface from UV radiation. Plants colonize land, followed shortly by arthropods. Tetrapods (four-legged vertebrates) eventually crawl out of the oceans.</p>
+            <div class="data-grid">
+                <div class="data-point"><strong>🌱 400 MYA</strong> First Land Plants</div>
+                <div class="data-point"><strong>🦎 365 MYA</strong> First Terrestrial Tetrapods</div>
+            </div>
+            <div class="click-hint">👇 Click to expand</div>
+            <div class="subdivisions-wrapper">
+                <div class="subdivisions">
+                    <div class="sub-event">
+                        <strong>🪴 Silurian Flora (430 MYA) <span class="anim-grow">🌱</span></strong>
+                        <p>Cooksonia and early vascular plants develop tissues to pipe water upward, allowing them to stand upright and conquer rocky terrain.</p>
+                    </div>
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🐊 Devonian Tetrapods (375 MYA)</strong>
+                        <span class="anim-crawl">🦎</span>
+                        <p>Lobe-finned fish like Tiktaalik develop limb-like fins and primitive lungs to navigate shallow waters and muddy banks.</p>
+                    </div>
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🌳 Carboniferous Forests (300 MYA)</strong>
+                        <span class="anim-buzz">🪰</span>
+                        <p>Massive swamp forests generate high atmospheric oxygen levels (up to 35%), fueling the evolution of giant arthropods like Meganeura (griffinflies).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="exhibit" data-icon="🦖">
+            <h2>Age of Reptiles <span class="era-date">⏳ 225 - 65 Million Years Ago</span></h2>
+            <p>Dinosaurs evolve and dominate terrestrial ecosystems for over 160 million years. Small, shrew-like mammals also emerge but remain marginalized by predatory dinosaurs.</p>
+            <div class="data-grid">
+                <div class="data-point"><strong>🐀 210 MYA</strong> First Mammals Appear</div>
+                <div class="data-point" style="position: relative; overflow: hidden;"><strong>☄️ 65 MYA</strong> K-T Extinction Event <span class="anim-meteor">☄️</span></div>
+            </div>
+            <div class="click-hint">👇 Click to expand</div>
+            <div class="subdivisions-wrapper">
+                <div class="subdivisions">
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🦎 Triassic Recovery (250 - 200 MYA)</strong>
+                        <span class="anim-popup">🐊</span>
+                        <p>Life slowly recovers from the devastating Permian-Triassic extinction. Crocodilian ancestors and the first early dinosaurs emerge.</p>
+                    </div>
+                    <div class="sub-event">
+                        <strong>🦕 Jurassic Gigantism (200 - 145 MYA) <span class="anim-stretch">🦕</span></strong>
+                        <p>Sauropods like Diplodocus reach massive sizes. Archaeopteryx marks the critical evolutionary transition from feathered dinosaurs to birds.</p>
+                    </div>
+                    <div class="sub-event">
+                        <strong>🌺 Cretaceous Angiosperms (145 - 66 MYA) <span class="anim-spin">🌺</span></strong>
+                        <p>Flowering plants evolve and rapidly diversify, initiating complex co-evolutionary relationships with pollinating insects.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="exhibit" data-icon="🦧">
+            <h2>Rise of Primates & Hominins <span class="era-date">⏳ 55 - 2 Million Years Ago</span></h2>
+            <p>Following the dinosaur extinction, mammals rapidly diversify. Primates appear. Millions of years later in Africa, hominins diverge from the ancestors of modern chimpanzees, developing bipedalism.</p>
+            <div class="data-grid">
+                <div class="data-point"><strong>🐒 6-8 MYA</strong> Ancestor Divergence</div>
+                <div class="data-point"><strong>🚶 4 MYA</strong> Evolution of Bipedalism</div>
+                <div class="data-point"><strong>🪨 2.5 MYA</strong> First Stone Tools</div>
+            </div>
+            <div class="click-hint">👇 Click to expand</div>
+            <div class="subdivisions-wrapper">
+                <div class="subdivisions">
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🐿️ Paleocene Plesiadapiforms (60 MYA)</strong>
+                        <span class="anim-jump">🐿️</span>
+                        <p>Early proto-primates adapt to arboreal life in the dense forests that spread globally shortly after the non-avian dinosaur extinction.</p>
+                    </div>
+                    <div class="sub-event" style="position: relative;">
+                        <strong>🦍 Miocene Apes (20 MYA) <span class="anim-swing">🐒</span></strong>
+                        <p>Proconsul and other early apes dominate African forests before global climate cooling shrinks their habitat, forcing adaptation to savannas.</p>
+                    </div>
+                    <div class="sub-event">
+                        <strong>🦴 Australopithecus (4 - 2 MYA) <span class="anim-wobble">🦧</span></strong>
+                        <p>Hominins like "Lucy" walk fully upright (bipedalism) but retain ape-like brain sizes and climbing adaptations in their upper bodies.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="exhibit" data-icon="🧍">
+            <h2>Homo Sapiens <span class="era-date">⏳ 300,000 Years Ago - Present</span></h2>
+            <p>Anatomically modern humans evolve in Africa. Brain size peaks, complex language develops, and sophisticated tool-making accelerates. Humans migrate across the globe, interbreeding with Neanderthals and Denisovans.</p>
+            <div class="data-grid">
+                <div class="data-point"><strong>💀 300,000 YA</strong> First Homo sapiens Fossils</div>
+                <div class="data-point"><strong>🎨 100,000 YA</strong> Complex Symbolic Art</div>
+                <div class="data-point"><strong>🌾 12,000 YA</strong> Agricultural Revolution</div>
+            </div>
+            <div class="click-hint">👇 Click to expand</div>
+            <div class="subdivisions-wrapper">
+                <div class="subdivisions">
+                    <div class="sub-event">
+                        <strong>🔥 Homo Habilis & Erectus (2.5M - 200k YA) <span class="anim-strike">🔨</span></strong>
+                        <p>Early stone tool use (Oldowan) and harnessing of fire. Homo erectus becomes the first hominin to migrate extensively out of Africa.</p>
+                    </div>
+                    <div class="sub-event">
+                        <strong>🧠 Cognitive Revolution (~70,000 YA) <span class="anim-brain">🧠</span></strong>
+                        <p>Development of complex language and abstract thought. Unprecedented cooperation allows Sapiens to dominate ecosystems and drive megafauna extinctions.</p>
+                    </div>
+                    <div class="sub-event">
+                        <strong>🏛️ Neolithic Revolution (12,000 YA) <span class="anim-swing">🌾</span></strong>
+                        <p>Transition from foraging to agriculture. Sedentary settlements lead to civilization, writing, and the modern technological era.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</main>
+
+<script>
+    const exhibits = document.querySelectorAll('.exhibit');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, {
+        threshold: 0.15,
+        rootMargin: "0px 0px -50px 0px"
+    });
+
+    exhibits.forEach(exhibit => observer.observe(exhibit));
+
+    exhibits.forEach(exhibit => {
+        exhibit.addEventListener('click', () => {
+            exhibit.classList.toggle('expanded');
+            const hint = exhibit.querySelector('.click-hint');
+            hint.textContent = exhibit.classList.contains('expanded') ? '👆 CLICK TO COLLAPSE' : '👇 CLICK TO EXPAND';
+        });
+    });
+</script>
+
+</body>
+</html>
