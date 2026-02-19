@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Group Poll 🗳️</title>
+    <meta name="theme-color" content="#000">
+    <meta name="description" content="Song polls for your WhatsApp group - add songs, vote, share the link">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Group Poll">
+    <link rel="manifest" href="/whatsapp-poll/manifest.json">
+    <link rel="icon" href="/whatsapp-poll/logo.png">
+    <link rel="apple-touch-icon" href="/whatsapp-poll/logo.png">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #000; color: #e5e7eb; min-height: 100dvh; }
+
+        /* Layout */
+        .container { max-width: 480px; margin: 0 auto; padding: 0 1rem 4rem; }
+
+        /* Buttons */
+        button { cursor: pointer; border: none; font: inherit; }
+        .btn { padding: 0.75rem 1.25rem; border-radius: 0.5rem; font-weight: 600; transition: opacity 0.15s; }
+        .btn:active { opacity: 0.7; }
+        .btn-primary { background: #25D366; color: #000; font-weight: 700; }
+        .btn-primary:hover { background: #1fba56; }
+        .btn-sm { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+        .btn-ghost { background: rgba(255,255,255,0.06); color: #9ca3af; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+        .btn-danger { background: transparent; color: #ef4444; font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; }
+        .btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+        /* Vote button */
+        .btn-vote {
+            background: rgba(37,211,102,0.1);
+            color: #25D366;
+            border: 1.5px solid rgba(37,211,102,0.25);
+            border-radius: 2rem;
+            padding: 0.375rem 0.875rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            min-width: 3.5rem;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .btn-vote.voted {
+            background: #25D366;
+            color: #000;
+            border-color: #25D366;
+        }
+        .btn-vote:hover { background: rgba(37,211,102,0.2); }
+        .btn-vote.voted:hover { background: #1fba56; }
+
+        /* Inputs */
+        input, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.5rem;
+            color: white;
+            outline: none;
+            font: inherit;
+            transition: border-color 0.15s;
+        }
+        input:focus, textarea:focus { border-color: #25D366; }
+        input::placeholder, textarea::placeholder { color: #4b5563; }
+
+        /* Header */
+        header {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0.875rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            position: sticky;
+            top: 0;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(12px);
+            z-index: 10;
+        }
+        .header-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex: 1;
+            min-width: 0;
+        }
+        .header-title span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+        .header-title span:hover { color: #25D366; }
+        .header-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+        .user-chip {
+            background: rgba(37,211,102,0.08);
+            color: #4ade80;
+            border: 1px solid rgba(37,211,102,0.15);
+            border-radius: 2rem;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            max-width: 110px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 1.25rem;
+            padding: 0.875rem 0 0.875rem;
+            font-size: 0.8rem;
+            color: #4b5563;
+        }
+        .stat { display: flex; align-items: center; gap: 0.3rem; }
+
+        /* Add song toggle / form */
+        .add-toggle {
+            width: 100%;
+            background: rgba(37,211,102,0.04);
+            border: 1.5px dashed rgba(37,211,102,0.2);
+            color: #25D366;
+            border-radius: 0.75rem;
+            padding: 0.875rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background 0.15s;
+        }
+        .add-toggle:hover { background: rgba(37,211,102,0.09); }
+
+        .add-form {
+            background: rgba(37,211,102,0.03);
+            border: 1px solid rgba(37,211,102,0.18);
+            border-radius: 0.875rem;
+            padding: 1.125rem;
+            margin-bottom: 1rem;
+        }
+        .form-row { margin-bottom: 0.75rem; }
+        .form-row:last-of-type { margin-bottom: 1rem; }
+        .form-label {
+            font-size: 0.72rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: block;
+            margin-bottom: 0.375rem;
+            font-weight: 600;
+        }
+        .form-actions { display: flex; gap: 0.5rem; }
+        .form-actions .btn { flex: 1; text-align: center; }
+
+        /* Song cards */
+        .song-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 0.875rem;
+            margin-bottom: 0.625rem;
+            overflow: hidden;
+            transition: border-color 0.15s;
+        }
+        .song-card.rank-1 { border-color: rgba(251,191,36,0.3); }
+
+        .song-card-main {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem;
+        }
+
+        .song-rank {
+            font-size: 0.8rem;
+            min-width: 1.5rem;
+            text-align: center;
+            font-weight: 700;
+            color: #4b5563;
+            flex-shrink: 0;
+        }
+        .song-rank.r1 { font-size: 1.1rem; }
+        .song-rank.r2 { font-size: 1rem; }
+        .song-rank.r3 { font-size: 0.95rem; }
+
+        .song-info { flex: 1; min-width: 0; }
+        .song-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .song-artist {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.15rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .song-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .link-btn {
+            background: transparent;
+            color: #6b7280;
+            font-size: 1rem;
+            padding: 0.3rem;
+            border-radius: 0.375rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: color 0.15s, background 0.15s;
+        }
+        .link-btn:hover { color: #3b82f6; background: rgba(59,130,246,0.1); }
+
+        .expand-btn {
+            background: transparent;
+            color: #4b5563;
+            font-size: 0.75rem;
+            padding: 0.3rem 0.5rem;
+            border-radius: 0.375rem;
+            transition: color 0.15s;
+        }
+        .expand-btn:hover { color: #9ca3af; }
+
+        /* Expanded song details */
+        .song-details {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 0.875rem;
+            padding-top: 0.75rem;
+        }
+        .detail-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-bottom: 0.5rem;
+        }
+        .detail-row:last-child { margin-bottom: 0; }
+        .detail-icon { flex-shrink: 0; width: 1.25rem; text-align: center; }
+        .detail-link {
+            color: #3b82f6;
+            text-decoration: none;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+        .detail-link:hover { color: #60a5fa; text-decoration: underline; }
+        .detail-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.75rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Modal */
+        .modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
+            z-index: 50;
+        }
+        .modal {
+            background: #111;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 1.5rem 1.5rem 0 0;
+            padding: 2rem 1.5rem 2.5rem;
+            width: 100%;
+            max-width: 480px;
+        }
+        .modal-pill {
+            width: 2.5rem;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            margin: 0 auto 1.5rem;
+        }
+        .modal-emoji { text-align: center; font-size: 3rem; margin-bottom: 0.875rem; }
+        .modal h2 { text-align: center; margin-bottom: 0.375rem; font-size: 1.2rem; }
+        .modal p { text-align: center; color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem; }
+
+        /* Landing page */
+        .landing { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem; }
+        .landing-hero { text-align: center; padding: 3rem 0 2.5rem; }
+        .landing-emoji { font-size: 4rem; line-height: 1; }
+        .landing-title { font-size: 2.25rem; font-weight: 800; margin: 0.75rem 0 0.625rem; }
+        .landing-sub {
+            color: #6b7280;
+            font-size: 0.95rem;
+            max-width: 280px;
+            margin: 0 auto 2rem;
+            line-height: 1.5;
+        }
+        .recent-section { margin-top: 1.5rem; }
+        .recent-label {
+            font-size: 0.72rem;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+        .recent-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 0.875rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.15s;
+        }
+        .recent-item:hover { background: rgba(255,255,255,0.08); }
+        .recent-item-info { flex: 1; min-width: 0; }
+        .recent-item-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .recent-item-meta { font-size: 0.75rem; color: #4b5563; margin-top: 0.15rem; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 2rem;
+            padding: 0.6rem 1.25rem;
+            font-size: 0.875rem;
+            z-index: 100;
+            white-space: nowrap;
+            animation: toastIn 0.2s ease;
+            pointer-events: none;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(0.5rem); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* Empty state */
+        .empty { text-align: center; padding: 3.5rem 1rem; color: #4b5563; }
+        .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+        .empty-text { font-size: 0.9rem; line-height: 1.5; }
+
+        /* Title edit input in header */
+        .title-edit-input {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(37,211,102,0.4);
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            outline: none;
+            width: 160px;
+        }
+
+        /* Flex utils */
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .flex-1 { flex: 1; }
+        .gap-2 { gap: 0.5rem; }
+        .text-muted { color: #6b7280; }
+        .text-sm { font-size: 0.875rem; }
+        .mt-2 { margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseApp = initializeApp({
+            apiKey: "AIzaSyDGrq3qdR3pqHc0dQMXnE20c2wcLOINN-8",
+            authDomain: "rendercode-d73da.firebaseapp.com",
+            projectId: "rendercode-d73da",
+            storageBucket: "rendercode-d73da.firebasestorage.app",
+            messagingSenderId: "798989930424",
+            appId: "1:798989930424:web:7f324e5153cabc5d90494d"
+        });
+        const db = getFirestore(firebaseApp);
+        const auth = getAuth(firebaseApp);
+
+        // ─── State ──────────────────────────────────────────────────────────────────
+        let pollId = new URLSearchParams(location.search).get('token');
+        let user = { id: null, name: localStorage.getItem('poll_user_name') };
+        let data = { title: 'Song Poll', songs: [], users: {} };
+        let unsubscribe = null;
+        let expandedId = null;
+        let addingOpen = false;
+        let editingTitle = false;
+
+        const appEl = document.getElementById('app');
+
+        // ─── Utilities ───────────────────────────────────────────────────────────────
+        const genId    = () => Math.random().toString(36).slice(2, 9);
+        const genToken = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+        const $ = id => document.getElementById(id);
+
+        const mkUserId = name =>
+            name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').slice(0, 24);
+
+        const escHtml = str =>
+            String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+
+        const timeAgo = ts => {
+            const s = (Date.now() - ts) / 1000;
+            if (s < 60)    return 'just now';
+            if (s < 3600)  return Math.floor(s / 60) + 'm ago';
+            if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+            return Math.floor(s / 86400) + 'd ago';
+        };
+
+        const getLinkInfo = url => {
+            if (!url) return null;
+            try { new URL(url); } catch { return null; }
+            if (/youtube\.com|youtu\.be/.test(url))    return { icon: '▶️', label: 'YouTube' };
+            if (/spotify\.com/.test(url))              return { icon: '🎧', label: 'Spotify' };
+            if (/soundcloud\.com/.test(url))           return { icon: '☁️', label: 'SoundCloud' };
+            if (/music\.apple\.com/.test(url))         return { icon: '🍎', label: 'Apple Music' };
+            if (/deezer\.com/.test(url))               return { icon: '🎵', label: 'Deezer' };
+            return { icon: '🔗', label: 'Open Link' };
+        };
+
+        const toast = msg => {
+            const el = document.createElement('div');
+            el.className = 'toast';
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 2500);
+        };
+
+        const getRecent = () => JSON.parse(localStorage.getItem('recent_polls') || '[]');
+        const saveRecent = (id, title) => {
+            let list = getRecent().filter(r => r.id !== id);
+            list.unshift({ id, title: title || 'Song Poll', at: Date.now() });
+            localStorage.setItem('recent_polls', JSON.stringify(list.slice(0, 8)));
+        };
+
+        // ─── Firebase ────────────────────────────────────────────────────────────────
+        const sync = () => {
+            if (!pollId || !user.id) return;
+            setDoc(doc(db, 'whatsapp-poll-v1', pollId), data, { merge: true });
+        };
+
+        const listen = () => {
+            if (unsubscribe) unsubscribe();
+            if (!pollId) return;
+            const ref = doc(db, 'whatsapp-poll-v1', pollId);
+            unsubscribe = onSnapshot(ref, snap => {
+                if (snap.exists()) {
+                    data = snap.data();
+                    data.songs = data.songs || [];
+                    data.users = data.users || {};
+                } else {
+                    // Brand-new poll
+                    data = { title: 'Song Poll', songs: [], users: {} };
+                    setDoc(ref, data);
+                }
+                if (user.id) saveRecent(pollId, data.title);
+                render();
+            });
+        };
+
+        // ─── Actions ──────────────────────────────────────────────────────────────────
+        window.joinPoll = () => {
+            const input = $('name-input');
+            const name  = input?.value.trim();
+            if (!name) { input?.focus(); return; }
+
+            user.name = name;
+            user.id   = mkUserId(name);
+            localStorage.setItem('poll_user_name', name);
+
+            data.users = data.users || {};
+            data.users[user.id] = { name };
+            saveRecent(pollId, data.title);
+            sync();
+            render();
+        };
+
+        window.addSong = () => {
+            const title  = $('song-title')?.value.trim();
+            const artist = $('song-artist')?.value.trim() || '';
+            const link   = $('song-link')?.value.trim()   || '';
+            if (!title) { $('song-title')?.focus(); return; }
+
+            const song = {
+                id:          genId(),
+                title,
+                artist,
+                link,
+                addedBy:     user.id,
+                addedByName: user.name,
+                votes:       [],
+                addedAt:     Date.now()
+            };
+            data.songs = [...(data.songs || []), song];
+            addingOpen = false;
+            sync();
+            render();
+        };
+
+        window.toggleVote = songId => {
+            const song = (data.songs || []).find(s => s.id === songId);
+            if (!song) return;
+            const idx = song.votes.indexOf(user.id);
+            if (idx >= 0) song.votes.splice(idx, 1);
+            else          song.votes.push(user.id);
+            sync();
+            render();
+        };
+
+        window.toggleExpand = songId => {
+            expandedId = expandedId === songId ? null : songId;
+            render();
+        };
+
+        window.removeSong = songId => {
+            const song = (data.songs || []).find(s => s.id === songId);
+            if (!song) return;
+            if (song.addedBy !== user.id) { toast('You can only remove your own songs'); return; }
+            data.songs = data.songs.filter(s => s.id !== songId);
+            if (expandedId === songId) expandedId = null;
+            sync();
+            render();
+        };
+
+        window.toggleAdd = () => {
+            addingOpen = !addingOpen;
+            render();
+            if (addingOpen) setTimeout(() => $('song-title')?.focus(), 50);
+        };
+
+        window.cancelAdd = () => { addingOpen = false; render(); };
+
+        window.startEditTitle = () => {
+            editingTitle = true;
+            render();
+            setTimeout(() => { const t = $('title-input'); if (t) { t.focus(); t.select(); } }, 50);
+        };
+
+        window.saveTitle = () => {
+            const val = $('title-input')?.value.trim();
+            if (val) data.title = val;
+            editingTitle = false;
+            sync();
+            render();
+        };
+
+        window.titleKeydown = e => {
+            if (e.key === 'Enter')  window.saveTitle();
+            if (e.key === 'Escape') { editingTitle = false; render(); }
+        };
+
+        window.copyLink = () => {
+            const url = `${location.origin}/whatsapp-poll/?token=${pollId}`;
+            navigator.clipboard.writeText(url)
+                .then(() => toast('Link copied! Paste it in your WhatsApp group 💬'))
+                .catch(() => toast('Could not copy — url: ' + url));
+        };
+
+        window.createPoll = () => {
+            location.href = `/whatsapp-poll/?token=${genToken()}`;
+        };
+
+        window.addSongKeydown = e => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) window.addSong();
+        };
+
+        // ─── Rendering ───────────────────────────────────────────────────────────────
+        const rankIcon = (rank, hasVotes) => {
+            if (!hasVotes) return rank + 1;
+            if (rank === 0) return '🥇';
+            if (rank === 1) return '🥈';
+            if (rank === 2) return '🥉';
+            return rank + 1;
+        };
+
+        const renderSong = (song, rank) => {
+            const hasVoted  = (song.votes || []).includes(user.id);
+            const voteCount = (song.votes || []).length;
+            const linkInfo  = getLinkInfo(song.link);
+            const isExpanded = expandedId === song.id;
+            const rankClass  = rank < 3 ? `r${rank + 1}` : '';
+            const isTop = rank === 0 && voteCount > 0;
+
+            const voterNames = (song.votes || []).map(vid => {
+                const u = data.users?.[vid];
+                return u ? u.name : vid.replace(/_/g, ' ');
+            });
+
+            return `
+            <div class="song-card ${isTop ? 'rank-1' : ''}">
+                <div class="song-card-main">
+                    <div class="song-rank ${rankClass}">${rankIcon(rank, voteCount > 0)}</div>
+
+                    <div class="song-info">
+                        <div class="song-title">${escHtml(song.title)}</div>
+                        ${song.artist ? `<div class="song-artist">${escHtml(song.artist)}</div>` : ''}
+                    </div>
+
+                    <div class="song-actions">
+                        <button class="btn-vote ${hasVoted ? 'voted' : ''}" onclick="toggleVote('${song.id}')"
+                            title="${hasVoted ? 'Remove vote' : 'Vote for this song'}">
+                            ${hasVoted ? '✓' : '+'} ${voteCount}
+                        </button>
+                        ${linkInfo ? `
+                            <a href="${escHtml(song.link)}" target="_blank" rel="noopener noreferrer"
+                               class="link-btn" title="Open on ${linkInfo.label}">
+                               ${linkInfo.icon}
+                            </a>` : ''}
+                        <button class="expand-btn" onclick="toggleExpand('${song.id}')"
+                            title="${isExpanded ? 'Collapse' : 'See details'}">
+                            ${isExpanded ? '▲' : '▼'}
+                        </button>
+                    </div>
+                </div>
+
+                ${isExpanded ? `
+                <div class="song-details">
+                    ${song.link ? `
+                    <div class="detail-row">
+                        <span class="detail-icon">${linkInfo?.icon || '🔗'}</span>
+                        <a href="${escHtml(song.link)}" target="_blank" rel="noopener noreferrer"
+                           class="detail-link">${escHtml(song.link)}</a>
+                    </div>` : ''}
+
+                    <div class="detail-row">
+                        <span class="detail-icon">➕</span>
+                        <span>Added by <strong>${escHtml(song.addedByName || song.addedBy)}</strong> &middot; ${timeAgo(song.addedAt)}</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-icon">👍</span>
+                        <span>${voterNames.length > 0
+                            ? voterNames.map(escHtml).join(', ')
+                            : '<span style="color:#4b5563">No votes yet</span>'
+                        }</span>
+                    </div>
+
+                    ${song.addedBy === user.id ? `
+                    <div class="detail-footer">
+                        <span style="font-size:0.75rem;color:#4b5563">Your song</span>
+                        <button class="btn-danger" onclick="removeSong('${song.id}')">Remove 🗑</button>
+                    </div>` : ''}
+                </div>` : ''}
+            </div>`;
+        };
+
+        const render = () => {
+            if (!pollId) { renderLanding(); return; }
+
+            const sorted      = [...(data.songs || [])].sort((a, b) => (b.votes?.length ?? 0) - (a.votes?.length ?? 0));
+            const memberCount = Object.keys(data.users || {}).length;
+            const totalVotes  = sorted.reduce((s, song) => s + (song.votes?.length ?? 0), 0);
+            const needsName   = !user.name;
+
+            appEl.innerHTML = `
+                ${needsName ? `
+                <div class="modal-bg">
+                    <div class="modal">
+                        <div class="modal-pill"></div>
+                        <div class="modal-emoji">🎵</div>
+                        <h2>Join the Poll</h2>
+                        <p>What's your name? Others in the group will see it.</p>
+                        <div style="margin-bottom:1rem">
+                            <input id="name-input" type="text" placeholder="Your name"
+                                autocomplete="given-name" maxlength="30"
+                                onkeydown="if(event.key==='Enter')joinPoll()">
+                        </div>
+                        <button class="btn btn-primary" style="width:100%;font-size:1rem" onclick="joinPoll()">
+                            Join 🎉
+                        </button>
+                    </div>
+                </div>` : ''}
+
+                <header>
+                    <div class="header-title">
+                        🗳️
+                        ${editingTitle
+                            ? `<input id="title-input" class="title-edit-input"
+                                    value="${escHtml(data.title)}"
+                                    maxlength="50"
+                                    onkeydown="titleKeydown(event)"
+                                    onblur="saveTitle()">`
+                            : `<span onclick="startEditTitle()" title="Tap to rename">${escHtml(data.title)}</span>`
+                        }
+                    </div>
+                    <div class="header-actions">
+                        ${user.name ? `<span class="user-chip">👤 ${escHtml(user.name)}</span>` : ''}
+                        <button class="btn btn-ghost btn-sm" onclick="copyLink()">Share 🔗</button>
+                    </div>
+                </header>
+
+                <div class="container">
+                    <div class="stats-bar">
+                        <span class="stat">🎵 ${sorted.length} song${sorted.length !== 1 ? 's' : ''}</span>
+                        <span class="stat">👥 ${memberCount} member${memberCount !== 1 ? 's' : ''}</span>
+                        <span class="stat">👍 ${totalVotes} vote${totalVotes !== 1 ? 's' : ''}</span>
+                    </div>
+
+                    ${addingOpen ? `
+                    <div class="add-form">
+                        <div class="form-row">
+                            <label class="form-label">Song title *</label>
+                            <input id="song-title" type="text" placeholder="e.g. Blinding Lights"
+                                autocomplete="off" maxlength="80"
+                                onkeydown="if(event.key==='Enter')$('song-artist').focus()">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Artist</label>
+                            <input id="song-artist" type="text" placeholder="e.g. The Weeknd"
+                                autocomplete="off" maxlength="60"
+                                onkeydown="if(event.key==='Enter')$('song-link').focus()">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Link — YouTube, Spotify, SoundCloud…</label>
+                            <input id="song-link" type="url" placeholder="https://…"
+                                autocomplete="off"
+                                onkeydown="if(event.key==='Enter')addSong()">
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-ghost" onclick="cancelAdd()">Cancel</button>
+                            <button class="btn btn-primary" onclick="addSong()">Add Song ✓</button>
+                        </div>
+                    </div>
+                    ` : `
+                    <button class="add-toggle" onclick="toggleAdd()">
+                        <span style="font-size:1.1rem">+</span> Add a Song
+                    </button>`}
+
+                    ${sorted.length === 0 ? `
+                    <div class="empty">
+                        <div class="empty-icon">🎶</div>
+                        <div class="empty-text">
+                            No songs yet.<br>
+                            Be the first to add one!
+                        </div>
+                    </div>
+                    ` : sorted.map((s, i) => renderSong(s, i)).join('')}
+                </div>
+            `;
+
+            if (needsName) setTimeout(() => $('name-input')?.focus(), 60);
+        };
+
+        const renderLanding = () => {
+            const recents = getRecent();
+            appEl.innerHTML = `
+                <div class="landing">
+                    <div class="landing-hero">
+                        <div class="landing-emoji">🎵</div>
+                        <h1 class="landing-title">Group Poll</h1>
+                        <p class="landing-sub">
+                            Song polls for your WhatsApp group.<br>
+                            Add songs, vote, share the link.
+                        </p>
+                        <button class="btn btn-primary"
+                            style="font-size:1rem;padding:1rem 2.5rem;border-radius:3rem"
+                            onclick="createPoll()">
+                            Create Song Poll 🎶
+                        </button>
+                    </div>
+
+                    ${recents.length > 0 ? `
+                    <div class="recent-section">
+                        <div class="recent-label">Recent Polls</div>
+                        ${recents.map(r => `
+                            <a class="recent-item" href="/whatsapp-poll/?token=${escHtml(r.id)}">
+                                <span style="font-size:1.25rem">🗳️</span>
+                                <div class="recent-item-info">
+                                    <div class="recent-item-title">${escHtml(r.title)}</div>
+                                    <div class="recent-item-meta">${timeAgo(r.at)}</div>
+                                </div>
+                                <span style="color:#4b5563;font-size:1.1rem">›</span>
+                            </a>
+                        `).join('')}
+                    </div>` : ''}
+                </div>
+            `;
+        };
+
+        // ─── Init ─────────────────────────────────────────────────────────────────────
+        window.onload = async () => {
+            await signInAnonymously(auth);
+
+            if (pollId) {
+                if (user.name) user.id = mkUserId(user.name);
+                listen(); // Listener will call render() once data arrives
+            } else {
+                renderLanding();
+            }
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/whatsapp-poll/sw.js').catch(() => {});
+            }
+        };
+    </script>
+</body>
+</html>
