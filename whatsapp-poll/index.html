@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Group Poll 🗳️</title>
     <meta name="theme-color" content="#000">
-    <meta name="description" content="Song polls for your WhatsApp group - add songs, vote, share the link">
+    <meta name="description" content="Group polls for dance, songs, and decisions — add options, vote, share the link">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Group Poll">
@@ -204,15 +204,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .song-artist {
-            font-size: 0.8rem;
-            color: #6b7280;
-            margin-top: 0.15rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
         .song-actions {
             display: flex;
             align-items: center;
@@ -390,15 +381,6 @@
             width: 160px;
         }
 
-        /* Flex utils */
-        .flex { display: flex; }
-        .items-center { align-items: center; }
-        .justify-between { justify-content: space-between; }
-        .flex-1 { flex: 1; }
-        .gap-2 { gap: 0.5rem; }
-        .text-muted { color: #6b7280; }
-        .text-sm { font-size: 0.875rem; }
-        .mt-2 { margin-top: 0.5rem; }
     </style>
 </head>
 <body>
@@ -423,7 +405,7 @@
         // ─── State ──────────────────────────────────────────────────────────────────
         let pollId = new URLSearchParams(location.search).get('token');
         let user = { id: null, name: localStorage.getItem('poll_user_name') };
-        let data = { title: 'Song Poll', songs: [], users: {} };
+        let data = { title: 'Dance Poll', songs: [], users: {} };
         let unsubscribe = null;
         let expandedId = null;
         let addingOpen = false;
@@ -457,11 +439,8 @@
         const getLinkInfo = url => {
             if (!url) return null;
             try { new URL(url); } catch { return null; }
-            if (/youtube\.com|youtu\.be/.test(url))    return { icon: '▶️', label: 'YouTube' };
-            if (/spotify\.com/.test(url))              return { icon: '🎧', label: 'Spotify' };
-            if (/soundcloud\.com/.test(url))           return { icon: '☁️', label: 'SoundCloud' };
-            if (/music\.apple\.com/.test(url))         return { icon: '🍎', label: 'Apple Music' };
-            if (/deezer\.com/.test(url))               return { icon: '🎵', label: 'Deezer' };
+            if (/youtube\.com|youtu\.be/.test(url)) return { icon: '▶️', label: 'YouTube' };
+            if (/spotify\.com/.test(url))           return { icon: '🎧', label: 'Spotify' };
             return { icon: '🔗', label: 'Open Link' };
         };
 
@@ -476,7 +455,7 @@
         const getRecent = () => JSON.parse(localStorage.getItem('recent_polls') || '[]');
         const saveRecent = (id, title) => {
             let list = getRecent().filter(r => r.id !== id);
-            list.unshift({ id, title: title || 'Song Poll', at: Date.now() });
+            list.unshift({ id, title: title || 'Dance Poll', at: Date.now() });
             localStorage.setItem('recent_polls', JSON.stringify(list.slice(0, 8)));
         };
 
@@ -497,7 +476,7 @@
                     data.users = data.users || {};
                 } else {
                     // Brand-new poll
-                    data = { title: 'Song Poll', songs: [], users: {} };
+                    data = { title: 'Dance Poll', songs: [], users: {} };
                     setDoc(ref, data);
                 }
                 if (user.id) saveRecent(pollId, data.title);
@@ -523,15 +502,13 @@
         };
 
         window.addSong = () => {
-            const title  = $('song-title')?.value.trim();
-            const artist = $('song-artist')?.value.trim() || '';
-            const link   = $('song-link')?.value.trim()   || '';
-            if (!title) { $('song-title')?.focus(); return; }
+            const title = $('opt-title')?.value.trim();
+            const link  = $('opt-link')?.value.trim() || '';
+            if (!title) { $('opt-title')?.focus(); return; }
 
             const song = {
                 id:          genId(),
                 title,
-                artist,
                 link,
                 addedBy:     user.id,
                 addedByName: user.name,
@@ -562,7 +539,7 @@
         window.removeSong = songId => {
             const song = (data.songs || []).find(s => s.id === songId);
             if (!song) return;
-            if (song.addedBy !== user.id) { toast('You can only remove your own songs'); return; }
+            if (song.addedBy !== user.id) { toast('You can only remove your own options'); return; }
             data.songs = data.songs.filter(s => s.id !== songId);
             if (expandedId === songId) expandedId = null;
             sync();
@@ -572,7 +549,7 @@
         window.toggleAdd = () => {
             addingOpen = !addingOpen;
             render();
-            if (addingOpen) setTimeout(() => $('song-title')?.focus(), 50);
+            if (addingOpen) setTimeout(() => $('opt-title')?.focus(), 50);
         };
 
         window.cancelAdd = () => { addingOpen = false; render(); };
@@ -607,10 +584,6 @@
             location.href = `/whatsapp-poll/?token=${genToken()}`;
         };
 
-        window.addSongKeydown = e => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) window.addSong();
-        };
-
         // ─── Rendering ───────────────────────────────────────────────────────────────
         const rankIcon = (rank, hasVotes) => {
             if (!hasVotes) return rank + 1;
@@ -640,12 +613,11 @@
 
                     <div class="song-info">
                         <div class="song-title">${escHtml(song.title)}</div>
-                        ${song.artist ? `<div class="song-artist">${escHtml(song.artist)}</div>` : ''}
                     </div>
 
                     <div class="song-actions">
                         <button class="btn-vote ${hasVoted ? 'voted' : ''}" onclick="toggleVote('${song.id}')"
-                            title="${hasVoted ? 'Remove vote' : 'Vote for this song'}">
+                            title="${hasVoted ? 'Remove vote' : 'Vote'}">
                             ${hasVoted ? '✓' : '+'} ${voteCount}
                         </button>
                         ${linkInfo ? `
@@ -684,7 +656,7 @@
 
                     ${song.addedBy === user.id ? `
                     <div class="detail-footer">
-                        <span style="font-size:0.75rem;color:#4b5563">Your song</span>
+                        <span style="font-size:0.75rem;color:#4b5563">Added by you</span>
                         <button class="btn-danger" onclick="removeSong('${song.id}')">Remove 🗑</button>
                     </div>` : ''}
                 </div>` : ''}
@@ -704,7 +676,7 @@
                 <div class="modal-bg">
                     <div class="modal">
                         <div class="modal-pill"></div>
-                        <div class="modal-emoji">🎵</div>
+                        <div class="modal-emoji">🗳️</div>
                         <h2>Join the Poll</h2>
                         <p>What's your name? Others in the group will see it.</p>
                         <div style="margin-bottom:1rem">
@@ -738,7 +710,7 @@
 
                 <div class="container">
                     <div class="stats-bar">
-                        <span class="stat">🎵 ${sorted.length} song${sorted.length !== 1 ? 's' : ''}</span>
+                        <span class="stat">📋 ${sorted.length} option${sorted.length !== 1 ? 's' : ''}</span>
                         <span class="stat">👥 ${memberCount} member${memberCount !== 1 ? 's' : ''}</span>
                         <span class="stat">👍 ${totalVotes} vote${totalVotes !== 1 ? 's' : ''}</span>
                     </div>
@@ -746,39 +718,33 @@
                     ${addingOpen ? `
                     <div class="add-form">
                         <div class="form-row">
-                            <label class="form-label">Song title *</label>
-                            <input id="song-title" type="text" placeholder="e.g. Blinding Lights"
+                            <label class="form-label">Option *</label>
+                            <input id="opt-title" type="text" placeholder="e.g. Blinding Lights, Tutorial move, Costume A…"
                                 autocomplete="off" maxlength="80"
-                                onkeydown="if(event.key==='Enter')$('song-artist').focus()">
+                                onkeydown="if(event.key==='Enter')$('opt-link').focus()">
                         </div>
                         <div class="form-row">
-                            <label class="form-label">Artist</label>
-                            <input id="song-artist" type="text" placeholder="e.g. The Weeknd"
-                                autocomplete="off" maxlength="60"
-                                onkeydown="if(event.key==='Enter')$('song-link').focus()">
-                        </div>
-                        <div class="form-row">
-                            <label class="form-label">Link — YouTube, Spotify, SoundCloud…</label>
-                            <input id="song-link" type="url" placeholder="https://…"
+                            <label class="form-label">Link — YouTube, Spotify…</label>
+                            <input id="opt-link" type="url" placeholder="https://…"
                                 autocomplete="off"
                                 onkeydown="if(event.key==='Enter')addSong()">
                         </div>
                         <div class="form-actions">
                             <button class="btn btn-ghost" onclick="cancelAdd()">Cancel</button>
-                            <button class="btn btn-primary" onclick="addSong()">Add Song ✓</button>
+                            <button class="btn btn-primary" onclick="addSong()">Add ✓</button>
                         </div>
                     </div>
                     ` : `
                     <button class="add-toggle" onclick="toggleAdd()">
-                        <span style="font-size:1.1rem">+</span> Add a Song
+                        <span style="font-size:1.1rem">+</span> Add an Option
                     </button>`}
 
                     ${sorted.length === 0 ? `
                     <div class="empty">
-                        <div class="empty-icon">🎶</div>
+                        <div class="empty-icon">🗳️</div>
                         <div class="empty-text">
-                            No songs yet.<br>
-                            Be the first to add one!
+                            Nothing here yet.<br>
+                            Add the first option!
                         </div>
                     </div>
                     ` : sorted.map((s, i) => renderSong(s, i)).join('')}
@@ -793,16 +759,17 @@
             appEl.innerHTML = `
                 <div class="landing">
                     <div class="landing-hero">
-                        <div class="landing-emoji">🎵</div>
+                        <div class="landing-emoji">🗳️</div>
                         <h1 class="landing-title">Group Poll</h1>
                         <p class="landing-sub">
-                            Song polls for your WhatsApp group.<br>
-                            Add songs, vote, share the link.
+                            Polls for your dance group.<br>
+                            Songs, moves, formations — anything.<br>
+                            Add options, vote, share the link.
                         </p>
                         <button class="btn btn-primary"
                             style="font-size:1rem;padding:1rem 2.5rem;border-radius:3rem"
                             onclick="createPoll()">
-                            Create Song Poll 🎶
+                            Create a Poll 🗳️
                         </button>
                     </div>
 
