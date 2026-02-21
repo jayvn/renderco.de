@@ -31,7 +31,7 @@ $('#wiki-search').oninput = debounce(async (e) => {
     const q = e.target.value;
     if (q.length < 2) { searchResults.innerHTML = ''; return; }
     const data = await wikiApi({ action: 'opensearch', search: q, limit: 6 });
-    searchResults.innerHTML = (data[1] || []).map(t => 
+    searchResults.innerHTML = (data[1] || []).map(t =>
         `<div class="search-result-item" data-title="${t}">${t}</div>`
     ).join('') || '<div style="padding:12px;color:#666">No results</div>';
 }, 300);
@@ -53,7 +53,7 @@ $('#nav').onclick = (e) => {
 
 $('.modal-body', articleDialog).onscroll = (e) => {
     const el = e.target;
-    $('.reading-progress', articleDialog).style.width = 
+    $('.reading-progress', articleDialog).style.width =
         Math.min(100, (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100) + '%';
 };
 
@@ -97,7 +97,7 @@ articleDialog.addEventListener('close', () => {
     sessionId = null;
 });
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
 
 loadArticles();
 setActiveNav();
@@ -127,38 +127,47 @@ async function loadArticles() {
     if (loading) return;
     loading = true;
 
-    let data;
-    if (feedMode === 'foryou' && Object.keys(liked).length > 0) {
-        data = await fetchRecommended();
-    } else if (feedMode === 'foryou') {
-        feed.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><h3>Your personal feed</h3><p>Like some articles to get recommendations</p></div>`;
-        loading = false;
-        return;
-    } else {
-        data = await fetchRandom();
-    }
+    try {
+        let data;
+        if (feedMode === 'foryou' && Object.keys(liked).length > 0) {
+            data = await fetchRecommended();
+        } else if (feedMode === 'foryou') {
+            feed.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><h3>Your personal feed</h3><p>Like some articles to get recommendations</p></div>`;
+            return;
+        } else {
+            data = await fetchRandom();
+        }
 
-    feed.querySelector('.loading-state')?.remove();
-    feed.querySelector('.empty-state')?.remove();
+        feed.querySelector('.loading-state')?.remove();
+        feed.querySelector('.empty-state')?.remove();
 
-    for (const a of data) {
-        if (articles.has(a.title)) continue;
-        articles.set(a.title, a);
-        feed.insertAdjacentHTML('beforeend', `
-            <div class="feed-item ${a.image ? 'has-image' : ''}" data-title="${a.title}">
-                ${a.image ? `<img class="feed-bg" src="${a.image}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-image');this.remove()">` : ''}
-                <div class="content-overlay">
-                    <h2>${a.title}</h2>
-                    <p>${a.summary}</p>
-                    <div class="feed-actions">
-                        <button class="feed-btn read-btn">Read →</button>
-                        <button class="feed-btn like-btn ${liked[a.title] ? 'liked' : ''}">${liked[a.title] ? '❤️' : '🤍'} Save</button>
+        for (const a of data) {
+            if (articles.has(a.title)) continue;
+            articles.set(a.title, a);
+            feed.insertAdjacentHTML('beforeend', `
+                <div class="feed-item ${a.image ? 'has-image' : ''}" data-title="${a.title}">
+                    ${a.image ? `<img class="feed-bg" src="${a.image}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-image');this.remove()">` : ''}
+                    <div class="content-overlay">
+                        <h2>${a.title}</h2>
+                        <p>${a.summary}</p>
+                        <div class="feed-actions">
+                            <button class="feed-btn read-btn">Read →</button>
+                            <button class="feed-btn like-btn ${liked[a.title] ? 'liked' : ''}">${liked[a.title] ? '❤️' : '🤍'} Save</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `);
+            `);
+        }
+    } catch (err) {
+        console.error('Failed to load articles:', err);
+        feed.querySelector('.loading-state')?.remove();
+        if (!articles.size) {
+            feed.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Failed to load</h3><p>Tap to retry</p></div>`;
+            feed.querySelector('.empty-state').onclick = () => { feed.innerHTML = '<div class="loading-state"><div class="loader"></div></div>'; loadArticles(); };
+        }
+    } finally {
+        loading = false;
     }
-    loading = false;
 }
 
 async function fetchRandom() {
@@ -211,7 +220,18 @@ async function openArticle(title, isBack = false) {
         addToTree(title, parent);
     }
 
-    const data = await wikiApi({ action: 'parse', page: title, prop: 'text', mobileformat: 1 });
+    // Render header immediately so close/back buttons are always available
+    const depth = navStack.length;
+    renderArticleHeader(title, depth);
+
+    let data;
+    try {
+        data = await wikiApi({ action: 'parse', page: title, prop: 'text', mobileformat: 1 });
+    } catch (err) {
+        console.error('Failed to load article:', err);
+        $('.modal-body', articleDialog).innerHTML = '<p style="padding:20px">Failed to load. Check your connection.</p>';
+        return;
+    }
     if (!data?.parse) {
         $('.modal-body', articleDialog).innerHTML = '<p style="padding:20px">Failed to load</p>';
         return;
@@ -219,25 +239,31 @@ async function openArticle(title, isBack = false) {
 
     const t = data.parse.title;
     currentArticle = { title: t, ...articles.get(t) };
-    const depth = navStack.length;
-
-    $('.modal-header', articleDialog).innerHTML = `
-        ${depth > 1 ? '<button class="circle-btn" data-action="back">←</button>' : ''}
-        <div class="header-title">
-            ${depth > 1 ? `<div class="nav-path">📚 ${depth} deep</div>` : ''}
-            <h2>${t}</h2>
-        </div>
-        <div class="modal-actions">
-            <button class="circle-btn" data-action="like">${liked[t] ? '❤️' : '🤍'}</button>
-            <button class="circle-btn" data-action="share">↗️</button>
-            <button class="circle-btn" data-action="close">✕</button>
-        </div>
-    `;
+    renderArticleHeader(t, depth);
 
     const body = $('.modal-body', articleDialog);
     body.innerHTML = data.parse.text['*'];
     body.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox').forEach(el => el.remove());
     body.scrollTop = 0;
+
+    // Fix Wikipedia lazy-loaded images (mobile format uses data-src)
+    body.querySelectorAll('img[data-src]').forEach(img => {
+        img.src = img.dataset.src;
+    });
+    body.querySelectorAll('.lazy-image-placeholder').forEach(el => {
+        const src = el.dataset.src || el.getAttribute('data-src');
+        if (src) {
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.maxWidth = '100%';
+            img.style.borderRadius = '8px';
+            el.replaceWith(img);
+        }
+    });
+    // Fix protocol-relative URLs
+    body.querySelectorAll('img[src^="//"]').forEach(img => {
+        img.src = 'https:' + img.getAttribute('src');
+    });
 
     body.querySelectorAll('a').forEach(link => {
         link.onclick = (e) => {
@@ -250,6 +276,21 @@ async function openArticle(title, isBack = false) {
             }
         };
     });
+}
+
+function renderArticleHeader(title, depth) {
+    $('.modal-header', articleDialog).innerHTML = `
+        ${depth > 1 ? '<button class="circle-btn" data-action="back">←</button>' : ''}
+        <div class="header-title">
+            ${depth > 1 ? `<div class="nav-path">📚 ${depth} deep</div>` : ''}
+            <h2>${title}</h2>
+        </div>
+        <div class="modal-actions">
+            <button class="circle-btn" data-action="like">${liked[title] ? '❤️' : '🤍'}</button>
+            <button class="circle-btn" data-action="share">↗️</button>
+            <button class="circle-btn" data-action="close">✕</button>
+        </div>
+    `;
 }
 
 function goBack() {
@@ -277,7 +318,7 @@ async function toggleLike(title) {
         showToast('Saved!');
     }
     localStorage.likedArticles = JSON.stringify(liked);
-    
+
     // Update UI
     $$('.feed-item').forEach(item => {
         if (item.dataset.title === title) {
@@ -311,14 +352,14 @@ function addToHistory(title) {
 function addToTree(title, parent) {
     const now = Date.now();
     tree.nodes[title] ??= { title, firstSeen: now };
-    
+
     if (!parent) {
         sessionId = 's' + now;
         tree.sessions.unshift({ id: sessionId, root: title, time: now });
     } else if (!tree.edges.some(e => e.from === parent && e.to === title && e.session === sessionId)) {
         tree.edges.push({ from: parent, to: title, time: now, session: sessionId });
     }
-    
+
     while (tree.sessions.length > 30) {
         const old = tree.sessions.pop();
         tree.edges = tree.edges.filter(e => e.session !== old.id);
@@ -329,7 +370,7 @@ function addToTree(title, parent) {
 function showOverlay(type) {
     const header = $('h2', overlayDialog);
     const content = $('.overlay-content', overlayDialog);
-    
+
     header.textContent = type === 'history' ? 'History' : type === 'tree' ? 'Exploration Tree' : 'Saved';
     $$('.nav-item', $('#nav')).forEach(btn => btn.classList.toggle('active', btn.dataset.view === type));
 
@@ -351,7 +392,7 @@ function showOverlay(type) {
             </div>
         `).join('') : emptyState('❤️', 'No saved articles', 'Tap the heart on articles to save');
     }
-    
+
     overlayDialog.showModal();
 }
 
@@ -378,12 +419,12 @@ function renderTree() {
 
     const totalNodes = Object.keys(tree.nodes).length;
     let maxDepth = 1;
-    
+
     const sessionData = tree.sessions.map(s => {
         const edges = tree.edges.filter(e => e.session === s.id);
         const children = {};
         edges.forEach(e => (children[e.from] ??= []).push(e.to));
-        
+
         const getDepth = (node, d = 1) => {
             const kids = children[node] || [];
             return kids.length ? Math.max(...kids.map(k => getDepth(k, d + 1))) : d;
