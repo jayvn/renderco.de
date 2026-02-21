@@ -57,7 +57,7 @@ $('.modal-body', articleDialog).onscroll = (e) => {
         Math.min(100, (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100) + '%';
 };
 
-$('.close-overlay', overlayDialog).onclick = () => overlayDialog.close();
+$('.close-overlay', overlayDialog).onclick = () => history.back();
 
 articleDialog.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
@@ -66,7 +66,7 @@ articleDialog.onclick = (e) => {
     if (action === 'back') goBack();
     else if (action === 'like') toggleLike(currentArticle.title);
     else if (action === 'share') shareArticle();
-    else if (action === 'close') articleDialog.close();
+    else if (action === 'close') history.back();
 };
 
 feed.onclick = (e) => {
@@ -95,6 +95,23 @@ articleDialog.addEventListener('close', () => {
     navStack = [];
     currentArticle = null;
     sessionId = null;
+});
+
+// Browser back button support
+window.addEventListener('popstate', (e) => {
+    if (e.state?.type === 'article' && articleDialog.open) {
+        // Navigate back within articles
+        if (navStack.length > 1) {
+            navStack.pop();
+            openArticle(navStack.at(-1).title, true);
+        } else {
+            articleDialog.close();
+        }
+    } else if (articleDialog.open) {
+        articleDialog.close();
+    } else if (overlayDialog.open) {
+        overlayDialog.close();
+    }
 });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
@@ -208,7 +225,7 @@ async function fetchRecommended() {
 }
 
 async function openArticle(title, isBack = false) {
-    articleDialog.showModal();
+    if (!articleDialog.open) articleDialog.showModal();
     $('.modal-body', articleDialog).innerHTML = '<div class="loader" style="margin:40px auto"></div>';
     $('.reading-progress', articleDialog).style.width = '0%';
     currentArticle = { title };
@@ -218,6 +235,7 @@ async function openArticle(title, isBack = false) {
         navStack.push({ title });
         addToHistory(title);
         addToTree(title, parent);
+        history.pushState({ type: 'article', title }, '', `#article/${encodeURIComponent(title)}`);
     }
 
     // Render header immediately so close/back buttons are always available
@@ -295,8 +313,7 @@ function renderArticleHeader(title, depth) {
 
 function goBack() {
     if (navStack.length > 1) {
-        navStack.pop();
-        openArticle(navStack.at(-1).title, true);
+        history.back();
     }
 }
 
@@ -373,6 +390,7 @@ function showOverlay(type) {
 
     header.textContent = type === 'history' ? 'History' : type === 'tree' ? 'Exploration Tree' : 'Saved';
     $$('.nav-item', $('#nav')).forEach(btn => btn.classList.toggle('active', btn.dataset.view === type));
+    history.pushState({ type: 'overlay', view: type }, '', `#${type}`);
 
     if (type === 'tree') {
         content.innerHTML = renderTree();
