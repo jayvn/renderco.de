@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wikifeed-v3';
+const CACHE_NAME = 'wikifeed-v4';
 const STATIC_ASSETS = [
     '/wiki_rabbithole/',
     '/wiki_rabbithole/index.html',
@@ -35,9 +35,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // For Wikipedia API requests - network only (we handle offline in app.js)
-    if (url.hostname.includes('wikipedia.org')) {
-        event.respondWith(fetch(event.request));
+    // For Wikipedia/Wikimedia requests - let browser handle natively
+    // (preserves referrerpolicy for images, handles CORS properly)
+    if (url.hostname.includes('wikipedia.org') || url.hostname.includes('wikimedia.org')) {
         return;
     }
 

@@ -282,6 +282,11 @@ async function openArticle(title, isBack = false) {
     body.querySelectorAll('img[src^="//"]').forEach(img => {
         img.src = 'https:' + img.getAttribute('src');
     });
+    // Ensure all images can load from Wikimedia CDN
+    body.querySelectorAll('img').forEach(img => {
+        img.referrerPolicy = 'no-referrer';
+        img.crossOrigin = 'anonymous';
+    });
 
     body.querySelectorAll('a').forEach(link => {
         link.onclick = (e) => {
