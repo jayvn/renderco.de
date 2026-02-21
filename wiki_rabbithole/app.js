@@ -145,8 +145,8 @@ async function loadArticles() {
         if (articles.has(a.title)) continue;
         articles.set(a.title, a);
         feed.insertAdjacentHTML('beforeend', `
-            <div class="feed-item" data-title="${a.title}">
-                ${a.image ? `<img class="feed-bg" src="${a.image}" alt="" referrerpolicy="no-referrer">` : ''}
+            <div class="feed-item ${a.image ? 'has-image' : ''}" data-title="${a.title}">
+                ${a.image ? `<img class="feed-bg" src="${a.image}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-image');this.remove()">` : ''}
                 <div class="content-overlay">
                     <h2>${a.title}</h2>
                     <p>${a.summary}</p>

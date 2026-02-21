@@ -5,7 +5,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-body {
+html, body {
     background: #000;
     color: #fff;
     font-family: system-ui, -apple-system, sans-serif;
@@ -16,7 +16,7 @@ body {
 .app-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 100dvh;
     max-width: 500px;
     margin: 0 auto;
 }
@@ -105,7 +105,7 @@ body {
 
 /* Feed */
 .feed-container {
-    flex: 1;
+    height: calc(100dvh - 60px);
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     scrollbar-width: none;
@@ -114,14 +114,14 @@ body {
 .feed-container::-webkit-scrollbar { display: none; }
 
 .feed-item {
-    height: 100%;
+    height: calc(100dvh - 60px);
     scroll-snap-align: start;
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding: 20px 20px 80px;
-    background-color: #222;
+    padding: 20px;
+    background-color: #111;
     cursor: pointer;
 }
 
@@ -131,13 +131,20 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    z-index: 0;
 }
 
-.feed-item::before {
+.feed-item.has-image::before {
     content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.2) 50%, transparent);
+    z-index: 1;
+}
+
+.feed-item:not(.has-image) {
+    justify-content: center;
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
 }
 
 .content-overlay {
@@ -191,6 +198,7 @@ body {
 /* Bottom nav */
 .bottom-nav {
     height: 60px;
+    flex-shrink: 0;
     background: #000;
     display: flex;
     justify-content: space-around;
