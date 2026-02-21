@@ -13,7 +13,7 @@ let currentArticle = null;
 let navStack = [];
 let feedMode = localStorage.feedMode || 'random';
 let liked = JSON.parse(localStorage.likedArticles || '{}');
-let history = JSON.parse(localStorage.readHistory || '[]');
+let readHistory = JSON.parse(localStorage.readHistory || '[]');
 let tree = JSON.parse(localStorage.explorationTree || '{"nodes":{},"edges":[],"sessions":[]}');
 let sessionId = null;
 
@@ -365,10 +365,10 @@ async function fetchCategories(title) {
 }
 
 function addToHistory(title) {
-    history = history.filter(h => h.title !== title);
-    history.unshift({ title, time: Date.now(), image: articles.get(title)?.image });
-    history = history.slice(0, 50);
-    localStorage.readHistory = JSON.stringify(history);
+    readHistory = readHistory.filter(h => h.title !== title);
+    readHistory.unshift({ title, time: Date.now(), image: articles.get(title)?.image });
+    readHistory = readHistory.slice(0, 50);
+    localStorage.readHistory = JSON.stringify(readHistory);
 }
 
 function addToTree(title, parent) {
@@ -400,7 +400,7 @@ function showOverlay(type) {
     if (type === 'tree') {
         content.innerHTML = renderTree();
     } else if (type === 'history') {
-        content.innerHTML = history.length ? history.map(h => `
+        content.innerHTML = readHistory.length ? readHistory.map(h => `
             <div class="list-item" data-title="${h.title}">
                 <div class="item-thumb">${h.image ? `<img src="${h.image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
                 <div class="item-info"><div class="item-title">${h.title}</div><div class="item-meta">${timeAgo(h.time)}</div></div>
