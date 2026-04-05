@@ -22,6 +22,16 @@ const wikiApi = async (params) => {
     return res.json();
 };
 
+const mapPages = data => Object.values(data.query?.pages || {}).filter(p => p.extract).map(p => ({
+    title: p.title, summary: p.extract, image: p.thumbnail?.source
+}));
+
+const listItem = (title, image, meta = '') =>
+    `<div class="list-item" data-title="${title}">
+        <div class="item-thumb">${image ? `<img src="${image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
+        <div class="item-info"><div class="item-title">${title}</div>${meta ? `<div class="item-meta">${meta}</div>` : ''}</div>
+    </div>`;
+
 // Init
 feed.addEventListener('scroll', () => {
     if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 800) loadArticles();
@@ -66,7 +76,7 @@ articleDialog.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.dataset.action;
-    if (action === 'back') goBack();
+    if (action === 'back' && navStack.length > 1) history.back();
     else if (action === 'like') toggleLike(currentArticle.title);
     else if (action === 'share') shareArticle();
     else if (action === 'close') history.back();
@@ -206,9 +216,7 @@ async function fetchRandom() {
         action: 'query', generator: 'random', grnnamespace: 0, prop: 'extracts|pageimages',
         grnlimit: 5, exintro: 1, explaintext: 1, pithumbsize: 800
     });
-    return Object.values(data.query?.pages || {}).filter(p => p.extract).map(p => ({
-        title: p.title, summary: p.extract, image: p.thumbnail?.source
-    }));
+    return mapPages(data);
 }
 
 async function fetchRecommended() {
@@ -233,9 +241,7 @@ async function fetchRecommended() {
         prop: 'extracts|pageimages', exintro: 1, explaintext: 1, pithumbsize: 800
     });
 
-    return Object.values(details.query?.pages || {}).filter(p => p.extract).map(p => ({
-        title: p.title, summary: p.extract, image: p.thumbnail?.source
-    }));
+    return mapPages(details);
 }
 
 async function openArticle(title, isBack = false) {
@@ -281,26 +287,17 @@ async function openArticle(title, isBack = false) {
     body.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox').forEach(el => el.remove());
     body.scrollTop = isBack ? (navStack.at(-1)?.scrollTop ?? 0) : 0;
 
-    // Fix Wikipedia lazy-loaded images (mobile format uses data-src)
-    body.querySelectorAll('img[data-src]').forEach(img => {
-        img.src = img.dataset.src;
-    });
     body.querySelectorAll('.lazy-image-placeholder').forEach(el => {
         const src = el.dataset.src || el.getAttribute('data-src');
         if (src) {
-            const img = document.createElement('img');
-            img.src = src;
-            img.style.maxWidth = '100%';
-            img.style.borderRadius = '8px';
+            const img = Object.assign(document.createElement('img'), { src });
+            img.style.cssText = 'max-width:100%;border-radius:8px';
             el.replaceWith(img);
         }
     });
-    // Fix protocol-relative URLs
-    body.querySelectorAll('img[src^="//"]').forEach(img => {
-        img.src = 'https:' + img.getAttribute('src');
-    });
-    // Ensure all images can load from Wikimedia CDN
     body.querySelectorAll('img').forEach(img => {
+        if (img.dataset.src) img.src = img.dataset.src;
+        if (img.getAttribute('src')?.startsWith('//')) img.src = 'https:' + img.getAttribute('src');
         img.referrerPolicy = 'no-referrer';
         img.crossOrigin = 'anonymous';
     });
@@ -331,12 +328,6 @@ function renderArticleHeader(title, depth) {
             <button class="circle-btn" data-action="close">✕</button>
         </div>
     `;
-}
-
-function goBack() {
-    if (navStack.length > 1) {
-        history.back();
-    }
 }
 
 async function shareArticle() {
@@ -417,20 +408,14 @@ function showOverlay(type) {
     if (type === 'tree') {
         content.innerHTML = renderTree();
     } else if (type === 'history') {
-        content.innerHTML = readHistory.length ? readHistory.map(h => `
-            <div class="list-item" data-title="${h.title}">
-                <div class="item-thumb">${h.image ? `<img src="${h.image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
-                <div class="item-info"><div class="item-title">${h.title}</div><div class="item-meta">${timeAgo(h.time)}</div></div>
-            </div>
-        `).join('') : emptyState('🕐', 'No history yet', 'Articles you read will appear here');
+        content.innerHTML = readHistory.length
+            ? readHistory.map(h => listItem(h.title, h.image, timeAgo(h.time))).join('')
+            : emptyState('🕐', 'No history yet', 'Articles you read will appear here');
     } else {
         const saved = Object.values(liked);
-        content.innerHTML = saved.length ? saved.map(a => `
-            <div class="list-item" data-title="${a.title}">
-                <div class="item-thumb">${a.image ? `<img src="${a.image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
-                <div class="item-info"><div class="item-title">${a.title}</div></div>
-            </div>
-        `).join('') : emptyState('❤️', 'No saved articles', 'Tap the heart on articles to save');
+        content.innerHTML = saved.length
+            ? saved.map(a => listItem(a.title, a.image)).join('')
+            : emptyState('❤️', 'No saved articles', 'Tap the heart on articles to save');
     }
 
     overlayDialog.showModal();
