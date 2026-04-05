@@ -41,6 +41,8 @@ searchResults.onclick = (e) => {
     if (item) {
         openArticle(item.dataset.title);
         $('#search-popover').hidePopover();
+        $('#wiki-search').value = '';
+        searchResults.innerHTML = '';
     }
 };
 
@@ -146,12 +148,21 @@ async function loadArticles() {
     if (loading) return;
     loading = true;
 
+    let moreIndicator = null;
+    if (articles.size > 0) {
+        moreIndicator = document.createElement('div');
+        moreIndicator.className = 'load-more-indicator';
+        moreIndicator.innerHTML = '<div class="loader"></div>';
+        feed.appendChild(moreIndicator);
+    }
+
     try {
         let data;
         if (feedMode === 'foryou' && Object.keys(liked).length > 0) {
             data = await fetchRecommended();
         } else if (feedMode === 'foryou') {
-            feed.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><h3>Your personal feed</h3><p>Like some articles to get recommendations</p></div>`;
+            feed.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><h3>Your personal feed</h3><p>Like some articles to get recommendations</p><button class="feed-btn read-btn empty-discover-btn" style="margin-top:20px">Discover articles</button></div>`;
+            feed.querySelector('.empty-discover-btn').onclick = () => switchFeed('random');
             return;
         } else {
             data = await fetchRandom();
@@ -186,6 +197,7 @@ async function loadArticles() {
         }
     } finally {
         loading = false;
+        moreIndicator?.remove();
     }
 }
 
@@ -227,6 +239,9 @@ async function fetchRecommended() {
 }
 
 async function openArticle(title, isBack = false) {
+    if (!isBack && navStack.length > 0) {
+        navStack.at(-1).scrollTop = $('.modal-body', articleDialog).scrollTop;
+    }
     if (!articleDialog.open) articleDialog.showModal();
     $('.modal-body', articleDialog).innerHTML = '<div class="loader" style="margin:40px auto"></div>';
     $('.reading-progress', articleDialog).style.width = '0%';
@@ -264,7 +279,7 @@ async function openArticle(title, isBack = false) {
     const body = $('.modal-body', articleDialog);
     body.innerHTML = data.parse.text['*'];
     body.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox').forEach(el => el.remove());
-    body.scrollTop = 0;
+    body.scrollTop = isBack ? (navStack.at(-1)?.scrollTop ?? 0) : 0;
 
     // Fix Wikipedia lazy-loaded images (mobile format uses data-src)
     body.querySelectorAll('img[data-src]').forEach(img => {

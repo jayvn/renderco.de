@@ -469,6 +469,14 @@ body {
     color: white;
 }
 
+.load-more-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80px;
+    scroll-snap-align: none;
+}
+
 /* Loading */
 .loading-state {
     display: flex;
