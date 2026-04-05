@@ -22,6 +22,16 @@ const wikiApi = async (params) => {
     return res.json();
 };
 
+const mapPages = data => Object.values(data.query?.pages || {}).filter(p => p.extract).map(p => ({
+    title: p.title, summary: p.extract, image: p.thumbnail?.source
+}));
+
+const listItem = (title, image, meta = '') =>
+    `<div class="list-item" data-title="${title}">
+        <div class="item-thumb">${image ? `<img src="${image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
+        <div class="item-info"><div class="item-title">${title}</div>${meta ? `<div class="item-meta">${meta}</div>` : ''}</div>
+    </div>`;
+
 // Init
 feed.addEventListener('scroll', () => {
     if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 800) loadArticles();
@@ -41,6 +51,8 @@ searchResults.onclick = (e) => {
     if (item) {
         openArticle(item.dataset.title);
         $('#search-popover').hidePopover();
+        $('#wiki-search').value = '';
+        searchResults.innerHTML = '';
     }
 };
 
@@ -58,12 +70,13 @@ $('.modal-body', articleDialog).onscroll = (e) => {
 };
 
 $('.close-overlay', overlayDialog).onclick = () => history.back();
+overlayDialog.addEventListener('close', setActiveNav);
 
 articleDialog.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.dataset.action;
-    if (action === 'back') goBack();
+    if (action === 'back' && navStack.length > 1) history.back();
     else if (action === 'like') toggleLike(currentArticle.title);
     else if (action === 'share') shareArticle();
     else if (action === 'close') history.back();
@@ -81,6 +94,7 @@ overlayDialog.querySelector('.overlay-content').onclick = (e) => {
     const item = e.target.closest('[data-title]');
     if (item) {
         overlayDialog.close();
+        history.replaceState(null, '');
         openArticle(item.dataset.title);
     }
     if (e.target.closest('.clear-tree')) {
@@ -144,12 +158,21 @@ async function loadArticles() {
     if (loading) return;
     loading = true;
 
+    let moreIndicator = null;
+    if (articles.size > 0) {
+        moreIndicator = document.createElement('div');
+        moreIndicator.className = 'load-more-indicator';
+        moreIndicator.innerHTML = '<div class="loader"></div>';
+        feed.appendChild(moreIndicator);
+    }
+
     try {
         let data;
         if (feedMode === 'foryou' && Object.keys(liked).length > 0) {
             data = await fetchRecommended();
         } else if (feedMode === 'foryou') {
-            feed.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><h3>Your personal feed</h3><p>Like some articles to get recommendations</p></div>`;
+            feed.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><h3>Your personal feed</h3><p>Like some articles to get recommendations</p><button class="feed-btn read-btn empty-discover-btn" style="margin-top:20px">Discover articles</button></div>`;
+            feed.querySelector('.empty-discover-btn').onclick = () => switchFeed('random');
             return;
         } else {
             data = await fetchRandom();
@@ -184,6 +207,7 @@ async function loadArticles() {
         }
     } finally {
         loading = false;
+        moreIndicator?.remove();
     }
 }
 
@@ -192,9 +216,7 @@ async function fetchRandom() {
         action: 'query', generator: 'random', grnnamespace: 0, prop: 'extracts|pageimages',
         grnlimit: 5, exintro: 1, explaintext: 1, pithumbsize: 800
     });
-    return Object.values(data.query?.pages || {}).filter(p => p.extract).map(p => ({
-        title: p.title, summary: p.extract, image: p.thumbnail?.source
-    }));
+    return mapPages(data);
 }
 
 async function fetchRecommended() {
@@ -219,12 +241,13 @@ async function fetchRecommended() {
         prop: 'extracts|pageimages', exintro: 1, explaintext: 1, pithumbsize: 800
     });
 
-    return Object.values(details.query?.pages || {}).filter(p => p.extract).map(p => ({
-        title: p.title, summary: p.extract, image: p.thumbnail?.source
-    }));
+    return mapPages(details);
 }
 
 async function openArticle(title, isBack = false) {
+    if (!isBack && navStack.length > 0) {
+        navStack.at(-1).scrollTop = $('.modal-body', articleDialog).scrollTop;
+    }
     if (!articleDialog.open) articleDialog.showModal();
     $('.modal-body', articleDialog).innerHTML = '<div class="loader" style="margin:40px auto"></div>';
     $('.reading-progress', articleDialog).style.width = '0%';
@@ -262,28 +285,19 @@ async function openArticle(title, isBack = false) {
     const body = $('.modal-body', articleDialog);
     body.innerHTML = data.parse.text['*'];
     body.querySelectorAll('.mw-editsection, .reference, .mbox-small, .navbox, .sistersitebox').forEach(el => el.remove());
-    body.scrollTop = 0;
+    body.scrollTop = isBack ? (navStack.at(-1)?.scrollTop ?? 0) : 0;
 
-    // Fix Wikipedia lazy-loaded images (mobile format uses data-src)
-    body.querySelectorAll('img[data-src]').forEach(img => {
-        img.src = img.dataset.src;
-    });
     body.querySelectorAll('.lazy-image-placeholder').forEach(el => {
         const src = el.dataset.src || el.getAttribute('data-src');
         if (src) {
-            const img = document.createElement('img');
-            img.src = src;
-            img.style.maxWidth = '100%';
-            img.style.borderRadius = '8px';
+            const img = Object.assign(document.createElement('img'), { src });
+            img.style.cssText = 'max-width:100%;border-radius:8px';
             el.replaceWith(img);
         }
     });
-    // Fix protocol-relative URLs
-    body.querySelectorAll('img[src^="//"]').forEach(img => {
-        img.src = 'https:' + img.getAttribute('src');
-    });
-    // Ensure all images can load from Wikimedia CDN
     body.querySelectorAll('img').forEach(img => {
+        if (img.dataset.src) img.src = img.dataset.src;
+        if (img.getAttribute('src')?.startsWith('//')) img.src = 'https:' + img.getAttribute('src');
         img.referrerPolicy = 'no-referrer';
         img.crossOrigin = 'anonymous';
     });
@@ -316,12 +330,6 @@ function renderArticleHeader(title, depth) {
     `;
 }
 
-function goBack() {
-    if (navStack.length > 1) {
-        history.back();
-    }
-}
-
 async function shareArticle() {
     if (!currentArticle) return;
     const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(currentArticle.title)}`;
@@ -335,7 +343,7 @@ async function toggleLike(title) {
         showToast('Removed');
     } else {
         const meta = articles.get(title) || {};
-        const cats = await fetchCategories(title);
+        const cats = await fetchCategories(title).catch(() => []);
         liked[title] = { title, image: meta.image, summary: meta.summary, categories: cats };
         showToast('Saved!');
     }
@@ -400,20 +408,14 @@ function showOverlay(type) {
     if (type === 'tree') {
         content.innerHTML = renderTree();
     } else if (type === 'history') {
-        content.innerHTML = readHistory.length ? readHistory.map(h => `
-            <div class="list-item" data-title="${h.title}">
-                <div class="item-thumb">${h.image ? `<img src="${h.image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
-                <div class="item-info"><div class="item-title">${h.title}</div><div class="item-meta">${timeAgo(h.time)}</div></div>
-            </div>
-        `).join('') : emptyState('🕐', 'No history yet', 'Articles you read will appear here');
+        content.innerHTML = readHistory.length
+            ? readHistory.map(h => listItem(h.title, h.image, timeAgo(h.time))).join('')
+            : emptyState('🕐', 'No history yet', 'Articles you read will appear here');
     } else {
         const saved = Object.values(liked);
-        content.innerHTML = saved.length ? saved.map(a => `
-            <div class="list-item" data-title="${a.title}">
-                <div class="item-thumb">${a.image ? `<img src="${a.image}" alt="" referrerpolicy="no-referrer">` : ''}</div>
-                <div class="item-info"><div class="item-title">${a.title}</div></div>
-            </div>
-        `).join('') : emptyState('❤️', 'No saved articles', 'Tap the heart on articles to save');
+        content.innerHTML = saved.length
+            ? saved.map(a => listItem(a.title, a.image)).join('')
+            : emptyState('❤️', 'No saved articles', 'Tap the heart on articles to save');
     }
 
     overlayDialog.showModal();
@@ -431,10 +433,12 @@ function timeAgo(ts) {
     return new Date(ts).toLocaleDateString();
 }
 
+let toastTimer;
 function showToast(msg) {
     toast.textContent = msg;
     toast.showPopover();
-    setTimeout(() => toast.hidePopover(), 2000);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.hidePopover(), 2000);
 }
 
 function renderTree() {

@@ -114,7 +114,7 @@ body {
 
 /* Feed */
 .feed-container {
-    height: calc(100dvh - 60px);
+    height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px));
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     scrollbar-width: none;
@@ -125,7 +125,7 @@ body {
 }
 
 .feed-item {
-    height: calc(100dvh - 60px);
+    height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px));
     scroll-snap-align: start;
     position: relative;
     display: flex;
@@ -467,6 +467,14 @@ body {
     font-size: 0.9rem;
     border: none;
     color: white;
+}
+
+.load-more-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80px;
+    scroll-snap-align: none;
 }
 
 /* Loading */
