@@ -337,7 +337,7 @@ async function toggleLike(title) {
         showToast('Removed');
     } else {
         const meta = articles.get(title) || {};
-        const cats = await fetchCategories(title);
+        const cats = await fetchCategories(title).catch(() => []);
         liked[title] = { title, image: meta.image, summary: meta.summary, categories: cats };
         showToast('Saved!');
     }
@@ -433,10 +433,12 @@ function timeAgo(ts) {
     return new Date(ts).toLocaleDateString();
 }
 
+let toastTimer;
 function showToast(msg) {
     toast.textContent = msg;
     toast.showPopover();
-    setTimeout(() => toast.hidePopover(), 2000);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.hidePopover(), 2000);
 }
 
 function renderTree() {
