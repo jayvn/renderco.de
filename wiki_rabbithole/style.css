@@ -114,7 +114,7 @@ body {
 
 /* Feed */
 .feed-container {
-    height: calc(100dvh - 60px);
+    height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px));
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     scrollbar-width: none;
@@ -125,7 +125,7 @@ body {
 }
 
 .feed-item {
-    height: calc(100dvh - 60px);
+    height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px));
     scroll-snap-align: start;
     position: relative;
     display: flex;

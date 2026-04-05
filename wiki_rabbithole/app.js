@@ -58,6 +58,7 @@ $('.modal-body', articleDialog).onscroll = (e) => {
 };
 
 $('.close-overlay', overlayDialog).onclick = () => history.back();
+overlayDialog.addEventListener('close', setActiveNav);
 
 articleDialog.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
@@ -81,6 +82,7 @@ overlayDialog.querySelector('.overlay-content').onclick = (e) => {
     const item = e.target.closest('[data-title]');
     if (item) {
         overlayDialog.close();
+        history.replaceState(null, '');
         openArticle(item.dataset.title);
     }
     if (e.target.closest('.clear-tree')) {
