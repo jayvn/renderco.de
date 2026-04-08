@@ -1,0 +1,16 @@
+[
+  {
+    "id": "wavespeed-ai/qwen-image/edit-2511",
+    "name": "Qwen Image Edit 2511",
+    "provider": "WaveSpeedAI",
+    "description": "Qwen Image Edit 2511 is a major upgrade over 2509 for real-world image editing and design. It delivers stronger edit consistency, robust multi-person identity/pose consistency, built-in LoRA styles, enhanced industrial/product design, and improved geometric reasoning for structure-preserving edits.",
+    "pricing": "$0.02 per run"
+  },
+  {
+    "id": "wavespeed-ai/hunyuan-image-3",
+    "name": "HunyuanImage-3.0",
+    "provider": "WaveSpeedAI",
+    "description": "HunyuanImage-3.0: An AR multimodal model unifying understanding & generation. Its Text-To-Image module rivals closed-source leaders. Ready-to-use REST inference API, best performance, no coldstarts, affordable pricing.",
+    "pricing": "$0.1 per run"
+  }
+]
