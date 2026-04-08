@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Qwen-Image-Edit-2511",
+    "provider": "Alibaba Cloud",
+    "type": "Image Editing",
+    "description": "An enhanced version of Qwen-Image-Edit featuring improved character consistency, multi-person editing, integrated LoRA capabilities, and enhanced geometric reasoning.",
+    "url": "https://huggingface.co/Qwen/Qwen-Image-Edit-2511"
+  },
+  {
+    "name": "HunyuanImage 3.0",
+    "provider": "Tencent",
+    "type": "Text-to-Image Generation",
+    "description": "A native multimodal model that unifies multimodal understanding and generation within an autoregressive framework. It features a revolutionary diffusion architecture.",
+    "url": "https://github.com/Tencent-Hunyuan/HunyuanImage-3.0"
+  }
+]
