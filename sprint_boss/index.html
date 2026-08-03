@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint Boss</title>
+    <meta name="description" content="An AI project manager that assigns you tickets and tells you how to live your life.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0a0a0a; color: #eee; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .ticket-card { background: rgba(30,30,30,.7); border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(10px); }
+        .chip { font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+        @keyframes pop { 0% { transform: scale(.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .pop { animation: pop .18s ease-out; }
+        #backlog::-webkit-scrollbar { width: 6px; }
+        #backlog::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+    <div class="max-w-3xl mx-auto flex flex-col gap-6">
+
+        <header class="text-center">
+            <h1 class="text-3xl sm:text-4xl font-extrabold">🧑‍💼 Sprint Boss</h1>
+            <p class="text-zinc-400 mt-2">Your AI project manager. Assigns tickets. Tells you how to live your life. You do not report to it — it reports over you.</p>
+        </header>
+
+        <section class="ticket-card rounded-2xl p-4 sm:p-6 flex flex-col gap-4">
+            <div class="flex items-center justify-between text-xs text-zinc-500">
+                <span>Velocity: <span id="velocity" class="text-zinc-300 font-semibold">0 / 0 pts closed</span></span>
+                <span id="standingText" class="font-semibold"></span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+                <div id="velocityBar" class="h-full bg-emerald-500 transition-all duration-300" style="width:0%"></div>
+            </div>
+        </section>
+
+        <section id="current" class="ticket-card rounded-2xl p-6 sm:p-8 flex flex-col gap-4 pop">
+            <p class="text-zinc-500">Click below. The backlog is infinite. So, coincidentally, is your life.</p>
+        </section>
+
+        <div class="flex flex-wrap gap-3 justify-center">
+            <button onclick="assignTicket()" class="bg-blue-600 hover:bg-blue-500 transition px-6 py-3 rounded-xl font-bold text-lg">🎫 Assign Me a Ticket</button>
+            <button onclick="markDone()" id="doneBtn" disabled class="bg-emerald-700 hover:bg-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed transition px-5 py-3 rounded-xl font-semibold">✅ Mark Done</button>
+            <button onclick="wontFix()" id="wontFixBtn" disabled class="bg-red-800 hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed transition px-5 py-3 rounded-xl font-semibold">🚫 Won't Fix</button>
+        </div>
+
+        <section class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-zinc-300">📋 Backlog</h2>
+                <button onclick="clearBacklog()" class="text-xs text-zinc-500 hover:text-red-400 transition">clear history</button>
+            </div>
+            <div id="backlog" class="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1"></div>
+        </section>
+
+        <footer class="text-center text-xs text-zinc-600 pt-4">
+            Nothing here is stored anywhere but your browser. Sprint Boss cannot actually fire you. Yet.
+        </footer>
+    </div>
+
+    <script>
+        const TASKS = [
+            ["Drink a full glass of water right now", "self-care"],
+            ["Text the person back you've been ghosting for a week", "relationships"],
+            ["Close the 47 browser tabs you're pretending to need", "technical-debt"],
+            ["Go outside and touch actual grass", "self-care"],
+            ["Delete the app you doom-scroll at 1am", "burnout-risk"],
+            ["Go to bed before midnight, for once", "self-care"],
+            ["Reply to that email you've had marked 'unread' for three weeks", "life-debt"],
+            ["Do laundry before you run out of clean socks", "adulting"],
+            ["Book the dentist appointment you keep rescheduling", "life-debt"],
+            ["Cook one real meal instead of ordering out again", "adulting"],
+            ["Stretch your back. You are not as young as your posture pretends", "self-care"],
+            ["Write down three things that are bothering you. Feelings are backlogged", "burnout-risk"],
+            ["Unsubscribe from ten newsletters you never read", "technical-debt"],
+            ["Take the stairs. This is not optional cardio, it's a P1", "self-care"],
+            ["Say no to the thing you don't actually want to do", "boundaries"],
+            ["Back up your files before the inevitable disaster", "technical-debt"],
+            ["Water the plant you've been quietly killing", "adulting"],
+            ["Schedule the doctor's appointment you're avoiding", "life-debt"],
+            ["Clean your desk, it is currently a fire hazard", "adulting"],
+            ["Call a friend instead of texting 'we should catch up' again", "relationships"],
+            ["Take five deep breaths before responding to that message", "burnout-risk"],
+            ["Go for a 10 minute walk with no podcast, no phone", "self-care"],
+            ["Pay the bill you've been 'getting to'", "life-debt"],
+            ["Apologize for the thing you know you should apologize for", "relationships"],
+            ["Set a bedtime alarm and actually honor it", "boundaries"],
+            ["Throw out the expired food in your fridge", "adulting"],
+            ["Write the difficult message you've been drafting for days", "life-debt"],
+            ["Take a full lunch break away from your screen", "boundaries"],
+            ["Do the dishes sitting in your sink right now", "adulting"],
+            ["Log off five minutes early and actually mean it", "boundaries"],
+        ];
+
+        const PRIORITIES = [
+            { label: "P0 Blocker", color: "bg-red-600" },
+            { label: "P1 Critical", color: "bg-orange-500" },
+            { label: "P2 High", color: "bg-yellow-500 text-black" },
+            { label: "P3 Nice to Have", color: "bg-sky-500" },
+        ];
+
+        const SPRINTS = [
+            "Sprint 47: Get Your Life Together",
+            "Sprint 12: No More Excuses",
+            "Sprint 3: This Was Due Yesterday",
+            "Sprint 88: Adulthood, Continued",
+            "Sprint 1: Day One (Again)",
+            "Sprint 21: Burnout Prevention Initiative",
+        ];
+
+        const MANAGER_NOTES = [
+            "This isn't a suggestion. It's a P1.",
+            "Yesterday you said 'tomorrow.' It is tomorrow.",
+            "Your life has technical debt. Start paying it down.",
+            "Sleep is not optional. It's a hard dependency.",
+            "You've been blocked on this for three weeks. Unblock yourself.",
+            "I don't care how you feel about this ticket. I care that it's closed.",
+            "This was supposed to ship last sprint. Where is it?",
+            "Small ticket. Big impact. Stop overthinking it.",
+            "No, this cannot be deprioritized again.",
+            "You have the bandwidth. You just don't want to admit it.",
+            "Do this and I will leave you alone for exactly one hour.",
+            "This ticket has been reopened four times. Let's make this the last.",
+            "Story points don't lie. Neither do I.",
+            "I've seen your calendar. You have time.",
+            "This is due at end of day. Your day, not mine.",
+        ];
+
+        const DONE_RESPONSES = [
+            "Acceptable. Don't get used to praise.",
+            "Closed. The backlog remains, as always, infinite.",
+            "Fine. One ticket down. Look at the rest of the board.",
+            "Noted. This does not make up for last sprint.",
+            "Good. Now do the next one before the feeling fades.",
+        ];
+
+        const WONT_FIX_RESPONSES = [
+            "Won't Fix, huh? That's going in your performance review.",
+            "Deferred. Not forgotten. I have a very long memory.",
+            "Fine. But it's back in the backlog by tomorrow.",
+            "Duly noted. Escalating to your future self.",
+            "Rejected reasoning logged. Ticket reopens in 24 hours.",
+        ];
+
+        let ticketCounter = Number(localStorage.getItem('sb_counter') || 0);
+        let backlog = JSON.parse(localStorage.getItem('sb_backlog') || '[]');
+        let currentTicket = null;
+
+        function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+        function assignTicket() {
+            ticketCounter++;
+            const [title, label] = pick(TASKS);
+            const priority = pick(PRIORITIES);
+            const points = pick([1, 2, 3, 5, 8]);
+            const sprint = pick(SPRINTS);
+            const note = pick(MANAGER_NOTES);
+
+            currentTicket = {
+                id: 'LIFE-' + ticketCounter,
+                title, label, priority, points, sprint, note,
+                status: 'open',
+                ts: Date.now(),
+            };
+
+            renderCurrent();
+            document.getElementById('doneBtn').disabled = false;
+            document.getElementById('wontFixBtn').disabled = false;
+            localStorage.setItem('sb_counter', ticketCounter);
+        }
+
+        function renderCurrent(resolutionNote) {
+            const t = currentTicket;
+            const el = document.getElementById('current');
+            el.classList.remove('pop');
+            void el.offsetWidth;
+            el.classList.add('pop');
+            el.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-zinc-500 font-mono text-sm">${t.id}</span>
+                    <span class="chip ${t.priority.color}">${t.priority.label}</span>
+                </div>
+                <h2 class="text-2xl font-bold leading-snug">${t.title}</h2>
+                <div class="flex flex-wrap gap-2 text-xs text-zinc-400">
+                    <span class="chip bg-zinc-800 text-zinc-300">#${t.label}</span>
+                    <span class="chip bg-zinc-800 text-zinc-300">${t.points} pts</span>
+                    <span class="chip bg-zinc-800 text-zinc-300">${t.sprint}</span>
+                </div>
+                <p class="italic text-zinc-400 border-l-2 border-zinc-700 pl-3">"${t.note}" <span class="not-italic text-zinc-600">— Sprint Boss</span></p>
+                ${resolutionNote ? `<p class="text-sm font-semibold ${t.status === 'done' ? 'text-emerald-400' : 'text-red-400'}">${resolutionNote}</p>` : ''}
+            `;
+        }
+
+        function resolveTicket(status, responses) {
+            if (!currentTicket) return;
+            currentTicket.status = status;
+            const responseText = pick(responses);
+            backlog.unshift(currentTicket);
+            localStorage.setItem('sb_backlog', JSON.stringify(backlog));
+            renderCurrent(responseText);
+            document.getElementById('doneBtn').disabled = true;
+            document.getElementById('wontFixBtn').disabled = true;
+            currentTicket = null;
+            renderBacklog();
+            renderVelocity();
+        }
+
+        function markDone() { resolveTicket('done', DONE_RESPONSES); }
+        function wontFix() { resolveTicket('wontfix', WONT_FIX_RESPONSES); }
+
+        function renderBacklog() {
+            const el = document.getElementById('backlog');
+            if (backlog.length === 0) {
+                el.innerHTML = `<p class="text-zinc-600 text-sm">No history yet. Get to work.</p>`;
+                return;
+            }
+            el.innerHTML = backlog.map(t => `
+                <div class="ticket-card rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="text-xs text-zinc-500 font-mono">${t.id} · ${t.points} pts</div>
+                        <div class="text-sm text-zinc-200 truncate">${t.title}</div>
+                    </div>
+                    <span class="chip ${t.status === 'done' ? 'bg-emerald-600' : 'bg-red-700'}">${t.status === 'done' ? '✅ Done' : "🚫 Won't Fix"}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderVelocity() {
+            const total = backlog.reduce((s, t) => s + t.points, 0);
+            const done = backlog.filter(t => t.status === 'done').reduce((s, t) => s + t.points, 0);
+            const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+            document.getElementById('velocity').textContent = `${done} / ${total} pts closed`;
+            document.getElementById('velocityBar').style.width = pct + '%';
+            document.getElementById('standingText').textContent =
+                total === 0 ? '' :
+                pct >= 80 ? '🌟 Exceeds Expectations' :
+                pct >= 50 ? '🙂 Meets Expectations' :
+                pct >= 20 ? '⚠️ Needs Improvement' : '🔴 Performance Improvement Plan';
+        }
+
+        function clearBacklog() {
+            if (!confirm("Clear your entire ticket history? Sprint Boss will remember this.")) return;
+            backlog = [];
+            localStorage.setItem('sb_backlog', '[]');
+            renderBacklog();
+            renderVelocity();
+        }
+
+        renderBacklog();
+        renderVelocity();
+    </script>
+</body>
+</html>
