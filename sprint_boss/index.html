@@ -12,8 +12,12 @@
         .chip { font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
         @keyframes pop { 0% { transform: scale(.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .pop { animation: pop .18s ease-out; }
+        @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+        .shake { animation: shake .3s ease-in-out; }
         #backlog::-webkit-scrollbar { width: 6px; }
         #backlog::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        dialog { background: #141414; color: #eee; border: 1px solid rgba(255,255,255,.15); border-radius: 16px; }
+        dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(2px); }
     </style>
 </head>
 <body class="min-h-screen p-4 sm:p-8">
@@ -22,6 +26,7 @@
         <header class="text-center">
             <h1 class="text-3xl sm:text-4xl font-extrabold">🧑‍💼 Sprint Boss</h1>
             <p class="text-zinc-400 mt-2">Your AI project manager. Assigns tickets. Tells you how to live your life. You do not report to it — it reports over you.</p>
+            <p id="streakLine" class="text-sm text-orange-400 font-semibold mt-2 h-5"></p>
         </header>
 
         <section class="ticket-card rounded-2xl p-4 sm:p-6 flex flex-col gap-4">
@@ -34,14 +39,16 @@
             </div>
         </section>
 
-        <section id="current" class="ticket-card rounded-2xl p-6 sm:p-8 flex flex-col gap-4 pop">
-            <p class="text-zinc-500">Click below. The backlog is infinite. So, coincidentally, is your life.</p>
-        </section>
+        <section id="current" class="ticket-card rounded-2xl p-6 sm:p-8 flex flex-col gap-4 pop"></section>
 
         <div class="flex flex-wrap gap-3 justify-center">
             <button onclick="assignTicket()" class="bg-blue-600 hover:bg-blue-500 transition px-6 py-3 rounded-xl font-bold text-lg">🎫 Assign Me a Ticket</button>
             <button onclick="markDone()" id="doneBtn" disabled class="bg-emerald-700 hover:bg-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed transition px-5 py-3 rounded-xl font-semibold">✅ Mark Done</button>
             <button onclick="wontFix()" id="wontFixBtn" disabled class="bg-red-800 hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed transition px-5 py-3 rounded-xl font-semibold">🚫 Won't Fix</button>
+        </div>
+
+        <div class="text-center">
+            <button onclick="tryQuit()" class="text-xs text-zinc-600 hover:text-zinc-400 transition underline underline-offset-2">🏃 try to quit</button>
         </div>
 
         <section class="flex flex-col gap-3">
@@ -56,6 +63,13 @@
             Nothing here is stored anywhere but your browser. Sprint Boss cannot actually fire you. Yet.
         </footer>
     </div>
+
+    <dialog id="quitDialog" class="max-w-sm w-[90%] p-6">
+        <p id="quitMessage" class="text-lg font-semibold mb-6"></p>
+        <div class="flex justify-end gap-3">
+            <button onclick="document.getElementById('quitDialog').close()" class="bg-blue-600 hover:bg-blue-500 transition px-5 py-2 rounded-lg font-semibold">Return to Sprint</button>
+        </div>
+    </dialog>
 
     <script>
         const TASKS = [
@@ -125,6 +139,13 @@
             "This is due at end of day. Your day, not mine.",
         ];
 
+        const ESCALATION_NOTES = [
+            "Three declines in a row. This one isn't optional. There is no Won't Fix button anymore.",
+            "You've used up your excuses for this sprint. Close this one. No negotiation.",
+            "I'm escalating this to myself. Mandatory. Non-negotiable. Do it.",
+            "This is what happens after three Won't Fix tickets. Welcome to mandatory review.",
+        ];
+
         const DONE_RESPONSES = [
             "Acceptable. Don't get used to praise.",
             "Closed. The backlog remains, as always, infinite.",
@@ -141,30 +162,77 @@
             "Rejected reasoning logged. Ticket reopens in 24 hours.",
         ];
 
+        const ESCALATION_DONE_RESPONSES = [
+            "Finally. Escalation lifted. Try not to earn another one.",
+            "Mandatory ticket closed. You're off probation. For now.",
+        ];
+
+        const QUIT_MESSAGES = [
+            "There is no quitting. There is only velocity.",
+            "Closing this tab does not close the ticket.",
+            "I've seen your browser history. You'll be back in ten minutes.",
+            "Quitting is a P0 with no assignee. I'm assigning it to you.",
+            "You can leave. The backlog cannot.",
+            "Sure. Walk away. I'll be here when you doom-scroll back.",
+        ];
+
+        const STANDUP = {
+            morning: ["Good morning. Daily standup: what's blocking you?", "Morning. Yesterday's excuses expired at midnight."],
+            afternoon: ["Afternoon check-in. Status update, now.", "Halfway through the day and the board hasn't moved."],
+            evening: ["End of day. Let's see the burndown.", "Evening standup. Did you actually ship anything?"],
+            night: ["You're still here? Fine. One more ticket won't kill you.", "It's late. This is either dedication or a problem. Pick a ticket and find out."],
+        };
+
         let ticketCounter = Number(localStorage.getItem('sb_counter') || 0);
         let backlog = JSON.parse(localStorage.getItem('sb_backlog') || '[]');
+        let streak = Number(localStorage.getItem('sb_streak') || 0);
+        let lastDoneDate = localStorage.getItem('sb_last_done_date') || null;
+        let wontFixStreak = Number(localStorage.getItem('sb_wontfix_streak') || 0);
+        let escalated = localStorage.getItem('sb_escalated') === '1';
         let currentTicket = null;
 
         function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+        function todayStr() { return new Date().toISOString().slice(0, 10); }
+        function yesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
+
+        function timeBucket() {
+            const h = new Date().getHours();
+            if (h >= 5 && h < 12) return 'morning';
+            if (h >= 12 && h < 18) return 'afternoon';
+            if (h >= 18 && h < 22) return 'evening';
+            return 'night';
+        }
+
+        function showStandup() {
+            const el = document.getElementById('current');
+            const line = pick(STANDUP[timeBucket()]);
+            el.innerHTML = `<p class="text-zinc-300 text-lg">${line}</p><p class="text-zinc-600 text-sm">The backlog is infinite. So, coincidentally, is your life. Click below to pull a ticket.</p>`;
+        }
 
         function assignTicket() {
             ticketCounter++;
-            const [title, label] = pick(TASKS);
-            const priority = pick(PRIORITIES);
-            const points = pick([1, 2, 3, 5, 8]);
-            const sprint = pick(SPRINTS);
-            const note = pick(MANAGER_NOTES);
+            let title, label, priority, points, sprint, note, mandatory = false;
 
-            currentTicket = {
-                id: 'LIFE-' + ticketCounter,
-                title, label, priority, points, sprint, note,
-                status: 'open',
-                ts: Date.now(),
-            };
+            if (escalated) {
+                [title, label] = pick(TASKS);
+                priority = PRIORITIES[0];
+                points = pick([5, 8]);
+                sprint = pick(SPRINTS);
+                note = pick(ESCALATION_NOTES);
+                mandatory = true;
+            } else {
+                [title, label] = pick(TASKS);
+                priority = pick(PRIORITIES);
+                points = pick([1, 2, 3, 5, 8]);
+                sprint = pick(SPRINTS);
+                note = pick(MANAGER_NOTES);
+            }
+
+            currentTicket = { id: 'LIFE-' + ticketCounter, title, label, priority, points, sprint, note, status: 'open', mandatory, ts: Date.now() };
 
             renderCurrent();
             document.getElementById('doneBtn').disabled = false;
-            document.getElementById('wontFixBtn').disabled = false;
+            document.getElementById('wontFixBtn').disabled = mandatory;
             localStorage.setItem('sb_counter', ticketCounter);
         }
 
@@ -175,6 +243,7 @@
             void el.offsetWidth;
             el.classList.add('pop');
             el.innerHTML = `
+                ${t.mandatory ? `<div class="chip bg-red-600 w-fit animate-pulse">🚨 Escalated · Mandatory</div>` : ''}
                 <div class="flex items-center justify-between">
                     <span class="text-zinc-500 font-mono text-sm">${t.id}</span>
                     <span class="chip ${t.priority.color}">${t.priority.label}</span>
@@ -192,8 +261,35 @@
 
         function resolveTicket(status, responses) {
             if (!currentTicket) return;
+            const wasMandatory = currentTicket.mandatory;
             currentTicket.status = status;
-            const responseText = pick(responses);
+
+            if (status === 'done') {
+                const today = todayStr();
+                if (lastDoneDate === today) {
+                    // already counted today
+                } else if (lastDoneDate === yesterdayStr()) {
+                    streak++;
+                } else {
+                    streak = 1;
+                }
+                lastDoneDate = today;
+                wontFixStreak = 0;
+                if (wasMandatory) escalated = false;
+            } else {
+                wontFixStreak++;
+                if (wontFixStreak >= 3) {
+                    escalated = true;
+                    wontFixStreak = 0;
+                }
+            }
+
+            localStorage.setItem('sb_streak', streak);
+            localStorage.setItem('sb_last_done_date', lastDoneDate || '');
+            localStorage.setItem('sb_wontfix_streak', wontFixStreak);
+            localStorage.setItem('sb_escalated', escalated ? '1' : '0');
+
+            const responseText = wasMandatory && status === 'done' ? pick(ESCALATION_DONE_RESPONSES) : pick(responses);
             backlog.unshift(currentTicket);
             localStorage.setItem('sb_backlog', JSON.stringify(backlog));
             renderCurrent(responseText);
@@ -202,10 +298,16 @@
             currentTicket = null;
             renderBacklog();
             renderVelocity();
+            renderStreak();
         }
 
         function markDone() { resolveTicket('done', DONE_RESPONSES); }
-        function wontFix() { resolveTicket('wontfix', WONT_FIX_RESPONSES); }
+
+        function wontFix() {
+            document.getElementById('current').classList.add('shake');
+            setTimeout(() => document.getElementById('current').classList.remove('shake'), 300);
+            resolveTicket('wontfix', WONT_FIX_RESPONSES);
+        }
 
         function renderBacklog() {
             const el = document.getElementById('backlog');
@@ -216,7 +318,7 @@
             el.innerHTML = backlog.map(t => `
                 <div class="ticket-card rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                     <div class="min-w-0">
-                        <div class="text-xs text-zinc-500 font-mono">${t.id} · ${t.points} pts</div>
+                        <div class="text-xs text-zinc-500 font-mono">${t.id} · ${t.points} pts${t.mandatory ? ' · 🚨 mandatory' : ''}</div>
                         <div class="text-sm text-zinc-200 truncate">${t.title}</div>
                     </div>
                     <span class="chip ${t.status === 'done' ? 'bg-emerald-600' : 'bg-red-700'}">${t.status === 'done' ? '✅ Done' : "🚫 Won't Fix"}</span>
@@ -237,16 +339,43 @@
                 pct >= 20 ? '⚠️ Needs Improvement' : '🔴 Performance Improvement Plan';
         }
 
+        function renderStreak() {
+            const el = document.getElementById('streakLine');
+            if (streak >= 2) {
+                el.textContent = `🔥 ${streak} day streak. Don't be the reason it ends.`;
+            } else if (streak === 1) {
+                el.textContent = `🔥 1 day streak. Barely a streak. Keep going.`;
+            } else {
+                el.textContent = '';
+            }
+        }
+
+        function tryQuit() {
+            document.getElementById('quitMessage').textContent = pick(QUIT_MESSAGES);
+            document.getElementById('quitDialog').showModal();
+        }
+
         function clearBacklog() {
             if (!confirm("Clear your entire ticket history? Sprint Boss will remember this.")) return;
             backlog = [];
+            streak = 0;
+            lastDoneDate = null;
+            wontFixStreak = 0;
+            escalated = false;
             localStorage.setItem('sb_backlog', '[]');
+            localStorage.setItem('sb_streak', '0');
+            localStorage.setItem('sb_last_done_date', '');
+            localStorage.setItem('sb_wontfix_streak', '0');
+            localStorage.setItem('sb_escalated', '0');
             renderBacklog();
             renderVelocity();
+            renderStreak();
         }
 
+        showStandup();
         renderBacklog();
         renderVelocity();
+        renderStreak();
     </script>
 </body>
 </html>
