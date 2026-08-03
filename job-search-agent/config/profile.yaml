@@ -1,0 +1,32 @@
+# Search + matching profile. Replace these values with your own.
+name: "Jordan Lee"
+resume: "config/resume.md"
+
+target_titles:
+  - "Backend Engineer"
+  - "Senior Backend Engineer"
+  - "Platform Engineer"
+  - "Software Engineer, Infrastructure"
+
+# Keywords used for scoring job fit. Case-insensitive substring match
+# against the job title + description.
+keywords:
+  - python
+  - go
+  - golang
+  - kubernetes
+  - distributed systems
+  - postgres
+  - kafka
+  - aws
+  - terraform
+  - grpc
+  - microservice
+
+locations:
+  - "Remote"
+  - "Berlin"
+
+# A job is drafted only if it scores at least this many keyword matches.
+# Raise this to be more selective, lower it to see more candidates.
+min_match_score: 2

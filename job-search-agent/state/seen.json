@@ -1,0 +1,44 @@
+{
+  "2c0245ffe1d3": {
+    "title": "Senior Backend Engineer",
+    "company": "Northstar Payments",
+    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "matched": true
+  },
+  "fc8eab23bb64": {
+    "title": "Growth Marketing Manager",
+    "company": "Brightleaf Cosmetics",
+    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "matched": false
+  },
+  "f3eb710a434a": {
+    "title": "Platform Engineer",
+    "company": "Verdant Grid",
+    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "matched": true
+  },
+  "72b762912a6c": {
+    "title": "Backend Engineer, Core Services",
+    "company": "Acme Cloud",
+    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "matched": true
+  },
+  "3af7199c921b": {
+    "title": "Account Executive, Enterprise",
+    "company": "Acme Cloud",
+    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "matched": false
+  },
+  "1fdda7c0c39b": {
+    "title": "Infrastructure Engineer",
+    "company": "Globex Systems",
+    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "matched": true
+  },
+  "20034f7f754c": {
+    "title": "Executive Assistant",
+    "company": "Globex Systems",
+    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "matched": false
+  }
+}

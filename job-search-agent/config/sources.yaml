@@ -1,0 +1,30 @@
+# Where to look for jobs. Each source is either "mock" (reads a local HTML
+# fixture, no network needed — used for development and this v1 demo) or
+# "live" (loads a real URL with Playwright).
+#
+# LinkedIn does not have a "live" mode in v1: it requires an authenticated
+# session and aggressively fingerprints/blocks automated browsers, so a
+# from-scratch live scraper would be unreliable and risks the account being
+# flagged. See README.md "Going live" before attempting it.
+
+- type: linkedin_search
+  name: "LinkedIn Search"
+  mode: mock
+  fixture: "fixtures/linkedin_search.html"
+
+- type: company_career_page
+  name: "Acme Cloud"
+  mode: mock
+  fixture: "fixtures/company_acme.html"
+  # live:
+  #   url: "https://acme.example/careers"
+  #   selectors:
+  #     job_card: ".opening"
+  #     title: ".opening-title"
+  #     location: ".opening-location"
+  #     link: "a"
+
+- type: company_career_page
+  name: "Globex Systems"
+  mode: mock
+  fixture: "fixtures/company_globex.html"

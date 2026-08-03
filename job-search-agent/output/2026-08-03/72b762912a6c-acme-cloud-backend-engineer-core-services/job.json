@@ -1,0 +1,18 @@
+{
+  "title": "Backend Engineer, Core Services",
+  "location": "Remote (US/EU)",
+  "url": "https://acme.example/careers/backend-engineer-core",
+  "description": "Acme Cloud's Core Services team owns the API gateway and account\n      services that every other team depends on. Stack is Python and Go,\n      deployed on Kubernetes, with Postgres as our primary datastore. You'll\n      help us scale past 500k requests/sec.",
+  "company": "Acme Cloud",
+  "source": "Acme Cloud",
+  "id": "72b762912a6c",
+  "score": 5,
+  "matchedKeywords": [
+    "python",
+    "go",
+    "kubernetes",
+    "postgres"
+  ],
+  "titleMatch": true,
+  "matched": true
+}
