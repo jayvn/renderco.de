@@ -48,9 +48,44 @@ async function scrapeCompanyCareerPage(page, source) {
       location: card.querySelector(".opening-location")?.textContent.trim(),
       url: card.querySelector("a")?.href,
       description: card.querySelector(".opening-description")?.textContent.trim(),
+      salary: card.querySelector(".opening-salary")?.textContent.trim() || null,
     }))
   );
   return jobs.map((job) => ({ ...job, company: source.name }));
+}
+
+// EPO's mock fixture reuses the same .opening markup as a generic company
+// career page — it's a career-page scrape either way, just a different name.
+async function scrapeEpoCareers(page, source) {
+  if (source.mode === "live") {
+    throw new Error(
+      `Live EPO scraping not enabled (source "${source.name}"): selectors were never ` +
+        "verified against the real site because this environment's network policy " +
+        "blocks jobs.epo.org. Confirm the DOM structure manually before flipping this to live."
+    );
+  }
+  return scrapeCompanyCareerPage(page, { ...source, name: source.name });
+}
+
+async function scrapeGoogleJobsSearch(page, source) {
+  if (source.mode === "live") {
+    throw new Error(
+      `Live Google Jobs scraping not enabled (source "${source.name}"): this ` +
+        "environment's network policy blocks google.com, and the jobs SERP is " +
+        "JS-heavy/anti-scraping even when reachable. See README.md."
+    );
+  }
+  await page.goto(fixtureUrl(source.fixture));
+  return page.$$eval(".job-listing", (cards) =>
+    cards.map((card) => ({
+      title: card.querySelector(".job-title")?.textContent.trim(),
+      company: card.querySelector(".job-company")?.textContent.trim(),
+      location: card.querySelector(".job-location")?.textContent.trim(),
+      url: card.querySelector(".job-link")?.href,
+      description: card.querySelector(".job-description")?.textContent.trim(),
+      salary: card.querySelector(".job-salary")?.textContent.trim() || null,
+    }))
+  );
 }
 
 async function scrapeSource(browser, source) {
@@ -61,6 +96,10 @@ async function scrapeSource(browser, source) {
       jobs = await scrapeLinkedInSearch(page, source);
     } else if (source.type === "company_career_page") {
       jobs = await scrapeCompanyCareerPage(page, source);
+    } else if (source.type === "epo_careers") {
+      jobs = await scrapeEpoCareers(page, source);
+    } else if (source.type === "google_jobs_search") {
+      jobs = await scrapeGoogleJobsSearch(page, source);
     } else {
       throw new Error(`Unknown source type: ${source.type}`);
     }

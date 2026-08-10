@@ -60,6 +60,7 @@ async function main() {
         `- Location: ${job.location || "unknown"}`,
         `- URL: ${job.url}`,
         `- Match score: ${job.score} (keywords: ${job.matchedKeywords.join(", ") || "none"})`,
+        `- Salary: ${job.salary || "not listed"}${job.salaryK ? ` (parsed ~${job.salaryK}k)` : ""}`,
         "",
         "## Description",
         "",
@@ -79,21 +80,28 @@ async function main() {
     `- Sources scraped: ${sources.length}`,
     `- Listings found: ${rawJobs.length}`,
     `- New (unseen) listings: ${newJobs.length}`,
-    `- Matched (>= score ${profile.min_match_score}): ${matched.length}`,
-    `- Skipped (below threshold): ${skipped.length}`,
+    `- Matched (>= score ${profile.min_match_score}, salary floor ${profile.min_salary_k ?? "none"}k): ${matched.length}`,
+    `- Skipped (below score threshold or salary floor): ${skipped.length}`,
     "",
     "## Matched jobs (drafts pending in this folder)",
     "",
     ...(matched.length
       ? matched.map(
-          (j) => `- **${j.title}** at ${j.company} — score ${j.score} (${j.source})`
+          (j) =>
+            `- **${j.title}** at ${j.company} — score ${j.score}, salary ${
+              j.salary || "not listed"
+            } (${j.source})`
         )
       : ["_None today._"]),
     "",
-    "## Skipped (below match threshold)",
+    "## Skipped (below match threshold or salary floor)",
     "",
     ...(skipped.length
-      ? skipped.map((j) => `- ${j.title} at ${j.company} — score ${j.score}`)
+      ? skipped.map(
+          (j) =>
+            `- ${j.title} at ${j.company} — score ${j.score}` +
+            (j.belowSalaryFloor ? ` (salary ${j.salary} below floor)` : "")
+        )
       : ["_None._"]),
     "",
   ];

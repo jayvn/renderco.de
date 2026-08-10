@@ -1,0 +1,22 @@
+{
+  "title": "Senior Software Engineer, Cloud Infrastructure",
+  "company": "Google",
+  "location": "Zurich, Switzerland",
+  "url": "https://careers.google.com/jobs/mock-3001",
+  "description": "Build and operate infrastructure services on Kubernetes powering\n        Google Cloud, working in Go and Python at very large scale.\n        Distributed systems experience with Kafka-like pub/sub systems\n        preferred.",
+  "salary": "CHF 150,000 - 210,000 a year",
+  "source": "Google Jobs",
+  "id": "7985ec293031",
+  "score": 5,
+  "matchedKeywords": [
+    "python",
+    "go",
+    "kubernetes",
+    "distributed systems",
+    "kafka"
+  ],
+  "titleMatch": false,
+  "salaryK": 210,
+  "belowSalaryFloor": false,
+  "matched": true
+}

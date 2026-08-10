@@ -1,0 +1,21 @@
+{
+  "title": "Platform Engineer",
+  "company": "Verdant Grid",
+  "location": "Berlin, Germany",
+  "url": "https://www.linkedin.com/jobs/view/mock-1003",
+  "description": "Join our infra team building the platform other engineers deploy\n          on: Kubernetes, Terraform, gRPC-based internal services, and an\n          AWS footprint spanning EKS and RDS. Go experience preferred.",
+  "source": "LinkedIn Search",
+  "id": "f3eb710a434a",
+  "score": 6,
+  "matchedKeywords": [
+    "go",
+    "kubernetes",
+    "aws",
+    "terraform",
+    "grpc"
+  ],
+  "titleMatch": true,
+  "salaryK": null,
+  "belowSalaryFloor": false,
+  "matched": true
+}

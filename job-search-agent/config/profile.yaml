@@ -26,7 +26,17 @@ keywords:
 locations:
   - "Remote"
   - "Berlin"
+  - "Zurich"
 
 # A job is drafted only if it scores at least this many keyword matches.
 # Raise this to be more selective, lower it to see more candidates.
 min_match_score: 2
+
+# Best-effort salary floor, in thousands, currency-agnostic (a listing in
+# EUR/CHF/USD is treated the same — close enough for filtering purposes,
+# not for real compensation comparison). Jobs with a parseable salary below
+# this are excluded outright, even if they score well on keywords. Most
+# EU/Swiss listings (EPO included) don't publish a number at all — those are
+# scored on keywords only, with salary marked "unknown" in the output so a
+# human can check.
+min_salary_k: 130

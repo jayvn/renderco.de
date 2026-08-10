@@ -1,0 +1,21 @@
+{
+  "title": "Site Reliability Engineer",
+  "company": "Google",
+  "location": "Zurich, Switzerland",
+  "url": "https://careers.google.com/jobs/mock-3002",
+  "description": "Own reliability for backend services running on GKE. Postgres,\n        Terraform, and gRPC-based microservices are core to the stack.",
+  "salary": "CHF 140,000 - 190,000 a year",
+  "source": "Google Jobs",
+  "id": "0f6a5d1051a1",
+  "score": 4,
+  "matchedKeywords": [
+    "postgres",
+    "terraform",
+    "grpc",
+    "microservice"
+  ],
+  "titleMatch": false,
+  "salaryK": 190,
+  "belowSalaryFloor": false,
+  "matched": true
+}

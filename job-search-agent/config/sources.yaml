@@ -2,15 +2,34 @@
 # fixture, no network needed — used for development and this v1 demo) or
 # "live" (loads a real URL with Playwright).
 #
-# LinkedIn does not have a "live" mode in v1: it requires an authenticated
-# session and aggressively fingerprints/blocks automated browsers, so a
-# from-scratch live scraper would be unreliable and risks the account being
-# flagged. See README.md "Going live" before attempting it.
+# Priority order for going live (per current instructions): EPO first, then
+# Google Jobs, then LinkedIn. None are live yet — this session's network
+# policy blocks outbound access to jobs.epo.org, google.com, and
+# linkedin.com outright (separate from LinkedIn's own login-wall/anti-bot
+# problem, which is a second, independent blocker for that one). See
+# README.md "Going live" and the open question about network policy.
+
+- type: epo_careers
+  name: "European Patent Office"
+  mode: mock
+  fixture: "fixtures/epo_careers.html"
+  # live:
+  #   url: "https://jobs.epo.org/search/"
+  #   note: "Selectors unverified — network policy blocked a live check. Confirm DOM structure before enabling."
+
+- type: google_jobs_search
+  name: "Google Jobs"
+  mode: mock
+  fixture: "fixtures/google_jobs.html"
+  # live:
+  #   url: "https://www.google.com/search?q=<keywords>+jobs&ibp=htl;jobs"
+  #   note: "Google's jobs SERP is JS-heavy and actively anti-scraping; expect selector churn and possible blocking. Network policy also blocks this domain currently."
 
 - type: linkedin_search
   name: "LinkedIn Search"
   mode: mock
   fixture: "fixtures/linkedin_search.html"
+  # live: not implemented — see README.md "Going live on LinkedIn"
 
 - type: company_career_page
   name: "Acme Cloud"

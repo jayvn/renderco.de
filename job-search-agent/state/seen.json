@@ -1,44 +1,80 @@
 {
+  "40a9dac8137a": {
+    "title": "Patent Examiner — Computer-Implemented Inventions",
+    "company": "European Patent Office",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
+    "matched": false
+  },
+  "7001f387cbe2": {
+    "title": "IT Systems Engineer, Internal Platforms",
+    "company": "European Patent Office",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
+    "matched": false
+  },
+  "cf9763c4eb60": {
+    "title": "HR Business Partner",
+    "company": "European Patent Office",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
+    "matched": false
+  },
+  "7985ec293031": {
+    "title": "Senior Software Engineer, Cloud Infrastructure",
+    "company": "Google",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
+    "matched": true
+  },
+  "0f6a5d1051a1": {
+    "title": "Site Reliability Engineer",
+    "company": "Google",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
+    "matched": true
+  },
+  "c950f2fdba9f": {
+    "title": "Product Marketing Manager, Cloud",
+    "company": "Google",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
+    "matched": false
+  },
   "2c0245ffe1d3": {
     "title": "Senior Backend Engineer",
     "company": "Northstar Payments",
-    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
     "matched": true
   },
   "fc8eab23bb64": {
     "title": "Growth Marketing Manager",
     "company": "Brightleaf Cosmetics",
-    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
     "matched": false
   },
   "f3eb710a434a": {
     "title": "Platform Engineer",
     "company": "Verdant Grid",
-    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
     "matched": true
   },
   "72b762912a6c": {
     "title": "Backend Engineer, Core Services",
     "company": "Acme Cloud",
-    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
     "matched": true
   },
   "3af7199c921b": {
     "title": "Account Executive, Enterprise",
     "company": "Acme Cloud",
-    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
     "matched": false
   },
   "1fdda7c0c39b": {
     "title": "Infrastructure Engineer",
     "company": "Globex Systems",
-    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
     "matched": true
   },
   "20034f7f754c": {
     "title": "Executive Assistant",
     "company": "Globex Systems",
-    "firstSeen": "2026-08-03T21:03:32.724Z",
+    "firstSeen": "2026-08-10T13:33:47.422Z",
     "matched": false
   }
 }
